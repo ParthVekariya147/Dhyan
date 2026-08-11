@@ -1,0 +1,30 @@
+{
+  "name": "varni-dhyan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "extract": "node scripts/extract-images.mjs",
+    "verify": "node scripts/verify-loading.mjs",
+    "optimize": "node scripts/optimize-images.mjs",
+    "compare": "node scripts/visual-compare.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.0.5",
+    "puppeteer-core": "^25.5.0",
+    "sharp": "^0.34.4",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.2.1",
+    "vite-plugin-pwa": "^1.3.0"
+  },
+  "dependencies": {
+    "firebase": "^12.17.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
+  }
+}

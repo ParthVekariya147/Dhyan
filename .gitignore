@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dev-dist/
+
+# 18 MB of decoded JPEGs, kept only as the source for re-encoding.
+# Archive these to Google Drive — that is what the 5 TB plan is genuinely good for.
+originals-archive/
+
+.env
+.env.local
+.env.*.local

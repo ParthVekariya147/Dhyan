@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Palette and type carried over unchanged from the original single-file page,
+   so the rebuilt app looks identical to what is already live. */
+@theme {
+  --color-gold: #f0c778;
+  --color-gold-soft: #ffe6b0;
+  --color-ink: #100d0a;
+  --color-panel: #1c1610;
+  --color-muted: #a2907c;
+  --font-gu: "Noto Sans Gujarati", "Shruti", "Nirmala UI", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(1100px 620px at 50% -10%, #2e2013 0%, transparent 62%),
+    var(--color-ink);
+  color: #f6efe2;
+  font-family: var(--font-gu);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---- keyframes, ported as-is ---- */
+@keyframes dropIn { from { opacity: 0; transform: translateY(-22px); } to { opacity: 1; transform: none; } }
+@keyframes grow   { to { width: min(320px, 62%); } }
+@keyframes sheen  { to { transform: translateX(120%); } }
+@keyframes line   { to { width: 100%; } }
+@keyframes pop    { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: none; } }
+@keyframes bob    { 0%,80%,100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-6px); } }
+
+/* ---- header ---- */
+.site-header { padding: 64px 20px 46px; text-align: center; animation: dropIn 1s cubic-bezier(.2,.7,.3,1) both; }
+.site-header h1 {
+  font-size: clamp(24px, 6vw, 42px); font-weight: 700; letter-spacing: .5px;
+  background: linear-gradient(180deg, #fff3d8, var(--color-gold) 55%, #c9922f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.site-header p { margin-top: 10px; font-size: clamp(13px, 3vw, 15px); color: var(--color-muted); letter-spacing: .4px; }
+.rule {
+  width: 0; height: 1px; margin: 22px auto 0;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  animation: grow 1.4s .35s cubic-bezier(.2,.7,.3,1) forwards;
+}
+
+footer { text-align: center; padding: 16px 16px 54px; color: #7b6b5a; font-size: 12.5px; line-height: 1.9; }
+
+/* ---- reading-progress line ---- */
+#bar {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 60;
+  background: linear-gradient(90deg, #b8862f, var(--color-gold), #fff2d4);
+  box-shadow: 0 0 12px rgba(240,199,120,.65);
+  transition: width .12s linear;
+}
+
+/* ---- back to top ---- */
+#top {
+  position: fixed; right: 18px; bottom: 18px; z-index: 50;
+  width: 48px; height: 48px; border: none; border-radius: 50%; cursor: pointer;
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  color: #2a1d12; font-size: 21px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.55);
+  opacity: 0; pointer-events: none; transform: translateY(14px) scale(.85);
+  transition: opacity .35s ease, transform .35s cubic-bezier(.2,1.4,.4,1);
+}
+#top.show { opacity: 1; pointer-events: auto; transform: none; }
+#top:active { transform: scale(.9); }
+
+/* The original page's reduced-motion handling was already correct — kept verbatim. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .card { opacity: 1 !important; transform: none !important; }
+  .frame img { transform: none !important; }
+}
