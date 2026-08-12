@@ -1,0 +1,122 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   ONE TYPE SCALE, ONE SPACING SCALE, ONE CONTROL SIZE — for the whole app.
+   ────────────────────────────────────────────────────────────────────────────
+
+   Why this file exists
+   ────────────────────
+   લોગિન and નોંધણી were drawn independently and drifted: the same idea — a label, a
+   hint, an error, a button — was set at 12.5px on one screen and 14.5px on another,
+   and the પ્રવેશદ્વાર carried a third scale of its own (--gate-text / --gate-q). The
+   usual repair is to shave a font size wherever something overflows, which is how a
+   scale becomes a list of accidents. So sizes are named here, once, and a screen picks
+   a NAME. Nothing in src/ may set a raw px font-size for prose or a control any more.
+
+   The names are the roles §3 asks for:
+
+     --fs-page-title   the one <h1> a screen is allowed
+     --fs-section      a heading inside the page
+     --fs-label        the word above an input
+     --fs-input        what the યુવક types            — never below 16px, see below
+     --fs-helper       the hint under an input
+     --fs-error        what is wrong, and how to fix it
+     --fs-button       the primary action
+
+   Mobile is the platform (§ "MOBILE: Primary platform"), so every value here is the
+   PHONE value and the clamps grow upward on a wider screen — not a desktop value that
+   a media query shrinks. The targets are 320 / 360 / 375 / 390 / 412 / 430 px, and
+   320px is the one that decides: at that width the page has 288px of usable room after
+   padding, which is what the clamps' lower bounds are chosen against.
+
+   Gujarati, not Latin, sets the line-heights. Matras sit above and below the base line,
+   so 1.65 is the floor for running text where a Latin page would be comfortable at 1.4;
+   anything tighter collides on a two-line wrap. That is also why nothing here shrinks
+   prose below 12.5px: Gujarati loses its matras at a size where Latin is still legible.
+
+   The 16px floor on --fs-input is not a preference. iOS Safari zooms the whole page in
+   when a focused input's text is smaller than 16px, and it does not zoom back out — the
+   યુવક is left on a page scrolled sideways with the button off-screen, which is exactly
+   the "keyboard breaks the layout" failure §21 tests for. */
+
+:root {
+  /* ---- type ------------------------------------------------------------- */
+  --fs-page-title: clamp(20px, 5.4vw, 26px);
+  --fs-section: clamp(15.5px, 4.2vw, 17px);
+  --fs-body: 15px;
+  --fs-label: 14px;
+  --fs-input: 16px;
+  --fs-helper: 12.5px;
+  --fs-error: 13px;
+  --fs-button: 16px;
+
+  --lh-title: 1.4;
+  --lh-body: 1.65;
+  --lh-tight: 1.5;
+
+  /* ---- spacing ---------------------------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 22px;
+  --sp-6: 28px;
+
+  /* ---- controls --------------------------------------------------------- */
+  /* 48px is the smaller of the two published one-handed tap floors (Android 48,
+     iOS 44) and applies to every input, select and button in the app, so a form
+     is a column of identical boxes rather than a stack of different heights. */
+  --control-h: 48px;
+  --control-pad-x: 14px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+
+  /* ---- page ------------------------------------------------------------- */
+  /* 460px is a comfortable single form column; it is a MAX, so every phone in the
+     target range gets the full width minus the padding and nothing is centred into
+     a narrow strip. */
+  --page-max: 460px;
+  --page-pad: 16px;
+  --page-top: 26px;
+  --page-bottom: 56px;
+
+  /* One reserved line under every field, so a validation message appearing cannot
+     move the button under a thumb that is already travelling towards it (§18). */
+  --field-msg-h: calc(var(--fs-helper) * var(--lh-body) + var(--sp-1));
+}
+
+/* Above the widest phone in the target list there is room to breathe. Nothing about
+   the type scale changes here — the clamps above already handle that — only the
+   space around the column. */
+@media (min-width: 440px) {
+  :root {
+    --page-pad: 20px;
+    --page-top: 40px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Wrapping — Gujarati must break where Gujarati breaks
+   ────────────────────────────────────────────────────────────────────────────
+   `overflow-wrap: break-word` only splits a word that cannot fit ALONE on a line, so
+   ordinary Gujarati still wraps at its own boundaries; what it prevents is a long
+   unbroken run — an email address, a URL, an SMK — pushing the page sideways. The
+   `word-break: normal` is stated rather than assumed, because a stray `break-all`
+   inherited from anywhere would chop Gujarati mid-cluster and detach its matras. */
+body {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+
+/* The horizontal-overflow guard (§1, §21 — "NO horizontal scrolling").
+   `body { overflow-x: hidden }` in index.css hides a sideways page but does not stop
+   one being built; these two rules stop it being built. `min-width: 0` is the one that
+   actually matters — a flex or grid child defaults to `min-width: auto`, which refuses
+   to shrink below its content, and that is how one long word in a flex row widens the
+   whole page on a 320px screen. */
+.auth-wrap,
+.auth-card,
+.auth-card * {
+  min-width: 0;
+  max-width: 100%;
+}

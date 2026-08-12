@@ -139,8 +139,13 @@
 }
 .runner-nav-single { justify-content: center; }
 
+/* The row layout is for the direction arrow (src/components/NavArrow.jsx) and nothing
+   else: centred inline content would wrap the arrow onto a second line and make one of
+   the two buttons in a .runner-nav taller than its neighbour. Same padding, same font,
+   same flex:1 — only the way the contents sit inside has changed. */
 .btn-gold, .btn-quiet {
   flex: 1; padding: 15px 22px; border-radius: 12px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;
   font: inherit; font-size: 16px; font-weight: 600; letter-spacing: .3px;
   transition: transform .18s ease, box-shadow .25s ease, opacity .2s ease;
 }

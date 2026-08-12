@@ -15,6 +15,7 @@ import { L4_ACTIVITY_STATUS, guLevel4Error, submitAttempt, useLevel4 } from '../
 import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
 import PageIntro from '../../components/PageIntro';
+import NavArrow from '../../components/NavArrow';
 /* The row rhythm, the ring-less head, the panels and — the one that matters on a phone —
    the `content-visibility` list technique are all already solved in the levels module's
    stylesheet. See NumberRow below for why the row itself is not TickRow. */
@@ -34,13 +35,18 @@ import './level4.css';
  *                useScenes() — for the printed number of each id, and nothing else.
  * Visible        The કસોટી's code and title, the instruction, and one row per item:
  *                **number and checkbox**. Then the tick count, and one action.
- * Actions        Tick, untick, submit at ૧૦૦%, or go and look at the દર્શન again.
- * Persisted      One row per attempt via `level4_submit`, and — if every item is ticked —
+ * Actions        Tick, untick, submit once the કસોટી's own mark is reached, record a
+ *                half-attempt below it, or go and look at the દર્શન again.
+ * Persisted      One row per attempt via `level4_submit`, and — if the mark was reached —
  *                this કસોટી marked COMPLETED, permanently. The in-flight ticks are NOT
  *                persisted: a half-finished attempt is not a thing worth resuming.
- * Completion     Every item of this કસોટી ticked, and the submit acknowledged by the
- *                server. The server re-checks the gate, the lock and the item set; this
- *                page's ૧૦૦% is a courtesy, never the authority (§37).
+ * Completion     `level4_required_count()` items ticked — the mark the સંચાલક set for this
+ *                કસોટી, which is every item unless he said otherwise (0016) — and the
+ *                submit acknowledged. The server re-checks the gate, the lock, the item set
+ *                and the mark; this page's arithmetic is a courtesy, never the authority.
+ * Attempts       **One submission, spent by passing** (0016). A કસોટી he has not passed may
+ *                be attempted as often as it takes; one he has passed refuses further
+ *                submissions and this page shows its દર્શન instead of its boxes.
  * Next           Passed → the next કસોટી, or the લેવલ ૪ list if this was the last.
  *                Not passed → this કસોટી's પુનરાવર્તન, /level/4/:activityId/revision.
  * Previous       /level/4 — the કસોટી list.
@@ -85,26 +91,34 @@ import './level4.css';
  *
  * A tick is "આ દ્રશ્ય મને યાદ છે" (§13). Nothing is checked against anything and nothing is
  * revealed: the app has no way to know what he pictured and does not pretend to. Passing is
- * therefore "every દ્રશ્ય of this કસોટી is ticked" (§15) and nothing else — there is no
- * correctness comparison anywhere in લેવલ ૪.
+ * reaching this કસોટી's mark — `level4_required_count()`, which is every દ્રશ્ય unless the
+ * સંચાલક set a smaller number (0016). There is no correctness comparison anywhere in લેવલ ૪;
+ * a tick is never wrong, there is only ground covered and ground not yet covered.
  *
- * So 'પૂરું કરો' appears only at ૧૦૦% (§14) — finishing a કસોટી means covering all of it,
- * and nothing else finishes one. Below that the invitation to go and look at the દર્શન again
- * is the first thing offered, because that is the ordinary next step of the સાધના and not a
- * penalty. Beside it, quietly, 'આટલું નોંધાવો' records the half-attempt: the કસોટી stays
- * open, nothing is marked wrong, and the only difference is that `level4_attempts` now
- * remembers that he sat down and tried. There is still no count of what is missing anywhere
- * on this screen (§1 rule 4), before the attempt or after it.
+ * So 'પૂરું કરો' appears when the mark is reached and not before. Below it, the invitation to
+ * go and look at the દર્શન again is the first thing offered, because that is the ordinary
+ * next step of the સાધના and not a penalty. Beside it, quietly, 'આટલું નોંધાવો' records the
+ * half-attempt: the કસોટી stays open, nothing is marked wrong, and the only difference is
+ * that `level4_attempts` remembers he sat down and tried. There is still no count of what is
+ * missing anywhere on this screen (§1 rule 4), before the attempt or after it.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * A finished કસોટી is still a કસોટી
+ * One submission, and it is spent by passing — not by attempting (0016)
  * ────────────────────────────────────────────────────────────────────────────
  *
- * COMPLETED does not close this page and never has (decision #2): the boxes are empty again,
- * the button behaves the same way, and `level4_submit` accepts the attempt however many
- * times it is sent — there is no attempt limit in the database and none here. What 0012
- * added is that nothing can withdraw that afterwards, not even the સંચાલક raising
- * `gate_threshold` past where this યુવક stands; see the gate branch below.
+ * A કસોટી he has **not** passed may be sat as often as it takes. Nothing is used up by
+ * falling short, and that is the whole of why this rule is safe: "one submission ever" would
+ * turn a single misremembered દ્રશ્ય into લેવલ ૪ closed forever, with no સંચાલક reset in this
+ * system to rescue anyone from it.
+ *
+ * A કસોટી he **has** passed is finished. `level4_submit` answers `level4_already_passed`, and
+ * this page does not show him boxes he cannot submit — it shows the same calm panel a finished
+ * attempt shows, and the way to this કસોટી's દર્શન, which stay his for good.
+ *
+ * What 0012 contributed still holds underneath: COMPLETED is derived ahead of the gate and
+ * ahead of ક્રમ, so neither the સંચાલક raising the લેવલ ૪ gate past where this યુવક stands
+ * (0014) nor a reorder can un-pass it. A pass is now permanent in both directions — it cannot
+ * be taken away, and it cannot be taken again.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * Where the state lives (§33)
@@ -232,12 +246,16 @@ export default function ActivityTestPage() {
           <section className="l4-panel">
             <div className="l4-mark" aria-hidden="true">🙏</div>
             <h2>લેવલ {gu(activity.code)} પૂરું થયું</h2>
+            {/* Said here because this is the moment it becomes true, and because a યુવક who
+                comes back tomorrow looking for the કસોટી should have been told once, warmly,
+                rather than meeting a closed door and wondering (0016). */}
             <p className="l4-panel-line">
-              આ કસોટી હવે કાયમ પૂરી ગણાશે. જય સ્વામિનારાયણ.
+              આ કસોટી હવે કાયમ પૂરી ગણાશે — ફરી આપવાની નથી. દર્શન જ્યારે જોવાં હોય ત્યારે
+              જોઈ શકાય. જય સ્વામિનારાયણ.
             </p>
             {outcome.nextActivityId ? (
               <Link to={`/level/4/${outcome.nextActivityId}`} className="btn-gold btn-inline">
-                હવે પછીની કસોટી
+                હવે પછીની કસોટી<NavArrow />
               </Link>
             ) : (
               <Link to="/level/4" className="btn-gold btn-inline">લેવલ ૪ ની યાદી</Link>
@@ -332,6 +350,36 @@ export default function ActivityTestPage() {
   }
 
   /*
+    Already passed — one submission per કસોટી, and it has been made (0016).
+
+    Not a refusal, and not styled as one: the same calm panel a finished attempt shows, in
+    the same words. What he gets instead of the tick list is the thing that is actually
+    useful to him now — the દર્શન of this કસોટી, his for good.
+
+    Reached by a bookmark, a back button, a second phone, or the list page while a refresh is
+    in flight. `level4_submit` refuses it as well (`level4_already_passed`), so this is the
+    courtesy and not the enforcement.
+  */
+  if (activity.status === L4_ACTIVITY_STATUS.COMPLETED) {
+    return (
+      <Frame code={activity.code}>
+        <section className="l4-panel">
+          <div className="l4-mark" aria-hidden="true">🙏</div>
+          <h2>લેવલ {gu(activity.code)} પૂરું થયું</h2>
+          <p className="l4-panel-line">
+            આ કસોટી તમે પૂરી કરી લીધી છે અને એ કાયમ પૂરી જ રહેશે. હવે એ ફરી આપવાની નથી —
+            પણ આ કસોટીનાં દર્શન જેટલી વાર જોવાં હોય એટલી વાર જોઈ શકાય.
+          </p>
+          <Link to={`/level/4/${activity.id}/revision`} className="btn-gold btn-inline">
+            દર્શન જુઓ
+          </Link>
+          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ ની યાદી</Link>
+        </section>
+      </Frame>
+    );
+  }
+
+  /*
     A કસોટી whose turn has not come. The invitation names the one that opens it, so the
     યુવક leaves this page knowing what to do — never how far behind he is (§1 rule 4, §23).
   */
@@ -355,7 +403,16 @@ export default function ActivityTestPage() {
 
   // ---------------------------------------------------------------- the test
 
-  const all = items.length > 0 && checked.size >= items.length;
+  /*
+    Whether the mark has been reached (0016) — not whether everything is ticked.
+
+    `requiredCount` arrives from the server already clamped to what the કસોટી holds, so this
+    can never ask for more boxes than exist. The `min` is belt-and-braces for a payload from
+    an older database that did not send the field at all, where normaliseActivity() has
+    already defaulted it to the item count.
+  */
+  const needed = Math.min(activity.requiredCount || items.length, items.length);
+  const enough = items.length > 0 && checked.size >= needed;
 
   return (
     <Frame code={activity.code}>
@@ -379,12 +436,18 @@ export default function ActivityTestPage() {
         <PageIntro spec={spec} />
 
         {/*
-          Already his, and saying so plainly. Decision #2: a કસોટી once passed is never
-          taken back, so this visit is practice — offered warmly, with nothing at stake.
+          The mark, said once, before he starts (0016).
+
+          Only when it is below the કસોટી's own size — "ટિક થયેલાં: ૦ / ૨૭" already tells him
+          how many there are, and repeating that as a target would add nothing. When the
+          સંચાલક has set a lower mark it has to be said, or a યુવક who reaches it sees
+          'પૂરું કરો' appear with boxes still empty and cannot tell whether that is right.
+
+          Said as what is needed, never as what is missing (§1 rule 4).
         */}
-        {activity.status === L4_ACTIVITY_STATUS.COMPLETED && (
+        {activity.requiredCount > 0 && activity.requiredCount < items.length && (
           <p className="level-note l4-banner">
-            આ કસોટી પૂરી થઈ ગઈ છે અને કાયમ પૂરી રહેશે. ફરી કરવી હોય તો ખુશીથી કરો.
+            આ કસોટી પૂરી કરવા માટે {gu(activity.requiredCount)} દ્રશ્યો યાદ હોવાં જરૂરી છે.
           </p>
         )}
       </header>
@@ -445,7 +508,7 @@ export default function ActivityTestPage() {
         a button that appeared silently four screens below him would never be found.
       */}
       <div className="l4-actions" aria-live="polite">
-        {all ? (
+        {enough ? (
           <button type="button" className="btn-gold btn-inline" onClick={onSubmit} disabled={sending}>
             {sending ? 'મોકલાય છે…' : 'પૂરું કરો'}
           </button>

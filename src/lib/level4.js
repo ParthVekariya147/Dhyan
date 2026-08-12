@@ -98,6 +98,17 @@ const L4_ERRORS = {
   level4_not_published: 'આ કસોટી હમણાં ખુલ્લી નથી. લેવલ ૪ તૈયાર થઈ રહ્યું છે — થોડા વખતમાં ફરી જુઓ.',
   level4_gate_closed: 'લેવલ ૩ પૂરું થયા પછી આ કસોટી ખૂલશે. પહેલાં લેવલ ૩ કરો.',
   level4_locked: 'આ પહેલાંની કસોટી પૂરી થાય પછી આ ખૂલશે. એક પછી એક, ક્રમ પ્રમાણે.',
+  /*
+    0016 — the one refusal that is not an obstacle.
+
+    Every other line in this map says "not yet". This one says "already done", and it is
+    worded so that a યુવક who meets it cannot read it as having lost something: the કસોટી is
+    finished, it stays finished, and the દર્શન behind it are still his to look at whenever he
+    likes. He reaches this only by submitting a કસોટી he has already passed — a stale tab, a
+    back button, or a second phone — so it is a surprise, and a surprise is exactly when
+    wording matters.
+  */
+  level4_already_passed: 'આ કસોટી તમે પૂરી કરી લીધી છે — એ કાયમ પૂરી જ રહેશે. દર્શન ફરી જોવાં હોય તો ખુશીથી જુઓ.',
   level4_not_signed_in: 'ફરી લોગિન કરો, પછી આ કસોટી ચાલુ રહેશે. તમારું ધ્યાન સચવાયેલું છે.',
   level4_not_active: 'તમારું ખાતું હમણાં ચાલુ નથી. સંચાલકને જણાવો.',
 };
@@ -232,6 +243,18 @@ function normaliseActivity(raw) {
     description: str(pick(raw, 'description')),
     position: posInt(pick(raw, 'position'), 0),
     sceneIds: itemIds(pick(raw, 'sceneIds', 'scene_ids', 'items')),
+    /*
+      How many of them must be recalled to pass (0016). The server sends it already clamped
+      to what the કસોટી actually holds, so it is never larger than `sceneIds`.
+
+      Falls back to "all of them" when absent, which is both the pre-0016 rule and the safe
+      direction: a client talking to an older database would otherwise read `0` and offer
+      'પૂરું કરો' before a single box was ticked, on a submission the server would refuse.
+    */
+    requiredCount: posInt(
+      pick(raw, 'requiredCount', 'required_count'),
+      itemIds(pick(raw, 'sceneIds', 'scene_ids', 'items')).length
+    ),
   };
 }
 
@@ -308,10 +331,13 @@ function normaliseState(raw) {
  *     દ્રશ્યો were all covered by activities the યુવક already passed is already done, and
  *     he is not asked to sit it again.
  *
- * Repetition needs no rule of its own here, and deliberately has none. A COMPLETED કસોટી
- * is simply not LOCKED, so every screen that asks "may he open this?" already says yes, as
- * many times as he likes — `level4_submit` has never held an attempt limit and 0012 removed
- * the two ways access could be withdrawn from underneath one.
+ * **Opening and attempting are two questions, and this answers only the first** (0016). A
+ * COMPLETED કસોટી is not LOCKED, so it may always be opened — its દર્શન are the યુવક's for
+ * good. It may not be *submitted* again: that one submission has been made and it counted.
+ * The distinction is `canOpen` versus `canAttempt` in useLevel4Activity() below, and it is
+ * enforced by `level4_submit`, which answers `level4_already_passed` regardless of what any
+ * screen offers. A કસોટી he has not yet passed is unaffected — he may attempt it as many
+ * times as it takes, because a failed attempt is not spent.
  *
  * `level4_submit` re-derives all of this server-side before it writes anything (§2.3
  * steps 1–3), so nothing here can grant access; it can only fail to *offer* it, which is
@@ -625,6 +651,17 @@ export function useLevel4Activity(activityId) {
       shut. One question, answered in one place.
     */
     canOpen: Boolean(activity) && status !== S.LOCKED,
+    /*
+      Whether the કસોટી may still be *sat* (0016), as opposed to merely opened.
+
+      One submission per કસોટી, spent by passing it — not by attempting it. A યુવક who fell
+      short may come back as often as he needs; a યુવક who passed has finished, and the
+      screen offers him the દર્શન instead of a second exam. `level4_submit` refuses either
+      way, so this only decides what is *offered*, which is the safe direction: a screen that
+      offers something the server will refuse is a small unkindness, and one that hides
+      something he is entitled to is a larger one.
+    */
+    canAttempt: Boolean(activity) && status !== S.LOCKED && status !== S.COMPLETED,
     retry,
   };
 }
@@ -663,6 +700,7 @@ export async function submitAttempt(activityId, selectedSceneIds) {
     passed: Boolean(pick(d, 'passed')),
     selectedCount: posInt(pick(d, 'selectedCount', 'selected_count'), 0),
     requiredCount: posInt(pick(d, 'requiredCount', 'required_count'), 0),
+    itemCount: posInt(pick(d, 'itemCount', 'item_count'), 0),
     // The server's word for where he now stands. REVISION_REQUIRED is not a failure and is
     // never rendered as one (§1 rule 4) — it is the invitation to go and look again.
     status: KNOWN_STATUS.has(str(pick(d, 'status')).toUpperCase())

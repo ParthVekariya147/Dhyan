@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { gu } from '../../lib/scenes';
+import NavArrow from '../../components/NavArrow';
 
 /**
  * Stage 5 — સ્મૃતિ દર્શન (§18, §19).
@@ -66,12 +67,12 @@ export default function MemoryRecall({ indexes, onFinish }) {
 
       <nav className="runner-nav">
         <button type="button" className="btn-quiet" onClick={() => go(-1)} disabled={cur === 0}>
-          પાછળ
+          <NavArrow dir="back" />પાછળ
         </button>
         {atEnd ? (
           <button type="button" className="btn-gold" onClick={onFinish}>પૂર્ણ કરો</button>
         ) : (
-          <button type="button" className="btn-gold" onClick={() => go(1)}>આગળ</button>
+          <button type="button" className="btn-gold" onClick={() => go(1)}>આગળ<NavArrow /></button>
         )}
       </nav>
     </section>

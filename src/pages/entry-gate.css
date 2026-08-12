@@ -1,25 +1,34 @@
-/* §5 — the entry gate.
+/* §5 — the entry gate, which is also લેવલ ૧.
 
-   ONE TYPE SCALE.
-   This card used to mix 12.8px, 14px, 14.5px, 15.5px and 16.5px text in a single
-   column — the note under the boxes was the smallest thing on screen while the link
-   above them was the largest — which is what made the lettering read as randomly
-   small and large. There are three sizes here now and nothing sets its own:
+   ONE TYPE SCALE — and since §20 it is the APP'S scale, not this page's.
 
-     --gate-text    15px    the sub-heading and the note under the boxes
-     --gate-q       16px    the two questions themselves — the thing being answered,
-                            so never smaller than the prose around it
-     (buttons)      16.5px  from .btn in forms.css, shared with every other page
+   This card used to mix 12.8px, 14px, 14.5px, 15.5px and 16.5px in a single column. That
+   was fixed by giving the page three sizes of its own (--gate-text / --gate-q / a button
+   size), which fixed the page and created a second problem: a યુવક arriving here straight
+   from નોંધણી met a third type scale within about ninety seconds of meeting the first two.
+   §20 asks that લોગિન, નોંધણી and this page feel like one application, so the names stay —
+   they are what the rules below read — but each now resolves to a token from
+   styles/tokens.css rather than to a number invented here.
 
-   The 1.65 line-height is inherited from the Gujarati pages rather than tuned for the
-   English wording this page now carries: body text still renders in --font-gu, and the
-   moment any of these strings goes back to Gujarati the matras need that room. Latin at
-   1.65 is loose but correct; Gujarati at a Latin 1.4 collides. */
+     --gate-text  →  --fs-body     the sub-heading and the note under the boxes
+     --gate-q     →  --fs-input    the two questions — the thing being answered, so it is
+                                   sized like something the યુવક acts on, never smaller
+                                   than the prose around it
+     (buttons)    →  --fs-button   from .btn in forms.css, shared with every other page
+
+   The line-height is the Gujarati one and stays that way even while this page's wording is
+   English: body text still renders in --font-gu, and the moment any of these strings goes
+   back to Gujarati the matras need the room. Latin at 1.65 is loose but correct; Gujarati
+   at a Latin 1.4 collides. */
 .gate-wrap {
+  /* Wider than the form pages' 460px, and the video is the reason: this is the one auth
+     surface with a 16:9 picture in it, and a wider column means a bigger picture on a
+     tablet without changing anything on a phone, where both are simply the screen width
+     minus the padding. */
   max-width: 560px;
-  --gate-text: 15px;
-  --gate-q: 16px;
-  --gate-line: 1.65;
+  --gate-text: var(--fs-body);
+  --gate-q: var(--fs-input);
+  --gate-line: var(--lh-body);
 
   /* This page's wording is English — see --font-latin in index.css for why the whole
      app cannot simply be told to prefer Latin. */
@@ -37,7 +46,7 @@
 
 /* ---- video ---------------------------------------------------------------- */
 
-.gate-video { margin-top: 22px; }
+.gate-video { margin-top: var(--sp-5); }
 
 .video-frame {
   position: relative;
@@ -164,7 +173,7 @@
    noun either way, so this button reads the same whichever language the page is in. */
 .gate-open {
   display: block;
-  margin-top: 12px;
+  margin-top: var(--sp-3);
   text-align: center;
   text-decoration: none;
 }
@@ -175,8 +184,8 @@
    Loose checkboxes under a video look like two stray controls, and on a tall phone
    the second one could sit far enough down to be missed entirely. */
 .gate-qs {
-  margin-top: 22px;
-  padding: 16px 14px 14px;
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-3) var(--sp-3);
   border-radius: 14px;
   background: rgba(240, 199, 120, 0.035);
   border: 1px solid rgba(240, 199, 120, 0.16);
@@ -187,7 +196,7 @@
    would break again the moment this label goes back to Gujarati, which loses its matras
    at a size where Latin is still perfectly readable. */
 .gate-qs-head {
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-3);
   font-size: var(--gate-text);
   font-weight: 700;
   letter-spacing: 0.3px;

@@ -1,13 +1,29 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import { LearningProvider } from './lib/learning';
 import { useSettings, youtubeId } from './lib/useSettings';
+import { guardRoute, readLastRoute, resolveEntryRoute, writeLastRoute } from './lib/entryRoute';
 import DhunPlayer from './components/DhunPlayer';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import EntryGate from './pages/EntryGate';
-import Home from './pages/Home';
+
+/**
+ * The મુખપૃષ્ઠ, on demand — and this became true the day §4 changed which page is first.
+ *
+ * It was imported eagerly for one stated reason: "it is where a યુવક lands after signing
+ * in". That is no longer the shape of a first visit. A visitor who opens the URL with no
+ * session is shown નોંધણી, registers, and goes straight to લેવલ ૧ (§5, §6, §22) — the
+ * મુખપૃષ્ઠ is not on that path at all. Keeping it eager meant every one of those first
+ * visits paid, before seeing a single field, for a page he would not reach that day:
+ * shared/domain/journey.js's ten page descriptions, useLevels(), and the લેવલ ૪ gate
+ * resolver. The same argument the four screens below have always made.
+ *
+ * A returning યુવક usually resumes at a level rather than here, and when he does land here
+ * the chunk arrives while auth is still resolving — so in practice nobody waits for it.
+ */
+const Home = lazy(() => import('./pages/Home'));
 
 /**
  * દર્શન is loaded on demand. It pulls in content/darshan.json — 124 KB describing every
@@ -46,14 +62,49 @@ const Level4Page = lazy(() => import('./modules/level4/Level4Page'));
 const ActivityTestPage = lazy(() => import('./modules/level4/ActivityTestPage'));
 const RevisionPage = lazy(() => import('./modules/level4/RevisionPage'));
 
-function Loading() {
+/**
+ * §13 — the auth-initialisation state.
+ *
+ * Three things it must not be: a blank screen, an infinite spinner, or a flicker. It was
+ * the first of those, and not by accident — the markup was three bare `.dot` spans, and
+ * `.dot` is defined in levels.css and darshan.css, neither of which exists in the bundle
+ * while auth is still resolving. So a યુવક opening the app saw nothing at all until
+ * Supabase answered. The dots now live in forms.css, which every eager page imports, and
+ * a line of Gujarati says what is happening — because two seconds of silence on a weak
+ * signal is indistinguishable from a broken app.
+ *
+ * It is bounded by construction rather than by a timeout: AuthProvider clears `loading`
+ * on every path through getSession() and onAuthStateChange, including the failures, so
+ * there is no state in which this renders forever.
+ */
+function Loading({ label = 'એક ક્ષણ…' }) {
   return (
-    <div className="spinner-page">
-      <span className="dot" />
-      <span className="dot" />
-      <span className="dot" />
+    <div className="spinner-page is-auth" role="status" aria-live="polite">
+      <span className="spinner-dots" aria-hidden="true">
+        <span className="dot" />
+        <span className="dot" />
+        <span className="dot" />
+      </span>
+      <span>{label}</span>
     </div>
   );
+}
+
+/**
+ * Remembers the last level front door this યુવક stood at, for §7's "resume where he was".
+ *
+ * Mounted once beside <Routes> rather than called from each level page: which pages are
+ * resumable is one list (shared/domain/entry-route.js), and four pages each remembering
+ * themselves is four places for that list to drift. Writes nothing anywhere else — a
+ * path that is not a front door leaves the previous one standing.
+ */
+function RouteMemory() {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    writeLastRoute(user?.id, pathname);
+  }, [user?.id, pathname]);
+  return null;
 }
 
 /**
@@ -78,28 +129,70 @@ function ConfigNotice() {
 }
 
 /**
- * Three-state guard (§5, §6):
- *   not signed in            → /login
- *   signed in, gate not done → /welcome
- *   signed in, gate done     → the requested page
+ * The guard for every protected page (§10, §11, §12).
+ *
+ * It decides nothing itself. `guardRoute()` in shared/domain/entry-route.js holds the
+ * whole rule — that is the point of §10, and the reason the four scattered conditions
+ * that used to live in this file are gone. This component's entire job is: wait until the
+ * answer is knowable, ask for it once, and render either the page or one redirect.
+ *
+ * "Knowable" is `loading`, and it covers the session AND the profile (see AuthProvider).
+ * Asking before then is what produced the flicker §13 forbids: a refresh on /level/4 with
+ * a half-known યુવક answers "લેવલ ૧", and a moment later answers "/level/4" again.
+ *
+ * `state.from` is carried on the redirect so the લોગિન page can send him back to the page
+ * he actually asked for — a refresh on /level/4 that finds an expired session should not
+ * cost him his place (§12).
  */
 function Guarded({ children }) {
-  const { user, profile, loading, unconfigured } = useAuth();
+  const { user, profile, profileError, loading, unconfigured } = useAuth();
   const loc = useLocation();
 
   if (unconfigured) return <ConfigNotice />;
   if (loading) return <Loading />;
-  if (!user) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
-  if (profile && !profile.gate_passed_at) return <Navigate to="/welcome" replace />;
-  return children;
+
+  const { allow, to } = guardRoute({ path: loc.pathname, user, profile, profileError });
+  if (allow) return children;
+
+  /*
+    `replace`, always, on every redirect in this file.
+
+    §16 — a યુવક who is bounced from / to /register, registers, and lands on લેવલ ૧ must
+    be able to press back without being walked through that bounce again in reverse. A
+    pushed redirect leaves both the page he could not see and the page he was sent to in
+    the history, so back returns to the guard, which redirects forward again — the loop
+    §16 describes. Replacing means the entry redirects were never there.
+  */
+  return <Navigate to={to} replace state={{ from: loc.pathname }} />;
 }
 
-/** Signed-in users should never sit on the login or registration pages. */
+/**
+ * લોગિન and નોંધણી — the two pages a signed-in યુવક must never see (§22).
+ *
+ * The destination is resolveEntryRoute()'s, not a hard-coded '/'. That is what removes
+ * the second hop of §15: a યુવક who has not passed the પ્રવેશદ્વાર used to be sent to the
+ * મુખપૃષ્ઠ here and immediately onward to /welcome by the guard above, so he saw a page he
+ * was not entitled to for one frame on the way past.
+ *
+ * `registering` holds this still for the few hundred milliseconds in which a new account
+ * has a session but not yet a profile row — see AuthProvider. Without it this guard fires
+ * mid-registration and unmounts the નોંધણી page while its profile insert is still in
+ * flight, taking the error handling for a duplicate SMK with it.
+ */
 function PublicOnly({ children }) {
-  const { user, loading, unconfigured } = useAuth();
+  const { user, profile, profileError, loading, registering, unconfigured } = useAuth();
   if (unconfigured) return <ConfigNotice />;
   if (loading) return <Loading />;
-  if (user) return <Navigate to="/" replace />;
+  if (registering) return children;
+  if (user) {
+    const to = resolveEntryRoute({
+      user,
+      profile,
+      profileError,
+      lastRoute: readLastRoute(user.id),
+    });
+    return <Navigate to={to} replace />;
+  }
   return children;
 }
 
@@ -125,12 +218,18 @@ function DarshanGate({ children }) {
  * gets this page, in replay mode: the video, without the questions he has answered.
  */
 function GateRoute() {
-  const { user, profile, loading, unconfigured } = useAuth();
+  const { user, profile, profileError, loading, unconfigured } = useAuth();
   const { settings, loading: sLoading } = useSettings();
+  const loc = useLocation();
 
   if (unconfigured) return <ConfigNotice />;
   if (loading || sLoading) return <Loading />;
-  if (!user) return <Navigate to="/login" replace />;
+
+  // The same centralized decision as everywhere else (§10). /welcome is where NEW_USER is
+  // sent, so this only ever redirects the unauthenticated — but it asks the one function
+  // that knows, rather than re-stating half the rule here.
+  const { allow, to } = guardRoute({ path: loc.pathname, user, profile, profileError });
+  if (!allow) return <Navigate to={to} replace state={{ from: loc.pathname }} />;
 
   return (
     <EntryGate
@@ -144,12 +243,22 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <RouteMemory />
         <Routes>
           <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
           <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
           <Route path="/welcome" element={<GateRoute />} />
 
-          <Route path="/" element={<Guarded><Home /></Guarded>} />
+          <Route
+            path="/"
+            element={
+              <Guarded>
+                <Suspense fallback={<Loading />}>
+                  <Home />
+                </Suspense>
+              </Guarded>
+            }
+          />
           <Route
             path="/darshan"
             element={

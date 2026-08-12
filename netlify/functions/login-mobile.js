@@ -17,7 +17,12 @@
  * belongs nowhere else.
  */
 
-const MOBILE_RE = /^[6-9]\d{9}$/;
+// Imported rather than restated. `profiles.mobile` is UNIQUE and is the identifier this
+// whole function exists to resolve, so the browser and the server must agree to the digit
+// about what a given number *is* — a second copy here is a second chance to disagree, and
+// the failure it produces (a number that logs in from one screen and not the other) looks
+// like a wrong password to the yuvak. esbuild bundles the relative import; see netlify.toml.
+import { MOBILE_RE, normaliseMobile } from '../../shared/domain/constants.js';
 
 const reply = (statusCode, body) => ({
   statusCode,
@@ -51,7 +56,16 @@ export const handler = async (event) => {
     return reply(400, { gu: 'વિગત બરાબર નથી.' });
   }
 
-  if (!MOBILE_RE.test(String(mobile || '').trim()) || !password) {
+  // Normalised here as well as in the browser, because the browser is not where this is
+  // decided: a client sending '+919601269715' directly to this endpoint must reach the same
+  // row as one sending '9601269715', or the same account has two login identities and only
+  // one of them works.
+  const number = normaliseMobile(mobile);
+
+  // A password ceiling as well as a floor. bcrypt is deliberately slow, so an unbounded
+  // password is a way to spend the function's CPU — and Supabase Auth rejects anything over
+  // 72 bytes anyway, so nothing legitimate is refused here.
+  if (!MOBILE_RE.test(number) || typeof password !== 'string' || !password || password.length > 72) {
     return reply(400, { gu: 'મોબાઈલ નંબર અને પાસવર્ડ બરાબર લખો.' });
   }
 
@@ -61,7 +75,7 @@ export const handler = async (event) => {
 
   try {
     const lookup = await fetch(
-      `${url}/rest/v1/profiles?select=email&mobile=eq.${encodeURIComponent(String(mobile).trim())}&limit=1`,
+      `${url}/rest/v1/profiles?select=email&mobile=eq.${encodeURIComponent(number)}&limit=1`,
       { headers: { apikey: secret, Authorization: `Bearer ${secret}` } }
     );
     if (!lookup.ok) throw new Error(`lookup failed: ${lookup.status}`);

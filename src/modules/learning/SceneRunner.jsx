@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import SceneImage, { ScenePreload } from './SceneImage';
+import NavArrow from '../../components/NavArrow';
 import { gu, sceneById } from '../../lib/scenes';
 
 /**
@@ -113,12 +114,12 @@ export default function SceneRunner({
 
       <nav className="runner-nav">
         <button type="button" className="btn-quiet" onClick={() => go(-1)} disabled={clamped === 0}>
-          પાછળ
+          <NavArrow dir="back" />પાછળ
         </button>
         {atEnd ? (
           <button type="button" className="btn-gold" onClick={onFinish}>{finishLabel}</button>
         ) : (
-          <button type="button" className="btn-gold" onClick={() => go(1)}>આગળ</button>
+          <button type="button" className="btn-gold" onClick={() => go(1)}>આગળ<NavArrow /></button>
         )}
       </nav>
 

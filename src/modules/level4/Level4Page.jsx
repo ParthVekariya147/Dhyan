@@ -7,9 +7,10 @@ import { useScenes } from '../../lib/useScenes';
   re-exports it from shared/domain/level4.js precisely so these screens never reach past it.
 */
 import { L4_ACTIVITY_STATUS, L4_PREPARING_GU, useLevel4 } from '../../lib/level4';
-import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
+import { JOURNEY_PAGE, nextLevelAfter, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
 import PageIntro from '../../components/PageIntro';
+import NavArrow from '../../components/NavArrow';
 import ProgressRing from '../levels/ProgressRing';
 /*
   The ring, the bar, the panels and the list rhythm all live in the levels module's
@@ -115,6 +116,14 @@ export default function Level4Page() {
   // The level's description, from the same kind of place as its name (§36) — see
   // shared/domain/journey.js. Never null, so every state below can print it.
   const spec = usePageSpec(JOURNEY_PAGE.LEVEL4);
+
+  /*
+    Where the સાધના goes after this one, read from the સંચાલક's own level list rather than
+    written here (§6 rule 2). Null today — લેવલ ૪ is the last level with a screen — and the
+    completion panel below is built to say something true in that case rather than to assume
+    there is always a next door.
+  */
+  const nextLevel = nextLevelAfter(levels, LEVEL);
 
   if (loading || scenesLoading) {
     return (
@@ -234,7 +243,7 @@ export default function Level4Page() {
           score={done}
           total={activities.length}
           label="પૂરી થયેલી કસોટીઓ"
-          sub="એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે. પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે — અને જેટલી વાર કરવી હોય એટલી વાર કરી શકાય."
+          sub="એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે. પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે — એ ફરી આપવાની નથી, પણ એનાં દર્શન જ્યારે જોવાં હોય ત્યારે જોઈ શકાય."
         />
 
         {/*
@@ -250,16 +259,20 @@ export default function Level4Page() {
         {/*
           The gate, closed above કસોટીઓ he has already passed (0012).
 
-          Reachable one way only: the સંચાલક raised `gate_threshold` past where this યુવક
+          Reachable one way only: the સંચાલક raised the લેવલ ૪ gate past where this યુવક
           stands — `progress` is never lowered, so nothing he does can shut this himself. What
-          he keeps is on screen below, open and repeatable; what this line describes is only
+          he keeps is on screen below, finished and still his; what this line describes is only
           the કસોટીઓ still ahead. Said as the invitation the locked page says, in the
-          configuration's own number — never as something he lost, because he did not lose it.
+          સંચાલક's own number — never as something he lost, because he did not lose it.
+
+          It no longer says "as many times as you like" (0016). A passed કસોટી is not sat
+          again, and a banner promising otherwise would be the app contradicting the card
+          directly beneath it.
         */}
         {!gateOpen && (
           <p className="level-note l4-banner">
             લેવલ ૩ માં {gu(gateThreshold)} પૂરાં કરો, પછી હવે પછીની કસોટીઓ ખૂલશે. પૂરી થયેલી
-            કસોટીઓ તમારી છે — જેટલી વાર કરવી હોય એટલી વાર કરી શકો.
+            કસોટીઓ તમારી જ છે — એનાં દર્શન જ્યારે જોવાં હોય ત્યારે જોઈ શકાય.
           </p>
         )}
       </header>
@@ -282,11 +295,37 @@ export default function Level4Page() {
         ))}
       </ol>
 
-      {/* ફક્ત આનંદ (§1 rule 4) — the only thing said at the end is thanks. */}
+      {/*
+        The end of લેવલ ૪, and the way on from it.
+
+        ફક્ત આનંદ (§1 rule 4) — the first thing said is thanks, and there is no score, no
+        ranking and no count of days beside it.
+
+        The door under it is deliberately conditional. લેવલ ૪ is the last level this app has
+        built, so on most days there is nothing to send him to, and inventing a destination
+        would be worse than offering none. `nextLevel` is read from the સંચાલક's own level
+        list — a level after this one, enabled, that the code has a page for — so the day a
+        લેવલ ૫ is configured this line points at it with no edit here (§6 rule 2), and until
+        then the journey ends where it ends, with thanks.
+      */}
       {allComplete && (
-        <p className="level-foot" aria-live="polite">
-          લેવલ {gu(LEVEL)} ની બધી કસોટીઓ પૂરી થઈ. જય સ્વામિનારાયણ 🙏
-        </p>
+        <section className="level-next" aria-live="polite">
+          <p className="level-next-line">
+            લેવલ {gu(LEVEL)} ની બધી કસોટીઓ પૂરી થઈ. જય સ્વામિનારાયણ 🙏
+          </p>
+          {nextLevel ? (
+            <Link to={nextLevel.to} className="btn-gold btn-inline">
+              આગળ — {nextLevel.name}<NavArrow />
+            </Link>
+          ) : (
+            <>
+              <p className="level-note">
+                દર્શન અને પાછલી કસોટીઓનાં દ્રશ્યો જ્યારે જોવાં હોય ત્યારે જોઈ શકાય.
+              </p>
+              <Link to="/darshan" className="btn-quiet btn-inline">દર્શન જુઓ</Link>
+            </>
+          )}
+        </section>
       )}
     </div>
   );
@@ -330,15 +369,16 @@ const STATE = {
     tone: 'is-open',
   },
   /*
-    'ફરી કસોટી આપો', not 'ફરી જુઓ'. The old word was the honest description of a page he could
-    only look at; since the કસોટી may be answered again — as often as he likes, with the pass
-    already his and nothing at stake — the card should say what the tap actually does. A
-    યુવક who wants the pictures instead has the second link below (§16), so neither journey
-    is hidden behind the other.
+    'દર્શન જુઓ' — because that is now the only thing a finished કસોટી leads to (0016).
+
+    One submission per કસોટી, spent by passing it. So the card must not say 'ફરી કસોટી આપો'
+    and must not say 'ફરી જુઓ' either: the first offers something the server refuses, and the
+    second is vague enough that a યુવક would tap it expecting the exam. What is left is the
+    દર્શન, which is genuinely his and genuinely worth returning to.
   */
   [L4_ACTIVITY_STATUS.COMPLETED]: {
     label: 'પૂરું થયું ✓',
-    action: 'ફરી કસોટી આપો',
+    action: 'દર્શન જુઓ',
     tone: 'is-done',
   },
 };
@@ -354,6 +394,7 @@ const STATE = {
 function ActivityCard({ activity, previous, range, gateClosed }) {
   const state = STATE[activity.status] ?? STATE[L4_ACTIVITY_STATUS.LOCKED];
   const locked = activity.status === L4_ACTIVITY_STATUS.LOCKED;
+  const done = activity.status === L4_ACTIVITY_STATUS.COMPLETED;
   /*
     Why this card is shut, in its own words.
 
@@ -398,25 +439,37 @@ function ActivityCard({ activity, previous, range, gateClosed }) {
       {locked ? (
         <div className="l4-card is-locked">{body}</div>
       ) : (
-        <Link to={`/level/4/${activity.id}`} className="l4-card">{body}</Link>
+        /*
+          A finished કસોટી leads to its દર્શન, not to its exam (0016).
+
+          Routing it at the exam page would work — that page recognises a passed કસોટી and
+          shows the same invitation — but it would mean a tap, a load, and a screen that says
+          "not this way". The card knows enough to send him where he was going.
+        */
+        <Link
+          to={
+            done
+              ? `/level/4/${activity.id}/revision`
+              : `/level/4/${activity.id}`
+          }
+          className="l4-card"
+        >
+          {body}
+        </Link>
       )}
 
       {/*
-        The second door, where it helps — and it helps in exactly two places.
+        The second door, for the one card that needs it.
 
         A કસોટી waiting to be revised gets its દર્શન one tap away, rather than making the
-        યુવક open the test to find the way back to the pictures (§16). A finished one gets
-        it for the opposite reason: the card's own action is now 'ફરી કસોટી આપો', so without
-        this line the only thing a યુવક could do with a passed કસોટી is sit it again — and
-        going back to look at the દર્શન he has earned is the gentler half of repeating, not
-        a lesser one. Two named journeys, neither hidden inside the other.
+        યુવક open the test to find the way back to the pictures (§16).
 
-        Everywhere else this link is absent on purpose. AVAILABLE and IN_PROGRESS cards lead
-        to the કસોટી, which carries [દર્શન ફરી જુઓ] itself; a LOCKED card offers nothing at
-        all, because there is nothing yet to revise.
+        Not on a finished card any more: since 0016 its own action *is* 'દર્શન જુઓ', and a
+        second link to the same place beneath it would read as a different destination. Not
+        on AVAILABLE or IN_PROGRESS either — those lead to the કસોટી, which carries
+        [દર્શન ફરી જુઓ] itself — and not on LOCKED, where there is nothing yet to revise.
       */}
-      {(activity.status === L4_ACTIVITY_STATUS.REVISION_REQUIRED ||
-        activity.status === L4_ACTIVITY_STATUS.COMPLETED) && (
+      {activity.status === L4_ACTIVITY_STATUS.REVISION_REQUIRED && (
         <Link className="l4-aside linklike" to={`/level/4/${activity.id}/revision`}>
           દર્શન ફરી જુઓ
         </Link>

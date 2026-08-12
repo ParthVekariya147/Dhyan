@@ -169,10 +169,25 @@ export const DEFAULT_JOURNEY = {
     key: JOURNEY_PAGE.LEVEL2,
     levelId: 2,
     name: 'દર્શન',
-    short: 'બધાં દર્શન ચિત્ર, શીર્ષક અને વર્ણન સાથે જુઓ.',
+    short: 'ચિત્ર, વર્ણન અને ક્રમ નંબર — ત્રણેય યાદ રાખવાનાં છે.',
+    /*
+      Three things to remember, and the number is the one that gets forgotten.
+
+      This page used to say only "શાંતિથી દર્શન કરો" — true, and not enough. લેવલ ૩ asks him
+      to recall the ચિત્ર from the વર્ણન, and લેવલ ૪ asks him to recall both from the **number
+      alone**. A યુવક who spent his time here on the pictures and never looked at the numbers
+      has done the work and still arrives at લેવલ ૪ unable to start. So the number is named
+      here, in the same breath as the other two, where the remembering actually happens.
+
+      The "at least five times" is guidance and is deliberately not counted. Nothing on this
+      page records a view: the app cannot tell a દ્રશ્ય studied from a દ્રશ્ય scrolled past,
+      and a counter that claimed otherwise would be the app asserting something it does not
+      know. The reassurance that nothing is counted stays for the same reason it was written —
+      this is the one level with nothing at stake, and that is what makes it restful.
+    */
     instruction:
-      'આ વિભાગમાં તમને દરેક દર્શનનું ચિત્ર, શીર્ષક અને વર્ણન ક્રમ પ્રમાણે બતાવવામાં આવશે. અહીં કંઈ ટિક કરવાનું નથી અને કંઈ ગણાતું નથી — ફક્ત શાંતિથી દર્શન કરો. પૂરું થાય એટલે નીચે "આગળ" દબાવીને લેવલ ૩ પર જાઓ.',
-    contains: ['દરેક દ્રશ્યનું ચિત્ર', 'શીર્ષક અને વર્ણન', 'ક્રમ નંબર'],
+      'આ વિભાગમાં દરેક દર્શનનું ચિત્ર, શીર્ષક અને વર્ણન ક્રમ પ્રમાણે બતાવવામાં આવશે. દરેક ચિત્રને ધ્યાનપૂર્વક જુઓ અને તેની સાથેનું વર્ણન તથા ક્રમ નંબર — ત્રણેય — યાદ રાખવાનો પ્રયત્ન કરો. દરેક દર્શન ઓછામાં ઓછું પાંચ વખત શાંતિથી જોવાની ભલામણ છે, જેથી ચિત્ર, વર્ણન અને નંબર સાથે મનમાં બેસી જાય. અહીં કંઈ ટિક કરવાનું નથી અને કંઈ ગણાતું નથી — આગળના લેવલમાં આ જ યાદશક્તિની ચકાસણી થશે. પૂરું થાય એટલે નીચે "આગળ" દબાવીને લેવલ ૩ પર જાઓ.',
+    contains: ['દરેક દ્રશ્યનું ચિત્ર', 'શીર્ષક અને વર્ણન', 'ક્રમ નંબર', 'ગણતરી વગર, જેટલી વાર જોવું હોય તેટલી વાર'],
     // "No PDF" is written into the specification itself, not only into the level's name.
     // This level was called 'PDF દર્શન' once; the word came back twice after it was removed.
     excludes: ['કસોટી', 'ટિક કરવાનું', 'સાચું-ખોટું', 'PDF — દર્શન સીધાં ચિત્રો જ છે'],
@@ -189,8 +204,19 @@ export const DEFAULT_JOURNEY = {
     levelId: 3,
     name: 'વર્ણન યાદી',
     short: 'વર્ણન વાંચીને દ્રશ્ય મનમાં લાવો, પછી ટિક કરો.',
+    /*
+      Two sentences added, and both are about what the tick *means*.
+
+      "જો ખરેખર યાદ હોય તો જ" — because a યુવક who ticks generously passes into લેવલ ૪ and
+      then meets a કસોટી with no વર્ણન on it at all. The tick is his own honest answer to
+      himself and nothing checks it, which is exactly why it has to be asked for plainly.
+
+      And the number again: લેવલ ૪ shows nothing else, so a દ્રશ્ય remembered without its
+      number is a દ્રશ્ય he cannot reach there. This is the last page that shows the number
+      beside the વર્ણન — after this the number is on its own.
+    */
     instruction:
-      'આ વિભાગમાં ચિત્ર બતાવવામાં આવતું નથી. દરેક ક્રમનું વર્ણન વાંચો, દ્રશ્ય મનમાં લાવો અને પછી ટિક કરો. જે ટિક કરો તે તરત સચવાય છે — એપ્લિકેશન બંધ કરો તો પણ કંઈ જતું નથી. રાત્રે ૧૨ વાગ્યે આજની ટિક ખાલી થશે અને આજનું પરિણામ કાયમ સચવાયેલું રહેશે.',
+      'આ વિભાગમાં ચિત્ર બતાવવામાં આવતું નથી. દરેક ક્રમનું વર્ણન વાંચો અને તેનું દ્રશ્ય મનમાં લાવો. જો એ દ્રશ્ય ખરેખર યાદ આવે તો જ સામેનું ટિકબોક્સ પસંદ કરો — અહીં સાચું-ખોટું કોઈ જોતું નથી, એ તમારો પોતાનો જવાબ છે. વર્ણન સાથે ક્રમ નંબર પણ યાદ રાખજો; આગળના લેવલમાં ફક્ત નંબર જ દેખાશે. જે ટિક કરો તે તરત સચવાય છે — એપ્લિકેશન બંધ કરો તો પણ કંઈ જતું નથી. રાત્રે ૧૨ વાગ્યે આજની ટિક ખાલી થશે અને આજનું પરિણામ કાયમ સચવાયેલું રહેશે.',
     contains: ['ક્રમ નંબર', 'વર્ણન', 'ટિક', 'આજની પ્રગતિ'],
     excludes: ['ચિત્ર', 'સાચું-ખોટું', '"પૂરું કરો" બટન — દરેક ટિક તરત સચવાય છે'],
     completion:
@@ -208,7 +234,7 @@ export const DEFAULT_JOURNEY = {
     name: 'ફક્ત નંબર',
     short: 'કસોટીઓ એક પછી એક — ફક્ત નંબર જોઈને દ્રશ્ય યાદ કરો.',
     instruction:
-      'લેવલ ૪ માં સંચાલકે બનાવેલી કસોટીઓ છે. એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે, અને પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે. જે કસોટી "તૈયાર છે" તેના પર અડકો.',
+      'લેવલ ૪ માં સંચાલકે બનાવેલી કસોટીઓ છે. એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે, અને પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે — એ ફરી આપવાની નથી, પણ એનાં દર્શન જ્યારે જોવાં હોય ત્યારે જોઈ શકાય. જે કસોટી "તૈયાર છે" તેના પર અડકો. જે કસોટી હજુ પૂરી નથી થઈ તે જેટલી વાર જોઈએ તેટલી વાર આપી શકાય.',
     contains: ['કસોટીઓની યાદી', 'દરેક કસોટીમાં કેટલાં દ્રશ્યો છે તે', 'દરેક કસોટીની સ્થિતિ', 'પૂરી થયેલી કસોટીઓની ગણતરી'],
     excludes: ['ચિત્ર', 'વર્ણન', 'ટિક — એ કસોટીની અંદર છે', 'સંચાલકનાં સેટિંગ'],
     completion: 'બધી કસોટીઓ પૂરી થાય એટલે લેવલ ૪ પૂરું ગણાશે.',
@@ -225,7 +251,7 @@ export const DEFAULT_JOURNEY = {
     name: 'કસોટી',
     short: 'ફક્ત નંબર અને ટિક — યાદશક્તિની કસોટી.',
     instruction:
-      'આ વિભાગમાં ફક્ત નંબર દેખાશે — ચિત્ર કે વર્ણન બતાવવામાં આવશે નહીં. દરેક નંબરનું દ્રશ્ય મનમાં આવે તો ટિક કરો. બધા નંબર ટિક થાય પછી જ "પૂરું કરો" બટન આવશે. કંઈ યાદ ન આવે તો "દર્શન ફરી જુઓ" — એમાં કશું ખોટું નથી. કસોટી જેટલી વાર આપવી હોય એટલી વાર આપી શકાય; પૂરી થયેલી કસોટી કાયમ તમારી રહેશે.',
+      'આ વિભાગમાં ફક્ત નંબર દેખાશે — ચિત્ર કે વર્ણન બતાવવામાં આવશે નહીં. દરેક નંબરનું દ્રશ્ય મનમાં આવે તો ટિક કરો. જેટલાં દ્રશ્યો જરૂરી હોય એટલાં ટિક થાય એટલે "પૂરું કરો" બટન આવશે. કંઈ યાદ ન આવે તો "દર્શન ફરી જુઓ" — એમાં કશું ખોટું નથી, અને કસોટી ફરી આપી શકાય. એક વાર કસોટી પૂરી થઈ જાય પછી એ ફરી આપવાની નથી — એ કાયમ પૂરી ગણાશે.',
     contains: ['ક્રમ નંબર', 'ટિક'],
     excludes: [
       'ચિત્ર',
@@ -234,7 +260,8 @@ export const DEFAULT_JOURNEY = {
       'સાચું-ખોટું — જે યાદ છે તે તમે જ જાણો છો',
       'કેટલાં બાકી છે તેની ટકોર',
     ],
-    completion: 'આ કસોટીના બધા નંબર ટિક થાય અને "પૂરું કરો" મોકલાય એટલે. પછી આ કસોટી કાયમ પૂરી રહેશે.',
+    completion:
+      'આ કસોટી માટે જરૂરી હોય એટલા નંબર ટિક થાય અને "પૂરું કરો" મોકલાય એટલે. પછી આ કસોટી કાયમ પૂરી રહેશે અને ફરી આપવાની નહીં રહે.',
     reads: 'આ કસોટીના દ્રશ્યોના નંબર — ચિત્ર કે વર્ણન નહીં',
     records: 'લેવલ ૪ નો દરેક પ્રયાસ — પૂરો થયો હોય કે અધૂરો — અને કસોટી પૂરી થઈ તે',
     next: { to: '/level/4', label: 'પૂરું થાય તો — પછીની કસોટી, નહીં તો દર્શન ફરી જુઓ' },
@@ -249,7 +276,7 @@ export const DEFAULT_JOURNEY = {
     name: 'પુનરાવર્તન',
     short: 'આ કસોટીનાં દર્શન ફરી જુઓ, પછી ફરી કસોટી આપો.',
     instruction:
-      'આ વિભાગમાં તમને આ કસોટીનાં દર્શન ફરી બતાવવામાં આવે છે — ચિત્ર, શીર્ષક અને વર્ણન સાથે. અહીં કંઈ ટિક કરવાનું નથી અને કંઈ ગણાતું નથી. ચિત્ર પર અડકો તો મોટું દેખાશે. શાંતિથી જોયા પછી નીચે "ફરી કસોટી આપો" દબાવો.',
+      'આ વિભાગમાં તમને આ કસોટીનાં દર્શન ફરી બતાવવામાં આવે છે — ચિત્ર, શીર્ષક અને વર્ણન સાથે. અહીં કંઈ ટિક કરવાનું નથી અને કંઈ ગણાતું નથી. ચિત્ર પર અડકો તો મોટું દેખાશે. કસોટી હજુ પૂરી ન થઈ હોય તો શાંતિથી જોયા પછી નીચે "ફરી કસોટી આપો" દબાવો. કસોટી પૂરી થઈ ગઈ હોય તો પણ આ દર્શન જ્યારે જોવાં હોય ત્યારે અહીં આવીને જોઈ શકાય.',
     contains: ['આ કસોટીનાં ચિત્રો', 'શીર્ષક અને વર્ણન', 'ક્રમ નંબર'],
     excludes: ['ટિક', 'કસોટી', 'સાચું-ખોટું', 'કેટલાં યાદ ન રહ્યાં તેની ગણતરી'],
     completion: 'અહીં કંઈ પૂરું કરવાનું નથી. જેટલી વાર જોવું હોય તેટલી વાર જોઈ શકાય.',
@@ -268,6 +295,58 @@ export const LEVEL_PAGE_KEY = {
   3: JOURNEY_PAGE.LEVEL3,
   4: JOURNEY_PAGE.LEVEL4,
 };
+
+/**
+ * Where a level lives — for the levels the યુવક app has actually built.
+ *
+ * A settings row may name a fifth level and enable it: `resolveLevels()` hands it back and
+ * મુખપૃષ્ઠ drops it, because a level with no screen is a tile that leads nowhere (§37 — what
+ * a level *does* belongs to the code, not to a settings document). Anything offering a way
+ * onward has to make the same check, or it hands out a URL that App.jsx's catch-all quietly
+ * redirects home, which is a promise taken back one tap later.
+ *
+ * Not derived from the page specifications above: those say what is *on* a page, and their
+ * `next` is the step a યુવક takes from it — `LEVEL4.next` is the કસોટી to open, not લેવલ ૪'s
+ * own address.
+ */
+export const LEVEL_ROUTE = {
+  1: '/welcome',
+  2: '/darshan',
+  3: '/level/3',
+  4: '/level/4',
+};
+
+/**
+ * The level a યુવક goes to after this one, or null when the સાધના ends here.
+ *
+ * "After" is the સંચાલક's `order` and never `levelId + 1`: he may reorder the levels (§36),
+ * and a list where લેવલ ૩ sits after લેવલ ૪ is a configuration, not a fault. The candidate
+ * must also be enabled and must have a screen.
+ *
+ * **Null is the ordinary answer at લેવલ ૪**, which is the last level built today — so a
+ * caller has to render an ending rather than assume there is always another door. That is
+ * why this returns null instead of falling back to મુખપૃષ્ઠ: "go home" is not the next step
+ * of a સાધના, and a button that says otherwise is worse than no button.
+ *
+ * @param {Array} levels  resolveLevels()'s list
+ * @param {number} levelId the level being left
+ * @returns {{ levelId: number, name: string, to: string }|null}
+ */
+export function nextLevelAfter(levels, levelId) {
+  const list = Array.isArray(levels) ? levels : [];
+  const here = list.find((l) => l && l.levelId === levelId);
+  if (!here) return null;
+
+  // Ordered before the search, so this does not depend on the caller having sorted — and
+  // ties fall back to levelId exactly as resolveLevels() breaks them, or "the next one" is
+  // whichever of two equal orders the array happened to hold first.
+  const next = [...list]
+    .filter((l) => l && l.enabled !== false && LEVEL_ROUTE[l.levelId])
+    .sort((a, b) => a.order - b.order || a.levelId - b.levelId)
+    .find((l) => l.order > here.order || (l.order === here.order && l.levelId > here.levelId));
+
+  return next ? { levelId: next.levelId, name: next.name, to: LEVEL_ROUTE[next.levelId] } : null;
+}
 
 /** The specification for a level, by its number. `null` for a level the code has no page for. */
 export const specForLevel = (levelId, journey = DEFAULT_JOURNEY) =>

@@ -7,6 +7,7 @@ import { useLevel4Gate } from '../../lib/level4';
 import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
 import PageIntro from '../../components/PageIntro';
+import NavArrow from '../../components/NavArrow';
 import ProgressRing from './ProgressRing';
 import TickRow from './TickRow';
 import './levels.css';
@@ -274,7 +275,19 @@ export default function LevelPage() {
       {gate.published && (
         level4Open ? (
           <section className="level-next">
-            <p className="level-next-line">લેવલ ૪ તમારા માટે ખુલ્લું છે.</p>
+            {/*
+              The one moment on this page worth marking.
+
+              લેવલ ૩ has no 'પૂરું કરો' and no result screen — every tick saves itself and the
+              day rolls over at midnight — so crossing the threshold would otherwise pass
+              without a word, and the only sign would be a new button appearing quietly at
+              the foot of a long list. Named plainly here: what he has done, and what it
+              opened. Said once, without a count and without a comparison to anyone.
+            */}
+            <p className="level-next-line">
+              અભિનંદન — આગળના લેવલ માટે જરૂરી યાદશક્તિની ચકાસણી તમે પૂરી કરી છે.
+            </p>
+            <p className="level-note">લેવલ ૪ હવે તમારા માટે કાયમ ખુલ્લું છે.</p>
             {/*
               `P.retry()` on the way out, and it is not decoration.
 
@@ -286,7 +299,7 @@ export default function LevelPage() {
               Level4Page re-reads the gate on mount either way.
             */}
             <Link to="/level/4" className="btn-gold btn-inline" onClick={() => P.retry()}>
-              લેવલ ૪ પર જાઓ
+              લેવલ ૪ પર જાઓ<NavArrow />
             </Link>
           </section>
         ) : gate.requireGate ? (
@@ -297,6 +310,18 @@ export default function LevelPage() {
             <p className="level-note">
               એક જ દિવસમાં {gu(gate.gateThreshold)} દ્રશ્યો — પછી એ લેવલ કાયમ ખુલ્લું રહેશે.
             </p>
+            {/*
+              The way back to the દર્શન, at the end of the list rather than only at the top.
+
+              A યુવક who has read this far and not reached the number is at the exact point
+              where the useful next step is to go and look again — and the only link to the
+              pictures was in the bar he scrolled past a hundred rows ago. Offered as an
+              ordinary part of the સાધના, never as a remedy for failing: nothing here says he
+              fell short, how far he is, or how many days it has taken (§1 rule 4). There is
+              no attempt to redo, because nothing was submitted — the ticks are already saved
+              and tomorrow simply starts again.
+            */}
+            <Link to="/darshan" className="btn-gold btn-inline">દર્શન ફરી જુઓ</Link>
           </section>
         ) : null
       )}

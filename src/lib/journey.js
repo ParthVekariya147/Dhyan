@@ -32,6 +32,13 @@ export function useLevelSpec(levelId) {
   return usePageSpec(LEVEL_PAGE_KEY[levelId]);
 }
 
+/*
+  `LEVEL_ROUTE` and `nextLevelAfter()` live in shared/domain/journey.js and arrive here
+  through the `export *` above. They are pure functions over the level list, so they belong
+  where scripts/test-domain.mjs can reach them — this file imports ./useSettings, and a test
+  that had to load React to check which level comes after લેવલ ૪ would not get written.
+*/
+
 /**
  * The English half of a page's description, where one exists (લેવલ ૧ only — see the note in
  * shared/domain/journey.js). Falls back to the Gujarati rather than to nothing: a sentence

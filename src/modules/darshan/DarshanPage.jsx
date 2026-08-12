@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import DarshanFeed from './DarshanFeed';
 import ProgressBar from '../../components/ProgressBar';
 import BackToTop from '../../components/BackToTop';
+import NavArrow from '../../components/NavArrow';
 import PageIntro from '../../components/PageIntro';
 import { gu } from '../../lib/scenes';
 import { useScenes } from '../../lib/useScenes';
@@ -120,9 +121,11 @@ export default function DarshanPage() {
             after loading, below the feed, whatever the feed is doing above them.
           */}
           <nav className="darshan-actions" aria-label="આગળ શું">
-            <Link to="/welcome" className="btn-quiet btn-inline">વિડિયો દર્શન</Link>
+            <Link to="/welcome" className="btn-quiet btn-inline">
+              <NavArrow dir="back" />વિડિયો દર્શન
+            </Link>
             <Link to="/level/3" className="btn-gold btn-inline" aria-label="આગળ — લેવલ ૩">
-              આગળ
+              આગળ<NavArrow />
             </Link>
           </nav>
         </>

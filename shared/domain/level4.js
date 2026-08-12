@@ -148,6 +148,14 @@ export function toActivity(row) {
     position: row.position ?? 0,
     active: row.active !== false,
     sceneIds,
+    /*
+      The pass mark (0016). **null means "all of them"** and is not the same as 0 — an
+      activity requiring nothing would be passed by submitting nothing, which is why the
+      column's check constraint starts at 1 and why this preserves null rather than
+      defaulting it here. The number is resolved against the activity's real contents by
+      `level4_required_count()` in SQL, which is the only place that decision is made.
+    */
+    requiredCount: pick(row, 'required_count', 'requiredCount') ?? null,
     createdAt: pick(row, 'created_at', 'createdAt') ?? null,
     updatedAt: pick(row, 'updated_at', 'updatedAt') ?? null,
   };

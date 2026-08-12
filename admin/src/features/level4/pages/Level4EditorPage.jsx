@@ -259,6 +259,10 @@ export default function Level4EditorPage() {
           title: a.title,
           description: a.description,
           active: a.active,
+          // `?? null` and not `|| null`: 0 is refused by the column's check constraint, and
+          // an empty box arrives here as null already — but a `||` would also turn a
+          // deliberate 0 into null and hide the refusal instead of surfacing it.
+          requiredCount: a.requiredCount ?? null,
         });
         if (was.sceneIds.join() !== a.sceneIds.join()) await setActivityItems(a.id, a.sceneIds);
       }
@@ -528,6 +532,51 @@ export default function Level4EditorPage() {
                     />
                   </div>
 
+                  {/*
+                    The pass mark for this one sub-level (0016).
+
+                    Empty means every Darshan in it, which is what every sub-level meant
+                    before the column existed — so leaving this alone changes nothing. A
+                    number means that many out of however many it holds.
+
+                    Deliberately not a percentage: the સંચાલક composes a sub-level by picking
+                    items, so he is already counting in items, and a percentage would have to
+                    resolve against a total that moves the day one is withheld.
+
+                    A mark larger than the sub-level is not refused here — the database
+                    clamps it down at submit time, so it can never make a sub-level
+                    impossible — but it is called out below, because it almost always means
+                    the items were changed afterwards and the number was forgotten.
+                  */}
+                  <div className="field">
+                    <label htmlFor="a-req">
+                      Must remember (leave empty for all {gu(open.sceneIds.length)})
+                    </label>
+                    <input
+                      id="a-req"
+                      type="number"
+                      min="1"
+                      step="1"
+                      style={{ maxWidth: 200 }}
+                      value={open.requiredCount ?? ''}
+                      onChange={(e) =>
+                        patch(
+                          open.id,
+                          'requiredCount',
+                          e.target.value === '' ? null : Number(e.target.value)
+                        )
+                      }
+                      disabled={readOnly}
+                    />
+                    <p className="card-note">
+                      {open.requiredCount == null
+                        ? `A user passes ${open.code} by remembering all ${gu(open.sceneIds.length)} of these.`
+                        : open.requiredCount > open.sceneIds.length
+                          ? `This sub-level holds only ${gu(open.sceneIds.length)} Darshan, so ${gu(open.requiredCount)} will be treated as ${gu(open.sceneIds.length)}. Set it to ${gu(open.sceneIds.length)} or lower.`
+                          : `A user passes ${open.code} by remembering ${gu(open.requiredCount)} of these ${gu(open.sceneIds.length)}.`}
+                    </p>
+                  </div>
+
                   <SceneSelector
                     collection={collection}
                     value={open.sceneIds}
@@ -723,4 +772,8 @@ const fields = (a) => ({
   description: a.description,
   active: a.active,
   sceneIds: a.sceneIds,
+  // The pass mark (0016). Present here or an edit to it is not "dirty" — Save would stay
+  // disabled and the number would be silently discarded on the next load, which is the
+  // quietest way for a field to look like it works and not.
+  requiredCount: a.requiredCount ?? null,
 });

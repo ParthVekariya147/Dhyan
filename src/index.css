@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* The app's single type / spacing / control scale (§3, §20). Imported here rather than
+   from forms.css so that every screen has it, not only the ones that happen to pull the
+   form styles in — a level page that sets its own 12.5px would otherwise be inventing a
+   size the rest of the app has already named. */
+@import "./styles/tokens.css";
+
 /* Palette and type carried over unchanged from the original single-file page,
    so the rebuilt app looks identical to what is already live. */
 @theme {

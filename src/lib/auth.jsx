@@ -53,10 +53,75 @@ export function guError(e) {
   return 'કંઈક ગડબડ થઈ. ફરી પ્રયત્ન કરો.';
 }
 
+/**
+ * Where a registration's details wait when the account was created but nobody could be
+ * signed in (§14 — the નોંધણી → લોગિન fallback).
+ *
+ * `sessionStorage` and not `localStorage`, on purpose. This is a hand-off across one
+ * navigation — નોંધણી → લોગિન, seconds apart, in the same tab — and it holds a યુવક's
+ * name, mobile and SMK. Session storage dies with the tab, which is exactly the lifetime
+ * the hand-off has; localStorage would leave those details on a shared phone forever.
+ *
+ * It exists because of what the fallback would otherwise leave behind: `signUp` succeeded,
+ * so the auth account is real, but the `profiles` insert could not run (with no session,
+ * `auth.uid()` is NULL and the "own profile insertable" policy refuses it). Without this,
+ * logging in afterwards produces a યુવક with no profile row — no name, no SMK, no zone,
+ * invisible to the સંચાલક — and no screen anywhere that would let him supply them again.
+ */
+const PENDING_PROFILE_KEY = 'varni:pending-profile';
+
+const rememberPendingProfile = (fields) => {
+  try {
+    sessionStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify(fields));
+  } catch {
+    // Private mode. The fallback message still appears and the account still exists;
+    // only the automatic completion is lost.
+  }
+};
+
+const readPendingProfile = () => {
+  try {
+    const raw = sessionStorage.getItem(PENDING_PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const clearPendingProfile = () => {
+  try {
+    sessionStorage.removeItem(PENDING_PROFILE_KEY);
+  } catch {
+    /* nothing to clear */
+  }
+};
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  /**
+   * Did the last profile read FAIL, as opposed to finding nothing?
+   *
+   * The two are indistinguishable from `profile == null`, and they mean opposite things
+   * to the router: no row is a brand-new યુવક who belongs at લેવલ ૧, while a failed read
+   * is very often a yuvak with years of સાધના behind him and a bad signal. Sending the
+   * second one to લેવલ ૧ would look exactly like his progress had been reset (§23), so
+   * resolveEntryState() is told which of the two this is.
+   */
+  const [profileError, setProfileError] = useState(false);
+  /**
+   * True for the duration of register(), and read by PublicOnly.
+   *
+   * Registration signs the યુવક in BEFORE the profile row is written — it has to, because
+   * the row's own RLS policy requires the session. That leaves a window of a few hundred
+   * milliseconds in which he is authenticated with no profile, and without this flag the
+   * public-only guard would notice the new session and redirect the નોંધણી page out from
+   * under the insert that is still in flight — taking its error handling with it, so a
+   * duplicate SMK would strand him on લેવલ ૧ with no account instead of putting the
+   * message beside the field he has to correct.
+   */
+  const [registering, setRegistering] = useState(false);
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) return null;
@@ -71,6 +136,34 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  /**
+   * Read the profile into state, and say which of the two null cases happened.
+   *
+   * Returns `{ row, failed }` rather than just the row, so a caller that needs to act on
+   * "there is genuinely no profile" — completePendingProfile() below — cannot mistake a
+   * network failure for an empty table and write a duplicate row over a good one.
+   */
+  const syncProfile = useCallback(
+    async (userId) => {
+      if (!userId) {
+        setProfile(null);
+        setProfileError(false);
+        return { row: null, failed: false };
+      }
+      try {
+        const row = await loadProfile(userId);
+        setProfile(row);
+        setProfileError(false);
+        return { row, failed: false };
+      } catch {
+        setProfile(null);
+        setProfileError(true);
+        return { row: null, failed: true };
+      }
+    },
+    [loadProfile]
+  );
+
   useEffect(() => {
     // Nothing may touch `supabase` here — App renders the ગોઠવણ notice instead, and
     // reaching for the client would throw before it could.
@@ -81,17 +174,29 @@ export function AuthProvider({ children }) {
 
     let alive = true;
 
+    /*
+      §12/§13 — `loading` stays true until BOTH the session and the profile are settled.
+
+      That ordering is the whole of the "no flicker, no redirect loop" requirement. The
+      route decision needs the profile as much as the session — NEW_USER and IN_PROGRESS
+      are told apart by `gate_passed_at` — so clearing `loading` after the session but
+      before the profile would make the router answer once with a half-known યુવક and
+      again a moment later with the whole one. On a refresh of /level/4 that reads as
+      level 4 → લેવલ ૧ → level 4, which is precisely the flicker §13 forbids.
+    */
     supabase.auth.getSession().then(async ({ data }) => {
       if (!alive) return;
       setSession(data.session);
-      if (data.session) setProfile(await loadProfile(data.session.user.id).catch(() => null));
+      if (data.session) await syncProfile(data.session.user.id);
+      if (!alive) return;
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
       if (!alive) return;
       setSession(next);
-      setProfile(next ? await loadProfile(next.user.id).catch(() => null) : null);
+      await syncProfile(next?.user?.id ?? null);
+      if (!alive) return;
       setLoading(false);
     });
 
@@ -99,16 +204,47 @@ export function AuthProvider({ children }) {
       alive = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [syncProfile]);
 
   const user = session?.user ?? null;
+
+  /**
+   * Finish a registration whose profile insert never ran (§14).
+   *
+   * Called after a successful login, and only when the profile read succeeded and came
+   * back empty — never when it merely failed, which would write a second row over a good
+   * one. The email is checked against the session's own, so a pending hand-off left by a
+   * different registration in the same tab cannot be attached to this યુવક.
+   *
+   * A failure here is deliberately swallowed: he IS signed in, the pages tolerate a null
+   * profile, and blocking the login on a best-effort repair would be a worse outcome than
+   * the missing row it is trying to fix. The details stay in sessionStorage for the next
+   * attempt.
+   */
+  const completePendingProfile = useCallback(
+    async (userId, email) => {
+      const pending = readPendingProfile();
+      if (!pending?.email || !userId) return null;
+      if (email && pending.email !== String(email).toLowerCase()) return null;
+
+      const { error } = await supabase.from('profiles').insert({ id: userId, ...pending });
+      if (error) return null;
+
+      clearPendingProfile();
+      const { row } = await syncProfile(userId);
+      return row;
+    },
+    [syncProfile]
+  );
 
   const value = useMemo(
     () => ({
       user,
       session,
       profile,
+      profileError,
       loading,
+      registering,
       unconfigured: !configured,
       isAdmin: isAdminMobile(profile?.mobile),
 
@@ -137,42 +273,83 @@ export function AuthProvider({ children }) {
        */
       async register({ smk, name, email, password, mobile, zoneId, subZoneId }) {
         const cleanEmail = email.trim().toLowerCase();
-
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-        });
-        if (error) throw error;
-
-        const userId = data.user?.id;
-        if (!userId) throw new Error('signup returned no user');
-
-        // Named precisely, because the generic RLS failure it prevents ("new row violates
-        // row-level security policy") points at the profiles table and hides the real cause.
-        if (!data.session) {
-          throw Object.assign(
-            new Error('signup returned no session — "Confirm email" is enabled in Supabase'),
-            { gu: 'નોંધણી હમણાં પૂરી થઈ શકતી નથી. સંચાલકને જણાવો.' }
-          );
-        }
-
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: userId,
+        const fields = {
           smk: smk.trim().toUpperCase(),
           name: name.trim(),
           email: cleanEmail,
           mobile: mobile.trim(),
           zone_id: zoneId,
           sub_zone_id: subZoneId,
-        });
+        };
 
-        if (profileError) {
-          await supabase.auth.signOut().catch(() => {});
-          throw profileError;
+        setRegistering(true);
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+          });
+          if (error) throw error;
+
+          const userId = data.user?.id;
+          if (!userId) throw new Error('signup returned no user');
+
+          /*
+            §14 — the one case where "REGISTER → AUTO LOGIN → LEVEL ૧" is technically
+            impossible, and what the yuvak is owed when it happens.
+
+            signUp() returns a user but no session when "Confirm email" is on in the
+            Supabase dashboard. The account is real and his password works, so the honest
+            answer is not an error — it is "your account is made, now sign in", which is
+            exactly what the fallback offers him. This used to throw, which put a
+            સંચાલકને જણાવો banner in front of a યુવક whose account had in fact just been
+            created successfully.
+
+            The profile insert is not even attempted: with no session `auth.uid()` is NULL
+            and the "own profile insertable" policy refuses it, so trying would only turn
+            a clear outcome into an RLS error pointing at the wrong table. The details go
+            to sessionStorage instead and completePendingProfile() writes the row the
+            moment he signs in.
+          */
+          if (!data.session) {
+            rememberPendingProfile(fields);
+            return { user: data.user, profile: null, autoLoggedIn: false };
+          }
+
+          /*
+            Adopt the session HERE rather than waiting for onAuthStateChange.
+
+            The listener will fire too, and would set the same thing — but it is an
+            asynchronous callback, and "register, then navigate to લેવલ ૧" is a promise
+            that resolves in this function. Without this line the નોંધણી page can call
+            navigate() while the context still reports nobody signed in, and the /welcome
+            guard bounces him straight back to /login: register → login, the precise loop
+            §5 exists to remove.
+          */
+          setSession(data.session);
+
+          const { error: insertError } = await supabase.from('profiles').insert({
+            id: userId,
+            ...fields,
+          });
+
+          if (insertError) {
+            // Almost always a duplicate SMK or mobile. The auth account is left behind
+            // and is harmlessly reused on the next attempt with the same email; signing
+            // out is what lets him correct the value and resubmit rather than being
+            // carried into the app half-registered.
+            await supabase.auth.signOut().catch(() => {});
+            setSession(null);
+            setProfile(null);
+            setProfileError(false);
+            throw insertError;
+          }
+
+          clearPendingProfile();
+          const { row } = await syncProfile(userId);
+          return { user: data.user, profile: row, autoLoggedIn: true };
+        } finally {
+          setRegistering(false);
         }
-
-        setProfile(await loadProfile(userId));
-        return data.user;
       },
 
       /**
@@ -189,35 +366,59 @@ export function AuthProvider({ children }) {
        */
       async login(identifier, password) {
         const id = identifier.trim();
+        let next = null;
 
         if (EMAIL_RE.test(id)) {
-          const { error } = await supabase.auth.signInWithPassword({
+          const { data, error } = await supabase.auth.signInWithPassword({
             email: id.toLowerCase(),
             password,
           });
           if (error) throw error;
-          return;
-        }
-
-        const res = await fetch('/api/login-mobile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mobile: id, password }),
-        });
-
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw Object.assign(new Error(body.message || 'login failed'), {
-            gu: body.gu,
-            code: body.code,
+          next = data.session;
+        } else {
+          const res = await fetch('/api/login-mobile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile: id, password }),
           });
+
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw Object.assign(new Error(body.message || 'login failed'), {
+              gu: body.gu,
+              code: body.code,
+            });
+          }
+
+          const { data, error } = await supabase.auth.setSession({
+            access_token: body.access_token,
+            refresh_token: body.refresh_token,
+          });
+          if (error) throw error;
+          next = data.session;
         }
 
-        const { error } = await supabase.auth.setSession({
-          access_token: body.access_token,
-          refresh_token: body.refresh_token,
-        });
-        if (error) throw error;
+        /*
+          §15 — resolve the destination ONCE, which means loading what the destination
+          depends on before returning.
+
+          This used to return the moment Supabase accepted the password, leaving the
+          લોગિન page to navigate to '/' with a context that did not yet know whether the
+          યુવક had passed the પ્રવેશદ્વાર. The મુખપૃષ્ઠ then loaded, the profile arrived, and
+          a new યુવક was bounced onward to /welcome — login → home → redirect, the exact
+          sequence §15 asks to avoid. Adopting the session and reading the profile here
+          means the page that calls login() already has everything the route decision
+          needs by the time it navigates.
+        */
+        setSession(next);
+        const userId = next?.user?.id ?? null;
+        const { row, failed } = await syncProfile(userId);
+
+        // §14's fallback, completed. Only when the read genuinely found nothing.
+        const finalRow =
+          !row && !failed ? await completePendingProfile(userId, next?.user?.email) : row;
+
+        return { user: next?.user ?? null, profile: finalRow };
       },
 
       /**
@@ -262,10 +463,10 @@ export function AuthProvider({ children }) {
       },
 
       refreshProfile: async () => {
-        if (user) setProfile(await loadProfile(user.id));
+        if (user) await syncProfile(user.id);
       },
     }),
-    [user, session, profile, loading, loadProfile]
+    [user, session, profile, profileError, loading, registering, syncProfile, completePendingProfile]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

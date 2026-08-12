@@ -94,8 +94,18 @@
   margin: 6px auto 34px;
   padding: 0 14px;
 }
+/* `inline-flex`, and the row that goes with it, purely so the arrow sits *beside* the
+   word instead of under it. An inline SVG in a text-align:center block is a word as far
+   as wrapping is concerned: at this width it broke to its own line, and the button grew a
+   second line's worth of height — one pill tall and one taller, side by side. The size
+   here is deliberately the size it always was; nothing about the padding, the radius or
+   the 190px basis changed. */
 .darshan-actions .btn-inline {
   flex: 1 1 190px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   padding: 14px 26px;
   border-radius: 999px;
   font-family: inherit;

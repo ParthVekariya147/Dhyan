@@ -50,6 +50,9 @@ const ACTIVITY_COLUMN = {
   description: 'description',
   position: 'position',
   active: 'active',
+  // How many દ્રશ્યો of this કસોટી must be recalled to pass it (0016). null = all of them,
+  // which is what every કસોટી composed before that migration means.
+  requiredCount: 'required_count',
 };
 
 /** camelCase patch → the row PostgREST expects. An unknown field is a bug, so it throws. */

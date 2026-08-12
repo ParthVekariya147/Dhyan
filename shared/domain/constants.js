@@ -66,6 +66,40 @@ export const isAdminMobile = (mobile) => ADMIN_MOBILES.includes(String(mobile ||
 
 /** Indian mobile: 10 digits, first digit 6-9. */
 export const MOBILE_RE = /^[6-9]\d{9}$/;
+
+/**
+ * Any way a યુવક might write his number → the ten digits `profiles.mobile` stores.
+ *
+ * The column is UNIQUE and is the alternate login identifier, so there is exactly one
+ * correct spelling of a number and every screen has to arrive at it independently. This
+ * function is that spelling, and it is the only one: the registration field, the login
+ * field and netlify/functions/login-mobile.js all pass through here, so a number typed one
+ * way and typed the other way later resolve to the same account.
+ *
+ * What it removes, and why each one is real:
+ *
+ *   spaces, hyphens, brackets   — '96012 69715', '9601-269715' off a printed card
+ *   a leading +91 / 91          — what the phone's own contact list hands to autofill
+ *   a leading 0                 — the trunk prefix people still dial out of habit
+ *
+ * The prefixes are stripped **only while more than ten digits remain**, which is what keeps
+ * a genuine number safe: '9190123456' is ten digits that happen to begin '91', and the loop
+ * never looks at it. Stripping by pattern instead would delete the first two digits of that
+ * yuvak's number and hand him somebody else's — silently, since the result still matches
+ * MOBILE_RE.
+ *
+ * The previous behaviour was `replace(/\D/g,'').slice(0, 10)`, which took the *first* ten
+ * digits: '+919601269715' became '9196012697'. That passes MOBILE_RE, so registration
+ * accepted it, wrote it to a UNIQUE column, and the yuvak could then never log in with the
+ * number he actually owns. Truncating from the wrong end is the failure this closes.
+ */
+export function normaliseMobile(raw) {
+  let d = String(raw ?? '').replace(/\D/g, '');
+  while (d.length > 10 && (d.startsWith('91') || d.startsWith('0'))) {
+    d = d.startsWith('91') ? d.slice(2) : d.slice(1);
+  }
+  return d.slice(0, 10);
+}
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Supabase Auth's own floor is 6 characters; raise here if the admin wants stricter. */

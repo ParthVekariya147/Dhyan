@@ -34,6 +34,14 @@ import {
   withDisplayIndex,
 } from '../shared/domain/darshan.js';
 import { resolveLevel4Gate, validateLevel4Gate } from '../shared/domain/settings.js';
+import { nextLevelAfter } from '../shared/domain/journey.js';
+import {
+  ENTRY_ROUTE,
+  ENTRY_STATE,
+  guardRoute,
+  resolveEntryRoute,
+  resolveEntryState,
+} from '../shared/domain/entry-route.js';
 import {
   parseDriveLink,
   parseDriveFolderLink,
@@ -678,6 +686,224 @@ group('validateLevel4Gate — what the સંચાલક is told instead of sil
   // No upper bound, deliberately: a limit here would be a second total (§6 rule 1) and would
   // go stale the day a દ્રશ્ય is added to the collection.
   eq('an absurdly high threshold is allowed', ok({ require: true, threshold: 100000 }), true);
+}
+
+// ==================================================================== the way onward
+
+/*
+  `nextLevelAfter()` — the door at the end of a level.
+
+  It decides what લેવલ ૪'s completion panel offers, and the two ways it can be wrong are both
+  quiet. Offering a level with no screen sends a યુવક to a URL that redirects him home one
+  tap later — the app taking back what it just promised. Offering nothing when a level *is*
+  configured strands him at the end of the સાધના with no way on.
+
+  The order is the સંચાલક's, not levelId + 1, because he may reorder the levels (§36).
+*/
+group('nextLevelAfter — the સંચાલક orders the levels, the code decides what exists');
+{
+  const L = (levelId, order, enabled = true) => ({
+    levelId,
+    order,
+    enabled,
+    name: `L${levelId}`,
+  });
+  const FOUR = [L(1, 1), L(2, 2), L(3, 3), L(4, 4)];
+  const to = (r) => (r ? r.to : null);
+
+  eq('after લેવલ ૧ comes લેવલ ૨', to(nextLevelAfter(FOUR, 1)), '/darshan');
+  eq('after લેવલ ૩ comes લેવલ ૪', to(nextLevelAfter(FOUR, 3)), '/level/4');
+
+  // The answer that matters most, because it is the one on screen today: લેવલ ૪ is the last
+  // level with a page, so the completion panel must render an ending and not a door.
+  eq('after લેવલ ૪ — nothing', nextLevelAfter(FOUR, 4), null);
+
+  // A level the સંચાલક turned off is skipped rather than offered and then refused.
+  eq(
+    'a disabled level is stepped over',
+    to(nextLevelAfter([L(1, 1), L(2, 2, false), L(3, 3)], 1)),
+    '/level/3'
+  );
+
+  // Reordered: લેવલ ૩ placed before લેવલ ૨. "Next" follows the order he set, not the number.
+  eq(
+    'the order is his, not the levelId',
+    to(nextLevelAfter([L(1, 1), L(3, 2), L(2, 3), L(4, 4)], 1)),
+    '/level/3'
+  );
+
+  // A fifth level enabled in settings has no screen, so it is not offered — §37, and the
+  // reason this function checks LEVEL_ROUTE rather than trusting the list.
+  eq(
+    'a configured level with no page is not a destination',
+    nextLevelAfter([...FOUR, L(5, 5)], 4),
+    null
+  );
+
+  eq('an unknown level', nextLevelAfter(FOUR, 9), null);
+  eq('no list at all', nextLevelAfter(null, 1), null);
+}
+
+/*
+  The entry-route decision (§10) — where a યુવક belongs, and what routing may never do.
+
+  This is the one piece of logic in the app that every single visit passes through, and
+  every way it can be wrong is a way of losing somebody: sending a returning યુવક to
+  નોંધણી, holding a signed-in one on લોગિન, marching a યુવક with three years of સાધના back
+  to the વિડિયો because one profile read timed out, or answering two different things in a
+  row and producing a redirect loop. None of those throw. They are asserted here.
+*/
+group('resolveEntryState / resolveEntryRoute / guardRoute — §10');
+{
+  const NOBODY = {};
+  const NEW = { user: { id: 'u1' }, profile: { id: 'u1' } };
+  const GATED = { user: { id: 'u1' }, profile: { id: 'u1', gate_passed_at: '2026-01-04T00:00:00Z' } };
+  const DONE = {
+    user: { id: 'u1' },
+    profile: { id: 'u1', gate_passed_at: '2026-01-04T00:00:00Z', level4_unlocked: true },
+  };
+
+  // ---- the four states of §10, and each one has exactly one meaning ----------
+  eq('no session is UNAUTHENTICATED', resolveEntryState(NOBODY), ENTRY_STATE.UNAUTHENTICATED);
+  eq('no gate stamp is NEW_USER', resolveEntryState(NEW), ENTRY_STATE.NEW_USER);
+  eq('gate passed is IN_PROGRESS', resolveEntryState(GATED), ENTRY_STATE.IN_PROGRESS);
+  eq('લેવલ ૪ open is COMPLETED', resolveEntryState(DONE), ENTRY_STATE.COMPLETED);
+  eq('nothing at all is UNAUTHENTICATED', resolveEntryState(), ENTRY_STATE.UNAUTHENTICATED);
+
+  /*
+    The distinction the whole of §23 rests on.
+
+    A signed-in યુવક with no profile row means one of two opposite things, and `profile ==
+    null` cannot tell them apart. Genuinely absent → he is mid-registration and belongs at
+    લેવલ ૧. Read FAILED → he may have years behind him, and answering "new user" would walk
+    him back to the વિડિયો he watched in 2023. That is progress reset by routing, which is
+    the one thing this module is forbidden to do.
+  */
+  eq(
+    'a missing profile row is a new યુવક',
+    resolveEntryState({ user: { id: 'u1' }, profile: null }),
+    ENTRY_STATE.NEW_USER
+  );
+  eq(
+    'a FAILED profile read is not a new યુવક',
+    resolveEntryState({ user: { id: 'u1' }, profile: null, profileError: true }),
+    ENTRY_STATE.IN_PROGRESS
+  );
+
+  // ---- §4 — the two doors ---------------------------------------------------
+  eq('a first visitor is shown નોંધણી', resolveEntryRoute(NOBODY), ENTRY_ROUTE.REGISTER);
+  eq(
+    'somebody who has been here before is shown લોગિન',
+    resolveEntryRoute({ ...NOBODY, returning: true }),
+    ENTRY_ROUTE.LOGIN
+  );
+
+  // §5/§6 — REGISTER → AUTO LOGIN → LEVEL ૧, never via the મુખપૃષ્ઠ.
+  eq('a new યુવક goes straight to લેવલ ૧', resolveEntryRoute(NEW), ENTRY_ROUTE.LEVEL1);
+
+  // §7/§25 — a returning યુવક resumes; the મુખપૃષ્ઠ is the fallback, not the rule.
+  eq('with nothing recorded he resumes at the મુખપૃષ્ઠ', resolveEntryRoute(GATED), ENTRY_ROUTE.HOME);
+  eq(
+    'he resumes at the level he last stood at',
+    resolveEntryRoute({ ...GATED, lastRoute: '/level/4' }),
+    '/level/4'
+  );
+  eq(
+    'a finisher resumes too',
+    resolveEntryRoute({ ...DONE, lastRoute: '/level/3' }),
+    '/level/3'
+  );
+
+  /*
+    A resume is a front door and nothing deeper. An attempt is something a યુવક sits down
+    to on purpose — since 0016 he may only have one — so being dropped back into one by
+    merely opening the app would be the routing making that decision for him.
+  */
+  eq(
+    'a કસોટી is not a resume',
+    resolveEntryRoute({ ...GATED, lastRoute: '/level/4/a1' }),
+    ENTRY_ROUTE.HOME
+  );
+  eq(
+    'a stale or hand-edited value is not a resume',
+    resolveEntryRoute({ ...GATED, lastRoute: '/nonsense' }),
+    ENTRY_ROUTE.HOME
+  );
+  eq(
+    'a new યુવક is never resumed anywhere — લેવલ ૧ first',
+    resolveEntryRoute({ ...NEW, lastRoute: '/level/4' }),
+    ENTRY_ROUTE.LEVEL1
+  );
+
+  // ---- §11 — knowing a URL has never been permission ------------------------
+  eq('the root, with no session, opens નોંધણી', guardRoute({ path: '/', ...NOBODY }).to, ENTRY_ROUTE.REGISTER);
+  for (const path of ['/welcome', '/darshan', '/level/3', '/level/4', '/level/4/a1/revision']) {
+    eq(`${path} is refused without a session`, guardRoute({ path, ...NOBODY }).allow, false);
+    eq(`${path} sends him to લોગિન`, guardRoute({ path, ...NOBODY }).to, ENTRY_ROUTE.LOGIN);
+  }
+
+  // ---- the pre-existing business rule, preserved exactly (§7, §23) ----------
+  eq('a યુવક who has not passed the ગેટ is held at લેવલ ૧',
+    guardRoute({ path: '/level/4', ...NEW }).to, ENTRY_ROUTE.LEVEL1);
+  eq('…but લેવલ ૧ itself is his to see',
+    guardRoute({ path: '/welcome', ...NEW }).allow, true);
+
+  // ---- §12 — a refresh must land where it started ---------------------------
+  for (const path of ['/welcome', '/darshan', '/level/3', '/level/4', '/level/4/a1']) {
+    eq(`a refresh on ${path} stays there`, guardRoute({ path, ...GATED }).allow, true);
+  }
+  eq(
+    'a refresh survives a failed profile read',
+    guardRoute({ path: '/level/4', user: { id: 'u1' }, profile: null, profileError: true }).allow,
+    true
+  );
+
+  /*
+    §16 — no redirect may need a second redirect.
+
+    Every destination this module produces must be one the same યુવક is allowed, or the
+    guard fires again on arrival and the two answers ping-pong. Asserted rather than
+    reasoned about, across every combination of state and path the app has.
+  */
+  const PATHS = ['/', '/welcome', '/darshan', '/level/3', '/level/4', '/level/4/a1'];
+  const WHO = [NOBODY, NEW, GATED, DONE, { user: { id: 'u1' }, profile: null, profileError: true }];
+  let settles = true;
+  for (const who of WHO) {
+    for (const path of PATHS) {
+      const first = guardRoute({ path, ...who });
+      if (first.allow) continue;
+      // The destination of a redirect must itself be allowed — unless it is one of the two
+      // public pages, which this module does not guard (PublicOnly does, and it sends the
+      // yuvak to resolveEntryRoute's answer, checked immediately below).
+      if (first.to === ENTRY_ROUTE.LOGIN || first.to === ENTRY_ROUTE.REGISTER) continue;
+      if (!guardRoute({ path: first.to, ...who }).allow) settles = false;
+    }
+  }
+  eq('every redirect lands somewhere that does not redirect again', settles, true);
+
+  let publicSettles = true;
+  for (const who of [NEW, GATED, DONE]) {
+    for (const lastRoute of [null, '/darshan', '/level/4', '/level/4/a1']) {
+      const to = resolveEntryRoute({ ...who, lastRoute });
+      if (!guardRoute({ path: to, ...who }).allow) publicSettles = false;
+    }
+  }
+  eq('a signed-in યુવક leaving લોગિન/નોંધણી lands somewhere he is allowed', publicSettles, true);
+
+  // ---- §23 — routing reads, and only reads ---------------------------------
+  const frozen = Object.freeze({
+    id: 'u1',
+    gate_passed_at: '2026-01-04T00:00:00Z',
+    level4_unlocked: true,
+  });
+  let readOnly = true;
+  try {
+    resolveEntryRoute({ user: Object.freeze({ id: 'u1' }), profile: frozen, lastRoute: '/level/3' });
+    guardRoute({ path: '/level/4', user: Object.freeze({ id: 'u1' }), profile: frozen });
+  } catch {
+    readOnly = false;
+  }
+  eq('no progress is touched by deciding a route', readOnly, true);
 }
 
 // ==================================================================== result

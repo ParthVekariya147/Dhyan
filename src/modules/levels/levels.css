@@ -215,8 +215,13 @@
 .locked-sub { margin-top: 10px; font-size: 13.5px; line-height: 1.85; color: var(--color-muted); }
 .level-empty p { font-size: 15.5px; line-height: 1.9; color: #f4ead8; }
 
+/* Same reason as .runner-nav's buttons in learning.css: a direction arrow beside the word
+   rather than wrapped beneath it. `inline-flex` still shrinks to its contents exactly as
+   `inline-block` did, so every button that carries no arrow is the size it always was. */
 .btn-inline {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 22px;
   padding: 13px 26px;
   border-radius: 999px;
