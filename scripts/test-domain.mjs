@@ -22,14 +22,18 @@
  * No test framework, because adding one to run assertions on two modules is not worth a
  * dependency. Exit code is the result: 0 green, 1 red.
  */
+import { readFileSync } from 'node:fs';
 import {
   applyOverlay,
   toDarshanItem,
   isLearnable,
   hasImage,
+  sceneRowEntry,
   buildDarshanItems,
   validateDarshanItems,
+  withDisplayIndex,
 } from '../shared/domain/darshan.js';
+import { resolveLevel4Gate, validateLevel4Gate } from '../shared/domain/settings.js';
 import {
   parseDriveLink,
   parseDriveFolderLink,
@@ -208,6 +212,101 @@ group('buildDarshanItems / validateDarshanItems');
   // Presentation order, not array position, decides the feed (§1 rule 2).
   const items = buildDarshanItems([entry(), bare()], { 'darshan-105': { order: 1 } });
   eq('an overlay reorder actually reorders', items.map((i) => i.id), ['darshan-105', 'darshan-007']);
+}
+
+// ==================================================================== the શીર્ષક
+//
+// `title` (0013) is the short name a દ્રશ્ય is listed under. Two things about it are worth
+// more than the feature itself, and both are tested here rather than trusted:
+//
+//   1. It folds like `caption`. `not null default ''` means every row that has ever been
+//      touched carries one and almost all of them carry '', so an empty title has to mean
+//      "not written yet" and never "blank this દ્રશ્ય's title". The failure is silent and
+//      total: one `out.title = scene.title` without the guard erases every title the moment
+//      anybody toggles a દ્રશ્ય's visibility.
+//
+//   2. **It is not part of the content gate** (DARSHAN_DATA_CONTRACT.md §2.1). Every દ્રશ્ય in
+//      the collection ships with an empty title, so folding it into `isLearnable` — or into
+//      the `isNumbered` rule inside `withDisplayIndex` — would withhold the entire collection
+//      from the યુવક app and null every `displayIndex`, which would in turn empty every
+//      લેવલ ૪ કસોટી range. Nothing would throw. The app would simply be blank.
+
+/** The same manifest entry with a title already written on it, as applyOverlay leaves it. */
+const named = () => applyOverlay(entry(), { title: 'વનવિચરણ' });
+
+group('title — folded exactly as the વર્ણન is');
+eq('a written title reaches the merged scene', named().title, 'વનવિચરણ');
+eq('Gujarati survives the merge byte for byte', named().title === 'વનવિચરણ', true);
+eq(
+  "an empty title is 'not written', never 'blank this દ્રશ્ય'",
+  applyOverlay(named(), { title: '' }).title,
+  'વનવિચરણ'
+);
+eq('a manifest entry with no row has no title to lose', applyOverlay(entry(), null).title, undefined);
+eq('a title does not arrive from an unrelated edit', applyOverlay(entry(), { caption: 'ક' }).title, undefined);
+eq('a દ્રશ્ય that exists only as a row starts unnamed', sceneRowEntry({ id: 'darshan-200', index: 200 }).title, '');
+
+group('title — NOT a gate (DARSHAN_DATA_CONTRACT.md §2.1)');
+eq('naming a દ્રશ્ય does not make it learnable', isLearnable(applyOverlay(bare(), { title: 'નામ' })), false);
+eq('…and a picture with a વર્ણન stays learnable without one', isLearnable(entry()), true);
+eq('…and adding one does not change that either', isLearnable(named()), true);
+eq('a named દ્રશ્ય with no picture is still withheld', isLearnable(applyOverlay(placeholder(), { title: 'નામ' })), false);
+{
+  // `isNumbered` is internal to withDisplayIndex, so it is tested through the number it
+  // produces — which is the thing that actually matters anyway.
+  const untitled = withDisplayIndex([entry(), bare()]);
+  const titled = withDisplayIndex([named(), applyOverlay(bare(), { title: 'નામ' })]);
+  eq(
+    'numbering ignores the title entirely',
+    titled.map((s) => s.displayIndex),
+    untitled.map((s) => s.displayIndex)
+  );
+  eq('…the described દ્રશ્ય is numbered', titled[0].displayIndex, 1);
+  eq('…and the one with no વર્ણન is not, title or no title', titled[1].displayIndex, null);
+}
+
+group('title — the panel’s view and the report');
+eq('toDarshanItem exposes it', toDarshanItem(entry(), { id: 'darshan-007', title: 'વનવિચરણ' }).title, 'વનવિચરણ');
+eq('…as \'\' when none has been written', toDarshanItem(entry(), undefined).title, '');
+eq('…and it does not displace the વર્ણન', toDarshanItem(entry(), { id: 'darshan-007', title: 'વનવિચરણ' }).caption, entry().t);
+{
+  const items = buildDarshanItems([entry(), bare()], { 'darshan-007': { id: 'darshan-007', title: 'વનવિચરણ' } });
+  const report = validateDarshanItems(items);
+  const titleIssues = report.issues.filter((i) => i.code === 'missing-title');
+  eq('the unnamed દ્રશ્યો are counted', report.missingTitles, 1);
+  eq('…and named, so the તપાસ page can link to each one', report.missingTitleIds, ['darshan-105']);
+  eq('…reported as a warning', titleIssues.map((i) => i.severity), ['warn']);
+  eq('…never as an error', titleIssues.some((i) => i.severity === 'error'), false);
+  eq('…so a missing title does not make a દ્રશ્ય invalid', report.invalid, 0);
+  eq('a title does not stand in for a વર્ણન in the report', report.missingCaptionIds, ['darshan-105']);
+}
+
+group('title — the whole real collection, unnamed, still numbered 1…N');
+{
+  /*
+    The one that would have caught the mistake §2.1 forbids, run against the real thing.
+
+    Every entry in content/darshan.json ships without a title, so if `title` had leaked into
+    the content gate this collection would number nothing at all. The size is read from the
+    manifest and never written down (§62 / ORDERING.md §8 rule 2) — the sheet decides what it
+    is, and the assertion is "1…N over whatever is there", not "1…109".
+  */
+  const manifest = JSON.parse(readFileSync(new URL('../content/darshan.json', import.meta.url), 'utf8'));
+  const items = buildDarshanItems(manifest, {});
+  const sequenced = withDisplayIndex(items);
+  const numbered = sequenced.filter((s) => s.displayIndex != null);
+
+  eq('the collection is not empty, or this test proves nothing', items.length > 0, true);
+  eq('not one દ્રશ્ય has a title yet', items.every((i) => i.title === ''), true);
+  eq('every one of them is still numbered', numbered.length, items.length);
+  eq(
+    'and the sequence is a gapless 1…N',
+    sequenced.map((s) => s.displayIndex).join(','),
+    items.map((_, i) => i + 1).join(',')
+  );
+  eq('N is the collection size, counted', numbered[numbered.length - 1].displayIndex, items.length);
+  eq('the report says the same: every દ્રશ્ય unnamed…', validateDarshanItems(items).missingTitles, items.length);
+  eq('…and none of them invalid because of it', validateDarshanItems(items).invalid, 0);
 }
 
 // ==================================================================== Drive links
@@ -493,6 +592,92 @@ group('buildImportPlan — preview before write');
   const onlyImages = buildImportPlan({ rows, items, driveIndex: drive, applyCaptions: false });
   eq('images only: no વર્ણન is written', onlyImages.entries[0].patch.caption, undefined);
   eq('images only: the image is', onlyImages.entries[0].patch.imageUrl, driveImageUrl(FILE_ID));
+}
+
+// ==================================================================== the લેવલ ૪ gate
+
+/*
+  `resolveLevel4Gate()` — what opens લેવલ ૪, out of a jsonb column anybody could have written.
+
+  This is settings, which means it is `value -> 'level4Gate'` from a row that has been
+  written by however many versions of the panel, and it decides access to a whole level for
+  ~2,000 યુવકો. Two failures matter more than the happy path and neither announces itself:
+
+    * a malformed value that resolves to "no gate" hands લેવલ ૪ to everybody;
+    * a malformed value that resolves to NaN shuts it for everybody, permanently, because no
+      score is ever >= NaN.
+
+  So every branch below is a way the row can be wrong, and each asserts which side it falls
+  on. `level4_gate_setting()` in 0014 mirrors these branch for branch — same defaults, same
+  direction of failure — and the SQL is the authority; if the two disagree, this one is wrong.
+*/
+group('resolveLevel4Gate — a settings row that could say anything');
+{
+  const g = (stored) => resolveLevel4Gate(stored);
+
+  eq('nothing configured', g(undefined), { require: true, threshold: 80 });
+  eq('null', g(null), { require: true, threshold: 80 });
+  eq('not an object', g('80'), { require: true, threshold: 80 });
+
+  eq('the ordinary case', g({ require: true, threshold: 50 }), { require: true, threshold: 50 });
+  eq('the gate turned off', g({ require: false, threshold: 50 }), { require: false, threshold: 50 });
+
+  // Absence must never read as "open to everyone" — that is the unsafe direction.
+  eq('require absent', g({ threshold: 50 }), { require: true, threshold: 50 });
+  eq('require null', g({ require: null, threshold: 50 }), { require: true, threshold: 50 });
+
+  // …and a threshold that is not a number must never become NaN.
+  eq('threshold absent', g({ require: true }), { require: true, threshold: 80 });
+  eq('threshold a string', g({ require: true, threshold: 'eighty' }), { require: true, threshold: 80 });
+  eq('threshold null', g({ require: true, threshold: null }), { require: true, threshold: 80 });
+  eq('threshold negative', g({ require: true, threshold: -5 }), { require: true, threshold: 80 });
+  eq('threshold fractional', g({ require: true, threshold: 49.7 }), { require: true, threshold: 49 });
+
+  // Zero is a real setting — "any day he opens લેવલ ૩ at all" — and is distinguishable from
+  // absence, so it is honoured rather than defaulted.
+  eq('threshold zero is kept', g({ require: true, threshold: 0 }), { require: true, threshold: 0 });
+
+  /*
+    The three that would slip through a coercing check, and each is a real outage:
+
+      Number(null) === 0, Number('') === 0, Number([]) === 0
+
+    all of which are finite and >= 0, so `Number(x)` would resolve every one of them to a
+    threshold of **zero** — a gate every યુવક passes on his first day. The resolver tests
+    `typeof`, and these three are what that is for.
+  */
+  eq('threshold empty string', g({ require: true, threshold: '' }), { require: true, threshold: 80 });
+  eq('threshold an array', g({ require: true, threshold: [] }), { require: true, threshold: 80 });
+
+  // A numeric string is refused as well, so that this agrees with `level4_gate_setting()`'s
+  // `jsonb_typeof(...) = 'number'`. Accepting it here would show ૭૫ in the panel while the
+  // database gated at ૮૦.
+  eq('a numeric string is not a number', g({ require: true, threshold: '75' }), { require: true, threshold: 80 });
+}
+
+group('validateLevel4Gate — what the સંચાલક is told instead of silently corrected');
+{
+  const ok = (gate) => validateLevel4Gate(gate).ok;
+
+  eq('the ordinary case', ok({ require: true, threshold: 50 }), true);
+  eq('zero', ok({ require: true, threshold: 0 }), true);
+  // With the gate off the number is not asked about at all — it is kept, but it decides
+  // nothing, so refusing a save over it would be refusing over a field that does not apply.
+  eq('gate off, nonsense threshold', ok({ require: false, threshold: 'x' }), true);
+
+  eq('missing', ok(null), false);
+  eq('require not a boolean', ok({ require: 'yes', threshold: 50 }), false);
+  eq('threshold a word', ok({ require: true, threshold: 'eighty' }), false);
+  // Refused for the same reason the resolver refuses it — if validate accepted '75' the
+  // save would succeed and the resolver would then replace it with ૮૦, having said "Saved".
+  eq('threshold a numeric string', ok({ require: true, threshold: '75' }), false);
+  eq('threshold null', ok({ require: true, threshold: null }), false);
+  eq('threshold fractional', ok({ require: true, threshold: 49.7 }), false);
+  eq('threshold negative', ok({ require: true, threshold: -1 }), false);
+
+  // No upper bound, deliberately: a limit here would be a second total (§6 rule 1) and would
+  // go stale the day a દ્રશ્ય is added to the collection.
+  eq('an absurdly high threshold is allowed', ok({ require: true, threshold: 100000 }), true);
 }
 
 // ==================================================================== result

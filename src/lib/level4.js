@@ -297,11 +297,21 @@ function normaliseState(raw) {
  * would otherwise leave the cards with no status to render. The rule is evaluated in
  * exactly §2.2's order, including the two things that look like details and are not:
  *
- *   * the **gate is asked first**, so a closed gate reads LOCKED even for an activity
- *     that was completed while it was open;
+ *   * **completion is asked first** (0012), ahead of the gate and ahead of ક્રમ. A કસોટી
+ *     he has passed reads પૂરું થયું and stays open whatever happens afterwards — including
+ *     the સંચાલક raising `gate_threshold` past where this યુવક stands, which would
+ *     otherwise paint કસોટીઓ he finished in March with a તાળું he did nothing to earn.
+ *     Everything he has *not* completed is still governed by the gate and still by ક્રમ,
+ *     so this takes nothing away from the sequence — it only stops the sequence taking
+ *     something back;
  *   * **coverage counts as completion** (decision #4) — a new version's activity whose
  *     દ્રશ્યો were all covered by activities the યુવક already passed is already done, and
  *     he is not asked to sit it again.
+ *
+ * Repetition needs no rule of its own here, and deliberately has none. A COMPLETED કસોટી
+ * is simply not LOCKED, so every screen that asks "may he open this?" already says yes, as
+ * many times as he likes — `level4_submit` has never held an attempt limit and 0012 removed
+ * the two ways access could be withdrawn from underneath one.
  *
  * `level4_submit` re-derives all of this server-side before it writes anything (§2.3
  * steps 1–3), so nothing here can grant access; it can only fail to *offer* it, which is
@@ -316,13 +326,13 @@ function withStatuses(activities, state) {
     const completed = row?.status === S.COMPLETED || covered;
 
     let status;
-    if (!state.gateOpen) status = S.LOCKED;
-    else if (completed) status = S.COMPLETED;
+    if (completed) status = S.COMPLETED;
+    else if (!state.gateOpen) status = S.LOCKED;
     else if (!prefixComplete) status = S.LOCKED;
     else status = row?.status ?? S.AVAILABLE;
 
-    // Read off completion, not off the displayed status: a closed gate paints everything
-    // LOCKED, and that must not make the ladder look unclimbed underneath.
+    // Read off completion, not off the displayed status: a closed gate paints the unfinished
+    // કસોટીઓ LOCKED, and that must not make the ladder look unclimbed underneath.
     prefixComplete = prefixComplete && completed;
 
     return {
@@ -341,6 +351,21 @@ const EMPTY = {
   config: null,
   activities: [],
   gateOpen: false,
+  gateThreshold: DEFAULT_GATE_THRESHOLD,
+};
+
+/**
+ * What useLevel4Gate() reports before it knows, and whenever it cannot find out.
+ *
+ * `ready: false` is the load-bearing field — see that hook. The threshold beside it is the
+ * shared default and exists only so a caller that reads it anyway gets a number rather
+ * than undefined; it is not a claim about this project's gate.
+ */
+const EMPTY_GATE = {
+  ready: false,
+  published: false,
+  gateOpen: false,
+  requireGate: true,
   gateThreshold: DEFAULT_GATE_THRESHOLD,
 };
 
@@ -465,6 +490,79 @@ export function useLevel4() {
 }
 
 /**
+ * Just the gate — for the two screens that must *mention* લેવલ ૪ without rendering it.
+ *
+ * મુખપૃષ્ઠ and લેવલ ૩ both say what opens લેવલ ૪, and both used to say **૮૦**, because that
+ * is the literal in `LEVEL4_UNLOCK_THRESHOLD` and in 0008's `level4_unlock_threshold()`.
+ * Since LEVEL4.md decision #3 that number is the સંચાલક's: `gate_threshold` on the published
+ * configuration, which he may set to ૭૫, to ૫૦, or to anything else — and the promise
+ * printed on those two screens has to be the promise the database actually keeps. A યુવક
+ * told "૮૦ પૂરાં કરો" who finds લેવલ ૪ already open at ૫૦ has been told the wrong thing;
+ * one told ૮૦ when the real gate is ૧૦૦ has been told a worse one.
+ *
+ * One RPC, not `useLevel4()`'s two: neither screen draws a કસોટી card, so
+ * `level4_published_config()`'s activity list is bytes neither of them will read — and
+ * મુખપૃષ્ઠ is where a યુવક lands on a Surat connection (§14).
+ *
+ * `ready` is the thing to render against, not `!loading`: while the answer is in flight
+ * there is no honest threshold to print, so the callers print nothing rather than a number
+ * they would have to take back. Nothing is granted here either way — `level4_submit`
+ * re-checks the gate server-side on every attempt (§37).
+ *
+ * @returns {{ ready, published, gateOpen, requireGate, gateThreshold }}
+ *   `published` false = no configuration is live yet, so there is no gate to describe.
+ */
+export function useLevel4Gate() {
+  const { user } = useAuth();
+  const uid = user?.id ?? null;
+  const [gate, setGate] = useState(EMPTY_GATE);
+
+  useEffect(() => {
+    if (!configured || !uid) {
+      setGate(EMPTY_GATE);
+      return;
+    }
+
+    let alive = true;
+
+    supabase
+      .rpc('level4_state')
+      .then(({ data, error }) => {
+        if (!alive) return;
+        // An unreadable gate is not an error a યુવક can act on and is never shown as one
+        // (§1 rule 4). It stays `ready: false`, so the invitation line is simply absent and
+        // the tile behaves exactly as it does before the answer arrives.
+        if (error || !data || typeof data !== 'object') {
+          setGate(EMPTY_GATE);
+          return;
+        }
+        const requireGate = pick(data, 'requireGate', 'require_gate');
+        setGate({
+          ready: true,
+          published: true,
+          gateOpen: Boolean(pick(data, 'gateOpen', 'gate_open')),
+          // Absent means required: a configuration that does not say is the default one,
+          // and defaulting to "open to everyone" would be the unsafe direction to guess in.
+          requireGate: requireGate === undefined || requireGate === null ? true : Boolean(requireGate),
+          gateThreshold: posInt(
+            pick(data, 'gateThreshold', 'gate_threshold'),
+            DEFAULT_GATE_THRESHOLD
+          ),
+        });
+      })
+      .catch(() => {
+        if (alive) setGate(EMPTY_GATE);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [uid]);
+
+  return gate;
+}
+
+/**
  * One activity, with the actual દર્શન behind it.
  *
  * The activity's `sceneIds` are stable ids (§21) and carry no content — the content comes
@@ -474,11 +572,18 @@ export function useLevel4() {
  *
  * A id `useScenes()` does not return is **dropped, not rendered as a hole**: it is a દ્રશ્ય
  * the સંચાલક has since withheld or emptied, and `inOrder()` in src/lib/scenes.js makes the
- * same choice for the same reason. `level4_submit` computes `required` from the items in
- * the database rather than from what was on screen, so a withheld દ્રશ્ય is the one case
- * where a યુવક can tick everything he is shown and still not pass. That is the સંચાલક's to
- * fix by republishing, and it is rarer than the alternative — a broken frame he is asked
- * to bring to mind.
+ * same choice for the same reason.
+ *
+ * That drop used to be able to strand a યુવક — he would tick everything on screen and still
+ * not pass, because `level4_submit` counted an item he could no longer see. It cannot any
+ * more: `level4_effective_items()` (0010) is now the single reader of an activity's
+ * contents, and it applies the same withheld test this screen does, so `required`, the
+ * `sceneIds` the કસોટી numbers, and the દ્રશ્યો rendered here are one list. The one
+ * divergence left is deliberate and narrow — the database cannot see `isLearnable`
+ * (a master image and a વર્ણન, which live in content/darshan.json), so a દ્રશ્ય that is
+ * published but has no વર્ણન would still be required while `useScenes()` withholds it.
+ * The લેવલ ૪ builder refuses to publish that configuration in the first place
+ * (`unpublished-scene`, shared/domain/level4-selection.js).
  *
  * @returns {{ loading, error, activity, scenes, status, canOpen, retry }}
  *   `scenes` are full દર્શન entries `{ id, n, order, t, url, fullUrl, … }` in the
@@ -486,7 +591,7 @@ export function useLevel4() {
  *   (rule 3) — the answer is not on that screen.
  */
 export function useLevel4Activity(activityId) {
-  const { loading: l4Loading, error, activities, gateOpen, retry } = useLevel4();
+  const { loading: l4Loading, error, activities, retry } = useLevel4();
   const { scenes: collection, loading: scenesLoading } = useScenes();
 
   const activity = useMemo(
@@ -508,9 +613,18 @@ export function useLevel4Activity(activityId) {
     activity,
     scenes,
     status,
-    // What the screen may offer. The server refuses a locked activity regardless (§2.3
-    // steps 1–3), but offering something that will be refused is its own small unkindness.
-    canOpen: Boolean(activity) && gateOpen && status !== S.LOCKED,
+    /*
+      What the screen may offer. The server refuses a locked activity regardless (§2.3
+      steps 1–3), but offering something that will be refused is its own small unkindness.
+
+      The gate is **not** asked again here, and that is the correction 0012 makes. It is
+      already inside `status`: withStatuses() paints an unfinished કસોટી LOCKED when the gate
+      is shut, and leaves a completed one COMPLETED. Asking `gateOpen` a second time on top
+      of that undid the second half — a યુવક whose gate had closed behind him (the સંચાલક
+      raised `gate_threshold`) could see પૂરું થયું on the card and find the દર્શન behind it
+      shut. One question, answered in one place.
+    */
+    canOpen: Boolean(activity) && status !== S.LOCKED,
     retry,
   };
 }

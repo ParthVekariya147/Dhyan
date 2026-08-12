@@ -17,6 +17,12 @@
  * — it is part of the image, not something the app renders. `order` is presentation
  * position, which may one day differ from `index` (§32).
  *
+ * `title` and `caption` are two fields and not two names for one. `title` is the short name
+ * a list row or a heading shows; `caption` is the વર્ણન — the sentence Level 3 reads and
+ * Level 4 tests. Only `caption` is part of the content gate, so a scene with no title is
+ * shown to yuvaks exactly as before (DARSHAN_DATA_CONTRACT.md §2.1). There is no third
+ * spelling: nothing in the domain or the services calls either of them `description`.
+ *
  * @typedef {object} DarshanItem
  * @property {string}  id         stable identity, e.g. "darshan-009"
  * @property {number}  index      the number visible in the artwork
@@ -26,6 +32,7 @@
  * @property {string}  fullUrl    the same image at the enlarged view's width
  * @property {string}  driveId    the Drive file behind those URLs, '' if typed by hand
  * @property {string}  file       the file's name in Drive, for display only
+ * @property {string}  title      short name for lists and headings, '' when not yet written
  * @property {string}  caption    વર્ણન text, used by Level 3, never drawn over the image
  * @property {string}  reason     why it is not active, '' when it is
  * @property {string|null} source where the record came from: 'manifest' | 'supabase+manifest'

@@ -1,7 +1,9 @@
 import { supabase } from '../../../lib/supabase';
 import {
   APP_SETTINGS_DOC,
+  LEVEL4_GATE_KEY,
   LEVELS_SETTINGS_DOC,
+  resolveLevel4Gate,
   resolveLevels,
 } from '../../../../../shared/domain/settings.js';
 
@@ -44,16 +46,41 @@ async function writeSetting(key, patch) {
 export const getAppSettings = () => readSetting(APP_SETTINGS_DOC);
 export const updateAppSettings = (patch) => writeSetting(APP_SETTINGS_DOC, patch);
 
-export async function getLevels() {
-  // Through the same resolver the યુવક app uses, not a looser check of its own.
-  //
-  // `Array.isArray(stored) && stored.length` accepts a list that resolveLevels would
-  // reject — a missing levelId, an entry that is not an object, an order that collides —
-  // and the panel would then render that damaged list as if it were in force while yુવકો
-  // silently fell back to the defaults. The two would disagree with nothing on screen to
-  // say so. One resolver means what the સંચાલક sees is what a યુવક gets.
-  const stored = (await readSetting(LEVELS_SETTINGS_DOC))?.levels;
-  return resolveLevels(stored);
+/**
+ * The whole of what the Levels page configures: the list, and what opens લેવલ ૪.
+ *
+ * One read rather than two, because they are one row — and one *write*, further down, for a
+ * reason that matters more: the `audit_settings` trigger (0004) records a settings write, so
+ * saving the list and the gate separately would put two entries in the log for one press of
+ * one button, and a reader of the audit trail would see an edit that never happened.
+ *
+ * Both halves go through the same resolvers the યુવક app uses, never a looser check of this
+ * panel's own. `Array.isArray(stored) && stored.length` would accept a list resolveLevels()
+ * rejects — a missing levelId, an entry that is not an object, an order that collides — and
+ * the panel would then render that damaged list as in force while યુવકો silently fell back
+ * to the defaults, with nothing on screen to say the two disagreed.
+ */
+export async function getLevelsConfig() {
+  const stored = await readSetting(LEVELS_SETTINGS_DOC);
+  return {
+    levels: resolveLevels(stored?.levels),
+    gate: resolveLevel4Gate(stored?.[LEVEL4_GATE_KEY]),
+  };
 }
+
+/** Just the list — kept for callers that do not touch the gate. */
+export async function getLevels() {
+  return (await getLevelsConfig()).levels;
+}
+
+/**
+ * Both halves, in one write.
+ *
+ * `writeSetting` merges rather than replaces, so this cannot drop a field belonging to
+ * something else in the same row — but it is still passed both keys together, because the
+ * gate and the list are saved by one button and one confirmation.
+ */
+export const updateLevelsConfig = ({ levels, gate }) =>
+  writeSetting(LEVELS_SETTINGS_DOC, { levels, [LEVEL4_GATE_KEY]: gate });
 
 export const updateLevels = (levels) => writeSetting(LEVELS_SETTINGS_DOC, { levels });

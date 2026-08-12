@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   expandRange,
+  matchKind,
   orderSceneIds,
   searchScenes,
   summarise,
@@ -8,7 +9,7 @@ import {
 import { gu } from '../../../lib/format';
 
 /**
- * §5 — which દ્રશ્યો belong to this sub-level, picked either way.
+ * §5 — which દર્શન belong to this sub-level, picked either way.
  *
  * **Range** is how the collection is normally carved up: ૧–૨૫, ૨૬–૫૦. **Individual** is how
  * it is corrected afterwards — one દ્રશ્ય moved out, two added at the end. Both exist because
@@ -17,9 +18,18 @@ import { gu } from '../../../lib/format';
  * A range added while the checkboxes are still tickable is the shortest path from "roughly
  * this block" to "exactly these".
  *
+ * **Every number typed and shown here is the number a user sees** (ORDERING.md decision #2).
+ * "From 1 To 30" is the first thirty Darshan in the current order — the same ૧…૩૦ printed on
+ * his cards — not the numbers the sheet happens to have printed on the artwork. Those are on
+ * every row too, in grey, because a Darshan still has to be traceable back to the sheet: they
+ * are shown, and searchable, and they select nothing. The two diverge the moment one Darshan
+ * is withheld, and a picker that quietly used the sheet's numbering would hand the સંચાલક a
+ * range that reads right and selects the wrong pictures.
+ *
  * Every rule about what the selection *means* — duplicates across sub-levels, gaps, unknown
- * ids, ordering — belongs to shared/domain/level4-selection.js. This file arranges controls
- * and calls it. It holds no total, no count of sub-levels and no code such as '4.1' (§62).
+ * ids, ordering, what counts as a match — belongs to shared/domain/level4-selection.js. This
+ * file arranges controls and calls it. It holds no total, no count of sub-levels and no code
+ * such as '4.1' (§62).
  */
 export default function SceneSelector({ collection, value, onChange, takenBy, withheld, disabled }) {
   const [mode, setMode] = useState('range');
@@ -31,19 +41,27 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
   const selected = useMemo(() => new Set(value), [value]);
 
   /**
+   * How far the numbering runs. Counted, never assumed (§62): it is the number of Darshan
+   * that carry a display number at all, which is exactly the highest number the સંચાલક can
+   * usefully type into the range boxes.
+   */
+  const numbered = useMemo(() => collection.filter((c) => Number.isInteger(c.displayIndex)).length, [collection]);
+
+  /**
    * The rows on screen.
    *
-   * `searchScenes` is the engine's — index number or વર્ણન substring, one definition of
-   * "matches" shared with the યુવક side. What it hands back is normalised, because a function
-   * that returns ids and a function that returns entries are both reasonable readings of its
-   * contract and this page must not break on whichever it is.
+   * `searchScenes` is the engine's — display number, sheet number, or વર્ણન substring, one
+   * definition of "matches" shared with the યુવક side. What it hands back is normalised,
+   * because a function that returns ids and a function that returns entries are both
+   * reasonable readings of its contract and this page must not break on whichever it is.
    */
   const shown = useMemo(() => {
     const base = q.trim() ? asItems(searchScenes(collection, q.trim()), collection) : collection;
-    // A દ્રશ્ય with no image or no વર્ણન cannot be learned, so offering it by default would
-    // build a sub-level that fails validation the moment it is checked. `withheld` is the
-    // engine's own answer to that question (findInvalid), not a second reading of `active` —
-    // the two must not drift. It stays reachable: the filter is a filter, not a rule.
+    // A દ્રશ્ય with no image, no વર્ણન, or withheld from the collection cannot be learned, so
+    // offering it by default would build a sub-level that fails validation the moment it is
+    // checked. `withheld` is the engine's own answer to that question (findInvalid), not a
+    // second reading of `active` — the two must not drift. It stays reachable: the filter is
+    // a filter, not a rule.
     return onlyAvailable ? base.filter((c) => !withheld?.has(c.id)) : base;
   }, [collection, q, onlyAvailable, withheld]);
 
@@ -59,7 +77,7 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
   const addRange = () => {
     const ids = expandRange(collection, Number(from), Number(to));
     // Appended, not merged in collection order: §26 says the arrangement is the સંચાલક's, and
-    // silently re-sorting what he just added would take that back. `Sort by number` below is
+    // silently re-sorting what he just added would take that back. `Sort into order` below is
     // the same thing offered as a choice.
     const have = new Set(value);
     apply([...value, ...ids.filter((id) => !have.has(id))]);
@@ -74,12 +92,12 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
     <>
       <div className="l4-summary">
         <div>
-          <strong>{gu(summary.count)} of {gu(collection.length)}</strong>
+          <strong>{gu(summary.count)} of {gu(numbered)}</strong>
           <span>Darshan selected</span>
         </div>
         <div>
           <strong>{summary.count ? `${gu(summary.fromIndex)} – ${gu(summary.toIndex)}` : '—'}</strong>
-          <span>First and last number</span>
+          <span>Numbered as users see them</span>
         </div>
         <div>
           <strong>{summary.count ? (summary.contiguous ? 'Unbroken' : 'Has gaps') : '—'}</strong>
@@ -97,22 +115,29 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
       </div>
 
       {mode === 'range' ? (
-        <div className="l4-tools">
-          <div className="field">
-            <label htmlFor="l4-from">From</label>
-            <input id="l4-from" type="number" min="1" value={from} onChange={(e) => setFrom(e.target.value)} disabled={disabled} />
+        <>
+          <div className="l4-tools">
+            <div className="field">
+              <label htmlFor="l4-from">From</label>
+              <input id="l4-from" type="number" min="1" max={numbered || undefined} value={from} onChange={(e) => setFrom(e.target.value)} disabled={disabled} />
+            </div>
+            <div className="field">
+              <label htmlFor="l4-to">To</label>
+              <input id="l4-to" type="number" min="1" max={numbered || undefined} value={to} onChange={(e) => setTo(e.target.value)} disabled={disabled} />
+            </div>
+            <button className="btn" type="button" onClick={addRange} disabled={disabled || !from || !to}>
+              Add Range
+            </button>
+            <button className="btn btn-quiet" type="button" onClick={removeRange} disabled={disabled || !from || !to}>
+              Remove Range
+            </button>
           </div>
-          <div className="field">
-            <label htmlFor="l4-to">To</label>
-            <input id="l4-to" type="number" min="1" value={to} onChange={(e) => setTo(e.target.value)} disabled={disabled} />
-          </div>
-          <button className="btn" type="button" onClick={addRange} disabled={disabled || !from || !to}>
-            Add Range
-          </button>
-          <button className="btn btn-quiet" type="button" onClick={removeRange} disabled={disabled || !from || !to}>
-            Remove Range
-          </button>
-        </div>
+          <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
+            {gu(1)} – {gu(numbered)}, counted the way users count them. The grey number on each
+            row is the one printed on the artwork; it is there to find a Darshan by, not to
+            select by.
+          </p>
+        </>
       ) : (
         <div className="l4-tools">
           <div className="field grow">
@@ -122,7 +147,7 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Number or description…"
+              placeholder="Number, sheet number, or description…"
             />
           </div>
           {/* Select All acts on what is on screen, never on the whole collection. A button
@@ -158,9 +183,9 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
           type="button"
           disabled={disabled || value.length < 2}
           onClick={() => apply(orderSceneIds(value, collection))}
-          title="Put the selected Darshan back into the collection's own order"
+          title="Put the selected Darshan back into the order users meet them in"
         >
-          Sort by number
+          Sort into order
         </button>
         <span className="hint" style={{ paddingBottom: 9 }}>
           Showing {gu(shown.length)} of {gu(collection.length)}
@@ -168,19 +193,32 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
       </div>
 
       <div className="l4-list">
-        {shown.map((item) => {
-          const taken = takenBy?.get(item.id);
+        {shown.map((row) => {
+          const taken = takenBy?.get(row.id);
+          const display = Number.isInteger(row.displayIndex) ? row.displayIndex : null;
+          const source = Number.isInteger(row.sourceIndex) ? row.sourceIndex : row.index;
+          // Which numbering the search actually hit, so a result never has to be guessed at:
+          // `47` finds both the forty-seventh Darshan and the one printed 47, and after a
+          // single withholding those are two different pictures.
+          const why = q.trim() ? matchKind(row, q.trim()) : '';
           return (
-            <label className="l4-row" key={item.id}>
+            <label className="l4-row" key={row.id}>
               <input
                 type="checkbox"
-                checked={selected.has(item.id)}
-                onChange={() => toggle(item.id)}
+                checked={selected.has(row.id)}
+                onChange={() => toggle(row.id)}
                 disabled={disabled}
               />
-              <span className="l4-row-n">{gu(item.index)}</span>
-              <span className="l4-row-t">{item.caption || <em className="hint">No description written</em>}</span>
-              {withheld?.has(item.id) && <span className="pill pill-off" title={item.reason}>Not ready</span>}
+              <span className="l4-row-n" title={display === null ? 'Withheld — users never reach it, so it has no number' : 'The number users see'}>
+                {display === null ? '—' : gu(display)}
+              </span>
+              <span className="l4-row-src" title="The number printed on the artwork">
+                {Number.isInteger(source) ? `#${gu(source)}` : ''}
+              </span>
+              <span className="l4-row-t">{row.caption || <em className="hint">No description written</em>}</span>
+              {why === 'source' && <span className="l4-row-why">sheet number</span>}
+              {why === 'text' && <span className="l4-row-why">description</span>}
+              {withheld?.has(row.id) && <span className="pill pill-off" title={row.reason}>Not ready</span>}
               {taken && <span className="l4-row-taken">in {taken}</span>}
             </label>
           );

@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supabase/client.js';
-import { applyOverlay, isLearnable, sceneRowEntry } from '../../shared/domain/darshan.js';
+/*
+  `withDisplayIndex` is the one derivation of the number a યુવક reads (ORDERING.md §2). It is
+  imported here and applied once, at the end of this hook, because this hook is the single
+  place the effective collection exists — see the note on the useMemo below.
+*/
+import { applyOverlay, isLearnable, sceneRowEntry, withDisplayIndex } from '../../shared/domain/darshan.js';
 import { ALL_SCENES, SCENES } from './scenes';
 
 const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
@@ -77,7 +82,31 @@ export function useScenes() {
   }, []);
 
   const scenes = useMemo(() => {
-    if (!overlay?.length) return SCENES;
+    /*
+      ────────────────────────────────────────────────────────────────────────
+      One list, and then one numbering (ORDERING.md §4)
+      ────────────────────────────────────────────────────────────────────────
+
+      Every screen in the યુવક app used to print the દ્રશ્ય's *stored* number, so the moment
+      the સંચાલક withheld દ્રશ્ય ૧૦૬ a યુવક read "…૧૦૫, ૧૦૭, ૧૦૮…" and the ક્રમ he is asked
+      to hold in his mind had a hole in it. `withDisplayIndex()` closes it: it hands back
+      the same entries carrying `displayIndex`, a continuous ૧…N counted over exactly the
+      entries that survive the two gates below — derived on read, stored nowhere, so
+      withholding one દ્રશ્ય rewrites no rows and reactivating it rewrites none back
+      (ORDERING.md §1).
+
+      It is applied **here and nowhere else**, after the overlay and both gates, because
+      this hook is the only place the effective collection exists. Downstream screens
+      receive entries already sequenced and already in canonical order and must not sort
+      again (ORDERING.md §8 rule 4) — which is why the `.sort((a, b) => (a.order ?? a.n) …)`
+      that used to close this block is gone. `withDisplayIndex()` carries that sort itself,
+      and total order broken by `id` beats a comparison that can call two દ્રશ્યો equal.
+
+      The overlay-less branch goes through it too. A build whose સંચાલક has never edited a
+      દ્રશ્ય must number its દર્શન exactly as one whose સંચાલક has; returning `SCENES`
+      straight out would hand every screen entries with no `displayIndex` on them at all.
+    */
+    if (!overlay?.length) return withDisplayIndex(SCENES);
 
     const byId = new Map(
       overlay.map((row) => [
@@ -90,6 +119,12 @@ export function useScenes() {
           order: row.order,
           active: row.active,
           status: row.status,
+          // The short name (0013). Carried through so a screen that wants to name a દ્રશ્ય
+          // has it on the entry rather than fetching this table a second time. It is not a
+          // gate and must not become one: `isLearnable` below tests the image and the વર્ણન,
+          // and every row ships with `title = ''` — folding it into the filter would empty
+          // this hook and take the whole app down (DARSHAN_DATA_CONTRACT.md §2.1).
+          title: row.title,
           caption: row.caption,
           // snake_case in Postgres, camelCase in the domain model. The panel maps it the
           // same way; reading `row.imageUrl` here would silently be undefined and every
@@ -118,17 +153,26 @@ export function useScenes() {
 
     // ALL_SCENES, not SCENES: the content gate is re-applied below, *after* the overlay,
     // so a caption written in the panel can promote a scene that shipped without one.
-    return [...ALL_SCENES, ...created]
-      .filter((s) => {
-        const row = byId.get(s.id);
-        return !row || !isWithheld(row);
-      })
-      .map((s) => applyOverlay(s, byId.get(s.id)))
-      .filter(isLearnable)
-      // ક્રમ કદી તૂટે નહીં (§1 rule 2) — re-sorted here because the સંચાલક may have
-      // renumbered scenes, and scenes.js sorted the manifest before those edits existed.
-      .sort((a, b) => (a.order ?? a.n) - (b.order ?? b.n));
+    //
+    // ક્રમ કદી તૂટે નહીં (§1 rule 2): the canonical order and the numbering are one act, and
+    // `withDisplayIndex()` performs both — the સંચાલક may have renumbered or reordered
+    // scenes, and scenes.js sorted the manifest before any of those edits existed.
+    return withDisplayIndex(
+      [...ALL_SCENES, ...created]
+        .filter((s) => {
+          const row = byId.get(s.id);
+          return !row || !isWithheld(row);
+        })
+        .map((s) => applyOverlay(s, byId.get(s.id)))
+        .filter(isLearnable)
+    );
   }, [overlay]);
 
+  /*
+    Unchanged, deliberately: `{ scenes, total, loading }` is what four screens read, and
+    `displayIndex` arrives *on* the entries rather than as a fifth field. `total` is still
+    `scenes.length` — which is now also the largest `displayIndex`, because the sequence
+    counts exactly the entries in this array (ORDERING.md §8 rule 2: never a literal).
+  */
   return { scenes, total: scenes.length, loading };
 }

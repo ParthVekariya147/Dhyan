@@ -87,7 +87,7 @@ const exportColumns = (withMobile) =>
     { label: 'Entry gate', value: (u) => (u.gatePassedAt ? istDate(u.gatePassedAt) : 'Pending') },
     { label: 'Liked', value: (u) => (u.likeAnswer ? 'Yes' : 'No') },
     { label: 'Commented', value: (u) => (u.commentAnswer ? 'Yes' : 'No') },
-    { label: 'Level 4', value: (u) => (u.level4Unlocked ? 'Unlocked' : 'Not yet') },
+    { label: 'Level 4', value: (u) => (u.level4GateOpen ? 'Open' : 'Not yet') },
   ].filter(Boolean);
 
 export default function UsersPage() {
@@ -209,9 +209,15 @@ export default function UsersPage() {
       },
     },
     {
-      key: 'level4Unlocked',
+      key: 'level4GateOpen',
       label: 'Level 4',
-      render: (u) => (u.level4Unlocked ? <span className="pill pill-ok">Unlocked</span> : <span className="pill pill-off">Off</span>),
+      /*
+        The gate the published configuration defines, not 0008's fixed 80 (0011). "Open"
+        rather than "Unlocked" because that is now what it means: with the gate switched
+        off it is open to everyone without anybody having earned anything, and a column
+        reading "Unlocked" for all 2,000 would be describing the wrong thing.
+      */
+      render: (u) => (u.level4GateOpen ? <span className="pill pill-ok">Open</span> : <span className="pill pill-off">Not yet</span>),
     },
   ];
 

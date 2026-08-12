@@ -2,11 +2,37 @@ import { Link } from 'react-router-dom';
 import DarshanFeed from './DarshanFeed';
 import ProgressBar from '../../components/ProgressBar';
 import BackToTop from '../../components/BackToTop';
+import PageIntro from '../../components/PageIntro';
 import { gu } from '../../lib/scenes';
 import { useScenes } from '../../lib/useScenes';
+import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 
 /**
- * Level 2 — દર્શન.
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAGE CONTRACT — લેવલ ૨, દર્શન (/darshan)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Purpose        A યુવક studies the whole દર્શન collection: picture, title, વર્ણન, number.
+ *                This is the learning half of the સાધના — the memory support that લેવલ ૩
+ *                and લેવલ ૪ take away again.
+ *
+ * Input          useScenes() — the published collection, both gates applied.
+ * Visible        Every દ્રશ્ય's master image, its વર્ણન, its printed number; the count.
+ * Actions        Look. Tap an image to enlarge it. Go on, or go back.
+ * Persisted      Nothing. This page writes nothing at all — see the footer note.
+ * Completion     None. There is nothing to finish here and nothing is recorded.
+ * Next           /level/3 — લેવલ ૩, વર્ણન યાદી.
+ * Previous       /welcome — લેવલ ૧, the વિડિયો.
+ * Excluded       Ticks, scoring, right-and-wrong, a 'પૂરું કરો' button, a મુખપૃષ્ઠ button at
+ *                the foot (it would be a third, sideways choice — see below), and **a PDF**.
+ *                This level is not "PDF દર્શન" and has not been for a long time: the cards
+ *                below are the master images themselves.
+ * Loading        Three dots holding a full viewport, so nothing shifts when the cards land.
+ * Error / empty  useScenes() degrades to an empty list; the two ways on stay on screen.
+ * Source of truth  દર્શન collection for the content; shared/domain/journey.js for the
+ *                  description a યુવક reads.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
  *
  * Not "PDF દર્શન" any more, here or on the home page (shared/domain/settings.js). Nothing
  * on this route has been a PDF for a long time: every card below is the master image
@@ -23,6 +49,7 @@ import { useScenes } from '../../lib/useScenes';
  */
 export default function DarshanPage() {
   const { scenes, total, loading } = useScenes();
+  const spec = usePageSpec(JOURNEY_PAGE.LEVEL2);
 
   return (
     <>
@@ -33,6 +60,19 @@ export default function DarshanPage() {
         <p>{loading ? ' ' : `${gu(total)} દ્રશ્યોનું ક્રમબદ્ધ દર્શન`}</p>
         <div className="rule" />
       </header>
+
+      {/*
+        What this page is for, said on the page itself.
+
+        Above the feed and not below it: the one thing a યુવક needs told here is that there
+        is nothing to tick and nothing being counted — that looking *is* લેવલ ૨ — and a
+        sentence saying so after a hundred cards would be read by nobody. It renders during
+        `loading` too, so the page explains itself before it has anything to show.
+
+        The words come from shared/domain/journey.js, so this level is described in one
+        place for the યુવક, the સંચાલક panel and PAGES.md alike.
+      */}
+      <PageIntro spec={spec} />
 
       {/*
         The feed waits for the overlay rather than rendering the manifest and pulling

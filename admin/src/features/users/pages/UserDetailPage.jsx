@@ -114,8 +114,22 @@ export default function UserDetailPage() {
             {/* Honour-system answers (§5) — recorded so the સંચાલક can see who said હા. */}
             <dt>Liked</dt><dd>{u?.likeAnswer ? 'Yes' : 'No'}</dd>
             <dt>Commented</dt><dd>{u?.commentAnswer ? 'Yes' : 'No'}</dd>
+            {/*
+              Both facts, because on this page the difference is the useful part: "Open" is
+              the gate the published configuration defines now (0011), and the note beside
+              it is 0008's fixed-80 record. With a threshold of ૫૦ the first is true at ૫૦
+              while the second waits for ૮૦, and a સંચાલક looking at one યુવક is exactly the
+              reader who needs to see which of the two he is asking about.
+            */}
             <dt>Level 4</dt>
-            <dd>{u?.level4Unlocked ? <span className="pill pill-ok">Unlocked</span> : <span className="pill pill-off">Off</span>}</dd>
+            <dd>
+              {u?.level4GateOpen
+                ? <span className="pill pill-ok">Open</span>
+                : <span className="pill pill-off">Not yet</span>}
+              {u?.level4Unlocked && !u?.level4GateOpen && (
+                <span className="pill pill-off" style={{ marginLeft: 8 }}>reached 80 at Level 3</span>
+              )}
+            </dd>
             {/* Both come from the same read as the stat cards. When it failed, a hard "0"
                 here would be the same false statement the cards used to make. */}
             <dt>Rounds completed</dt>

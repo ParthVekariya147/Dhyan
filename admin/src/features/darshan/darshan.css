@@ -1,0 +1,258 @@
+/* દર્શન — arranging the order of the collection, and editing it in handfuls.
+ *
+ * Loaded only by DarshanListPage, so it rides that page's chunk and costs nothing on any
+ * other screen (§51). Every colour is a token from admin.css: this is the same console, and
+ * a section with its own palette reads as a different product.
+ */
+
+/* ---------------------------------------------------------------- the spreadsheet buttons */
+
+/*
+ * Export / template / instructions, sitting on the filter row.
+ *
+ * `margin-inline-start: auto` pushes them to the far end of a row whose other occupant is
+ * the Show filter, so reading and writing are at opposite ends of the same line rather than
+ * interleaved. `.filters` is already `align-items: flex-end`, which lines the buttons up
+ * with the bottom of the select rather than with its label.
+ */
+.dsel-tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-inline-start: auto;
+}
+
+/* ---------------------------------------------------------------- the selection bar */
+
+/*
+ * Sticky for the same reason .dro-bar is: the grid is as long as the collection, and a બલ્ક
+ * action that scrolls away is one he has to scroll back for after every tick.
+ *
+ * It is on screen with nothing selected. A bar that appeared on the first tick would push
+ * the grid down under the pointer at the exact moment he was aiming at it, and nothing would
+ * have said beforehand that the tiles could be ticked at all.
+ */
+.dsel {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+/* A selection is live state, marked the way an unsaved arrangement is — the stripe and the
+   count beside it say the same thing, so neither depends on a colour being noticed (§56). */
+.dsel.is-picked { border-inline-start: 3px solid var(--accent); }
+
+.dsel-all { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.dsel-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Pushed to the far end, so the buttons are always in the same place whatever the count in
+   the middle grows to. */
+.dsel-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-inline-start: auto; }
+
+.dsel-denied { margin: -6px 0 12px; }
+.dsel-report p { margin: 0; }
+
+/*
+ * The checkbox itself. 16px rather than the browser's ~13, because this one is pressed a
+ * hundred times in a row on the way to a bulk publish, and `accent-color` is what stops it
+ * rendering as a white Windows box on a slate console.
+ */
+.dsel input[type="checkbox"],
+.dg-pick input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+.dsel input[type="checkbox"]:disabled,
+.dg-pick input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .5; }
+
+/* ---------------------------------------------------------------- ticking a tile */
+
+/*
+ * The cell exists only to be the positioning context for the tick. `.dg`'s grid children
+ * used to be the `.dg-item` links themselves; this sits between them and changes nothing
+ * about the grid, because the link is the cell's only other child and fills it.
+ */
+.dg-cell { position: relative; border-radius: 10px; }
+
+/*
+ * Selected, and visible without reading the checkbox — a ring the tile's own hover state
+ * cannot be confused with, drawn outside the border so it does not move the artwork by a
+ * pixel. `outline` and not a border for exactly that reason.
+ */
+.dg-cell.is-picked { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/*
+ * The corner target. A 34px pad — the same target .icon-btn and .dro-move use — around a
+ * 16px box, because this is pressed on a phone as often as with a mouse.
+ *
+ * The disc behind it is not decoration: the artwork underneath is a finished painting in
+ * whatever colours it happens to use, and a checkbox on top of a pale sky is a checkbox
+ * nobody can find.
+ */
+.dg-pick {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(11, 15, 20, .72);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.dg-pick:hover { background: rgba(11, 15, 20, .9); }
+
+/* ---------------------------------------------------------------- the unsaved bar */
+
+/*
+ * Sticky, because the list is as long as the collection is: a Save Order button at the
+ * bottom of a thousand rows is a button nobody finds, and one at the top is a button he
+ * has scrolled past by the time he has moved anything.
+ */
+.dro-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+/* Unsaved work is stated in words as well as in colour (§56) — the strong text beside the
+   stripe says the same thing the stripe does. */
+.dro-bar.is-dirty { border-inline-start: 3px solid var(--warn); }
+.dro-bar-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------- the rows */
+
+.dro {
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.dro-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  background: var(--panel);
+  /* A drag that begins on the વર્ણન must move the row, not select the text. */
+  user-select: none;
+
+  /*
+    Virtualisation, done by the browser — the same answer src/modules/levels/levels.css
+    gives the યુવક tick list and admin/…/level4.css gives the picker, for the same reasons.
+
+    The collection is whatever the sheet holds: ~109 rows today and a thousand is allowed
+    (§40, §62). `content-visibility: auto` lets the engine skip layout and paint for rows
+    outside the viewport and do them as they approach, which is what keeps a drag smooth
+    while the list re-renders on every dragenter. `contain-intrinsic-size: auto 52px` keeps
+    the scrollbar honest and lets the browser remember each row's measured height, so
+    scrolling back lands where it was. A browser without the property renders every row,
+    which is also correct — only slower.
+  */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
+.dro-row:last-child { border-bottom: 0; }
+.dro-row:hover { background: var(--panel-2); }
+
+/* Being dragged. Kept visible rather than hidden: the row is live-reordered under the
+   pointer, so it is the thing whose new place is being read. */
+.dro-row.is-dragging { opacity: .45; background: var(--panel-2); }
+
+/* Withheld, and still listed — it is listed precisely so it can be brought back. Dashed
+   as well as pale, so it does not depend on a colour being noticed (§56). */
+.dro-row.is-off { opacity: .78; box-shadow: inset 3px 0 0 var(--line); }
+
+.dro-grip {
+  flex: 0 0 auto;
+  color: var(--muted);
+  cursor: grab;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 2px;
+  user-select: none;
+}
+.dro-row.is-static .dro-grip { cursor: default; opacity: .4; }
+
+/* The number block: what a યુવક sees, and the printed number beside it in grey so a
+   દ્રશ્ય can still be traced back to the sheet (decision #2). */
+.dro-n {
+  flex: 0 0 84px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.dro-display { font-size: 14px; font-weight: 650; }
+.dro-display.is-none { color: var(--muted); font-weight: 400; }
+.dro-src { color: var(--muted); font-size: 11.5px; }
+
+.dro-thumb {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0b0f14;
+}
+.dro-thumb.is-empty { display: block; }
+
+.dro-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dro-id { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.dro-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dro-moves { flex: 0 0 auto; display: flex; gap: 4px; }
+/*
+ * 34px, the same target .icon-btn uses. These are not a fallback for the drag: HTML5
+ * drag-and-drop does not fire on a touchscreen at all, and the સંચાલક is often on a phone,
+ * so on that device these buttons *are* the reorder. They are also the keyboard path.
+ */
+.dro-move {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dro-move:disabled { opacity: .4; cursor: not-allowed; }
+
+@media (max-width: 720px) {
+  /* The caption is the first thing to go: the number, the picture and the two arrows are
+     what a reorder needs, and a wrapped three-line row makes the list twice as long to
+     drag through. */
+  .dro-caption { display: none; }
+  .dro-n { flex-basis: 72px; }
+  .dro-thumb { width: 44px; height: 28px; }
+}

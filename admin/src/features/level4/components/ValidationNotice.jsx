@@ -39,18 +39,28 @@ export default function ValidationNotice({ result, collection }) {
 }
 
 /**
- * A દ્રશ્ય id is `darshan-042`, which nobody thinks in. The printed number is what the
- * સંચાલક arranged the collection by and what a યુવક is shown, so ids are translated back
- * to numbers here — and the list is capped, because "and 400 more" is information and four
- * hundred chips are not.
+ * A દ્રશ્ય id is `darshan-042`, which nobody thinks in. The number a user sees is what the
+ * સંચાલક picked by and what a યુવક is shown, so ids are translated back to that number here
+ * — and the list is capped, because "and 400 more" is information and four hundred chips
+ * are not.
+ *
+ * A withheld દ્રશ્ય has no such number, and it is exactly the one most likely to be named in
+ * an error: it was in the version before it was withheld. Its chip falls back to the number
+ * printed on the artwork, marked `#`, which is the only handle anybody still has on it.
  */
 const SHOWN = 14;
 
 function Issue({ issue, tone, collection }) {
   const byId = collection instanceof Map ? collection : null;
-  const numberOf = (id) => {
+  const chipFor = (id) => {
     const item = byId ? byId.get(id) : (collection || []).find((c) => c.id === id);
-    return item ? gu(item.index) : id;
+    if (!item) return { text: id, title: 'This id is not in the collection at all' };
+    if (Number.isInteger(item.displayIndex)) return { text: gu(item.displayIndex), title: 'The number users see' };
+    const source = Number.isInteger(item.sourceIndex) ? item.sourceIndex : item.index;
+    return {
+      text: Number.isInteger(source) ? `#${gu(source)}` : id,
+      title: 'Withheld, so it has no number users would see — this is the number printed on the artwork',
+    };
   };
 
   const ids = issue.sceneIds || [];
@@ -67,9 +77,12 @@ function Issue({ issue, tone, collection }) {
 
         {!!ids.length && (
           <div className="l4-chips" style={{ marginTop: 6 }}>
-            {ids.slice(0, SHOWN).map((id) => (
-              <span className="l4-chip" key={id}>{numberOf(id)}</span>
-            ))}
+            {ids.slice(0, SHOWN).map((id) => {
+              const chip = chipFor(id);
+              return (
+                <span className="l4-chip" key={id} title={chip.title}>{chip.text}</span>
+              );
+            })}
             {ids.length > SHOWN && <span className="hint">+{gu(ids.length - SHOWN)} more</span>}
           </div>
         )}

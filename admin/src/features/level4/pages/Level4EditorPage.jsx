@@ -8,6 +8,9 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import { gu } from '../../../lib/format';
 import { saveError } from '../../../lib/errors';
 import { listDarshan } from '../../darshan/services/darshanService';
+// The gate lives in settings['levels'] since 0014, so this page asks the settings service
+// for it rather than reading level4_configs.gate_threshold, which nothing consults.
+import { getLevelsConfig } from '../../settings/services/settingsService';
 import {
   cloneConfig,
   createActivity,
@@ -20,7 +23,7 @@ import {
   updateConfig,
 } from '../services/level4Service';
 import { L4_CONFIG_STATUS, nextActivityCode } from '../../../../../shared/domain/level4.js';
-import { autoDivide, findInvalid, validateAssignment } from '../../../../../shared/domain/level4-selection.js';
+import { autoDivide, findInvalid, summarise, validateAssignment } from '../../../../../shared/domain/level4-selection.js';
 import SceneSelector from '../components/SceneSelector';
 import ValidationNotice from '../components/ValidationNotice';
 import '../level4.css';
@@ -37,6 +40,12 @@ import '../level4.css';
  * all of it happens to a working copy in this component, and the engine re-checks the working
  * copy on every keystroke. That is what makes Auto Divide a *starting point* the સંચાલક can
  * modify (§6) rather than a decision taken on his behalf.
+ *
+ * **The numbering on this page is the user's** (ORDERING.md decision #2). `listDarshan()`
+ * hands back the collection already sequenced, so every range typed here, every preview line
+ * and every group Auto Divide makes is in the continuous ૧…N a user counts through. The
+ * number printed on the artwork travels alongside, in grey, for tracing a Darshan back to
+ * the sheet — and selects nothing.
  *
  * **Permissions.** `settings.read` opens the page; every control that writes is disabled
  * without `settings.update`. UI only, as everywhere else in this panel — the boundary is the
@@ -65,8 +74,16 @@ export default function Level4EditorPage() {
   const origin = useRef(new Map());
   const [openId, setOpenId] = useState('');
   const [title, setTitle] = useState('');
-  const [requireGate, setRequireGate] = useState(true);
-  const [gateThreshold, setGateThreshold] = useState(0);
+  /*
+    The gate is read, never written, and never from the configuration (0014).
+
+    It belongs to settings['levels'] now, so this page fetches it only to *say* what it is in
+    the publish summary — a version about to go live is exactly when someone wants to be
+    reminded what opens the level. Reading it off `config.gateThreshold` instead would print
+    a column nothing consults, which is a worse kind of wrong than printing nothing.
+  */
+  const gateState = useAsync(() => getLevelsConfig(), []);
+  const gate = gateState.data?.gate ?? null;
 
   const [requireFullCoverage, setRequireFullCoverage] = useState(true);
   const [parts, setParts] = useState(2);
@@ -82,8 +99,6 @@ export default function Level4EditorPage() {
     setActs(loaded);
     setOpenId(loaded[0]?.id || '');
     setTitle(config.title || '');
-    setRequireGate(!!config.requireGate);
-    setGateThreshold(config.gateThreshold);
   }, [config]);
 
   const readOnly =
@@ -137,9 +152,7 @@ export default function Level4EditorPage() {
     (acts.some((a) => a.isNew || origin.current.get(a.id) !== JSON.stringify(fields(a))) ||
       removed.length > 0 ||
       acts.map((a) => a.id).join() !== (config.activities || []).map((a) => a.id).join() ||
-      title !== (config.title || '') ||
-      requireGate !== !!config.requireGate ||
-      Number(gateThreshold) !== Number(config.gateThreshold));
+      title !== (config.title || ''));
 
   const patch = (id, key, v) => setActs((list) => list.map((a) => (a.id === id ? { ...a, [key]: v } : a)));
 
@@ -170,6 +183,11 @@ export default function Level4EditorPage() {
    * image or no વર્ણન cannot be recalled, and putting one into a sub-level would build a test
    * nobody can pass. Whatever is left out is reported by the engine below, where he can see it
    * and decide.
+   *
+   * The list handed to `autoDivide` is the **sequenced** one — `listDarshan()` has already
+   * canonically ordered it — so the filter preserves that order and each group comes out as an
+   * unbroken run of the numbers a user sees: ૧–૨૭, ૨૮–૫૪, and so on. Nothing here re-sorts,
+   * which is the whole of ORDERING.md rule 4.
    *
    * Local only. Nothing is written until Save Draft, so this is a suggestion on screen.
    */
@@ -247,12 +265,11 @@ export default function Level4EditorPage() {
 
       await reorderActivities(configId, [...ids, ...keptRemoved]);
 
-      if (
-        title !== (config.title || '') ||
-        requireGate !== !!config.requireGate ||
-        Number(gateThreshold) !== Number(config.gateThreshold)
-      ) {
-        await updateConfig(configId, { title, requireGate, gateThreshold: Number(gateThreshold) });
+      // Only the name. The gate is not this version's to carry any more (0014), and writing
+      // `gate_threshold` here would put a number in a column nothing reads — a value that
+      // looks authoritative to the next person who opens the table.
+      if (title !== (config.title || '')) {
+        await updateConfig(configId, { title });
       }
 
       setMsg({ tone: 'ok', text: 'Draft saved.' });
@@ -337,32 +354,24 @@ export default function Level4EditorPage() {
               <label htmlFor="cfg-title">Name (for your own reference)</label>
               <input id="cfg-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={readOnly} />
             </div>
-            <div className="filters">
-              <div className="field">
-                <label htmlFor="cfg-gate" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    id="cfg-gate"
-                    type="checkbox"
-                    checked={requireGate}
-                    onChange={(e) => setRequireGate(e.target.checked)}
-                    disabled={readOnly}
-                    style={{ width: 'auto' }}
-                  />
-                  Level 4 must be earned
-                </label>
-              </div>
-              <div className="field">
-                <label htmlFor="cfg-th">Remembered in a single day</label>
-                <input
-                  id="cfg-th"
-                  type="number"
-                  min="0"
-                  value={gateThreshold}
-                  onChange={(e) => setGateThreshold(e.target.value)}
-                  disabled={readOnly || !requireGate}
-                />
-              </div>
-            </div>
+            {/*
+              The gate used to be two inputs here, and it is deliberately not any more (0014).
+
+              It moved to the Levels page because it could not be answered from here at all
+              until a version existed — a સંચાલક setting the project up had nowhere to say
+              what opens Level 4. Now that the setting is the single answer, leaving editable
+              copies on this page would be worse than the original problem: two fields, one
+              number, and a saved edit here that changes nothing anywhere.
+
+              So this is a sentence and a link, not a disabled input. A greyed-out field
+              still reads as "the place where this is set, currently unavailable", which is
+              the wrong thing to tell someone looking for it.
+            */}
+            <p className="card-note">
+              What opens Level 4 is set once for the whole app, on the{' '}
+              <Link to="/levels">Levels</Link> page — it is no longer part of a version, so it
+              is the same whichever version is published.
+            </p>
             <p className="card-note">
               With the gate off, every user sees Level 4 straight away. With it on, a user reaches
               it after remembering that many Darshan in one day — which is how it already works.
@@ -397,7 +406,8 @@ export default function Level4EditorPage() {
             </div>
             <p className="card-note">
               Auto Divide splits the {gu(readyCount)} Darshan that are
-              ready to learn into equal groups. It is a starting point — change any of them
+              ready to learn into equal groups, in the order users meet them — so each group is a
+              consecutive run of the numbers they see. It is a starting point — change any of them
               afterwards, and nothing is saved until you press Save Draft.
             </p>
           </div>
@@ -599,7 +609,8 @@ export default function Level4EditorPage() {
                 <p>
                   The {gu(acts.length)} sub-level{acts.length === 1 ? '' : 's'} shown now
                   {acts.length ? ' are replaced by' : ' become'} {gu(parts)} equal groups covering the{' '}
-                  {gu(readyCount)} Darshan that are ready to learn.
+                  {gu(readyCount)} Darshan that are ready to learn — split in the order users meet
+                  them, so each group is a consecutive run of the numbers they see.
                 </p>
                 <p style={{ marginTop: 8 }}>
                   Nothing is written yet — change the result as you like, and press Save Draft when it
@@ -644,12 +655,49 @@ export default function Level4EditorPage() {
                   <li>{gu(acts.filter((a) => a.active).length)} sub-levels</li>
                   <li>
                     {gu(new Set(acts.filter((a) => a.active).flatMap((a) => a.sceneIds)).size)} of{' '}
-                    {gu(collection.length)} Darshan in the collection
+                    {gu(readyCount)} Darshan that are ready to learn
                   </li>
-                  <li>
-                    Unlock: {requireGate ? `after ${gu(gateThreshold)} remembered in a single day` : 'open to everyone'}
-                  </li>
+                  {/* Read from the setting, and simply absent while it is in flight — a
+                      publish summary that guessed at the gate would be worse than one that
+                      does not mention it. */}
+                  {gate && (
+                    <li>
+                      Unlock:{' '}
+                      {gate.require
+                        ? `after ${gu(gate.threshold)} remembered in a single day`
+                        : 'open to everyone'}{' '}
+                      (set on the Levels page, not by this version)
+                    </li>
+                  )}
                 </ul>
+
+                {/* Ranges, spelled out, because "1 – 30" means two different things in this
+                    product and the moment of publishing is the wrong moment to be unsure which.
+                    Every number below is the one the user's own card will print. Capped for the
+                    same reason the preview is: a version may hold any number of sub-levels. */}
+                <p style={{ marginTop: 10 }}>
+                  Each sub-level, numbered exactly as users see it — <strong>not</strong> the
+                  numbers printed on the artwork:
+                </p>
+                <ul style={{ margin: '6px 0 0 18px' }}>
+                  {acts
+                    .filter((a) => a.active)
+                    .slice(0, DIALOG_LIST)
+                    .map((a) => {
+                      const s = summarise(a.sceneIds, collection);
+                      return (
+                        <li key={a.id}>
+                          {a.code}: {s.count
+                            ? `Darshan ${gu(s.fromIndex)} – ${gu(s.toIndex)}${s.contiguous ? '' : ' (with gaps)'} · ${gu(s.count)} in all`
+                            : 'nothing selected'}
+                        </li>
+                      );
+                    })}
+                  {acts.filter((a) => a.active).length > DIALOG_LIST && (
+                    <li className="hint">+{gu(acts.filter((a) => a.active).length - DIALOG_LIST)} more</li>
+                  )}
+                </ul>
+
                 {!!check?.warnings?.length && (
                   <p style={{ marginTop: 10 }}>
                     {gu(check.warnings.length)} warning{check.warnings.length === 1 ? '' : 's'} above has
@@ -664,6 +712,9 @@ export default function Level4EditorPage() {
     </>
   );
 }
+
+/** How many sub-levels the publish dialog spells out before it says "+N more". */
+const DIALOG_LIST = 12;
 
 /** The fields a save compares. `position` is deliberately absent — the array is the order. */
 const fields = (a) => ({

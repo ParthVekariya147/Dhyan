@@ -1,5 +1,5 @@
 import { supabase } from '../../../lib/supabase';
-import { buildDarshanItems, darshanId, validateDarshanItems } from '../../../../../shared/domain/darshan.js';
+import { buildDarshanItems, darshanId, validateDarshanItems, withDisplayIndex } from '../../../../../shared/domain/darshan.js';
 import { parseDriveLink, resolveImageInput } from '../../../../../shared/domain/drive.js';
 
 /**
@@ -9,8 +9,10 @@ import { parseDriveLink, resolveImageInput } from '../../../../../shared/domain/
  *                          Built by `npm run darshan` from the સંચાલક's sheet and his Drive
  *                          folder. Not copied into the database (§7).
  *
- *   scenes (table)         admin-editable state layered on top: active, order, caption,
- *                          and a replacement image link.
+ *   scenes (table)         admin-editable state layered on top: active, order, title,
+ *                          caption, and a replacement image link. `title` (0013) has no
+ *                          manifest counterpart at all — the sheet never carried one — so
+ *                          this table is the only place it exists.
  *
  * A દ્રશ્ય is three things — a link, a વર્ણન and a number — and this file is how a સંચાલક
  * changes any of them without a build or a deploy.
@@ -42,6 +44,10 @@ const TO_COLUMN = {
   order: 'order',
   active: 'active',
   status: 'status',
+  // Added by 0013. Same-named in both spellings, so it needs no translation — it is listed
+  // anyway because this map is also the allow-list: saveScene() throws on a field that is
+  // not here, so an omission would refuse the write rather than silently dropping it.
+  title: 'title',
   caption: 'caption',
   imageUrl: 'image_url',
   driveId: 'drive_id',
@@ -60,6 +66,10 @@ async function loadScenes() {
       order: r.order,
       active: r.active,
       status: r.status,
+      // Read as it stands, empty string included: applyOverlay is what decides that ''
+      // means "not written" rather than "blank it", and normalising to null here would
+      // take that decision away from the one place it belongs.
+      title: r.title,
       caption: r.caption,
       imageUrl: r.image_url,
       driveId: r.drive_id,
@@ -71,6 +81,23 @@ async function loadScenes() {
 }
 
 /**
+ * The effective collection, **canonically sequenced**.
+ *
+ * `withDisplayIndex()` is applied here and not in any page, so every screen in the panel —
+ * this section, the તપાસ report, the લેવલ ૪ builder — is looking at one order and one set
+ * of numbers. That is the whole point of ORDERING.md rule 4: a screen that sorted for
+ * itself would eventually disagree with the numbers a યુવક is being shown, and the two
+ * apps would be arguing about which દ્રશ્ય is "૩૧".
+ *
+ * Each entry therefore carries two more fields than it used to:
+ *
+ *   sourceIndex   the printed number, from the sheet — identity, never rewritten
+ *   displayIndex  what a યુવક sees, 1…N over the ACTIVE entries, `null` for the rest
+ *
+ * `displayIndex` is derived on every read and stored nowhere. A withheld દ્રશ્ય keeps its
+ * place in the array with a null number rather than being dropped: the સંચાલક's list has to
+ * show it to bring it back.
+ *
  * @returns {Promise<import('../../../../../shared/domain/types.js').DarshanItem[]>}
  */
 export async function listDarshan() {
@@ -83,7 +110,41 @@ export async function listDarshan() {
       return {};
     }),
   ]);
-  return buildDarshanItems(manifest, scenes);
+  return withDisplayIndex(buildDarshanItems(manifest, scenes));
+}
+
+/**
+ * Write the સંચાલક's order for the whole collection, in one call.
+ *
+ * `p_ids` is the entire sequence and not the part that moved. `darshan_reorder()` sets
+ * `"order"` to each id's 1-based place in the array it is given, so a partial list would
+ * hand positions 1…k to the named દ્રશ્યો while the unnamed ones went on holding numbers in
+ * the same range — and `scenes_order_unique` would refuse the result, correctly. Sending
+ * the whole sequence is what makes the write a permutation rather than a collision.
+ *
+ * Everything that makes it safe is inside the function: `has_permission('darshan.update')`,
+ * the duplicate check, the upsert that gives a દ્રશ્ય with no `scenes` row one, and the
+ * two-statement parking trick that lets a rotation pass a partial unique index. It is one
+ * transaction, so a failure here has written nothing — the caller may show the arrangement
+ * still on screen and let the સંચાલક try again.
+ *
+ * It writes `"order"` and nothing else. `id` and the printed `index` are identity and are
+ * never touched by a reorder (ORDERING.md rule 3).
+ *
+ * @param {string[]} orderedIds every દ્રશ્ય id, in the order they should be presented
+ */
+export async function reorderDarshan(orderedIds) {
+  const ids = [...orderedIds];
+
+  // The RPC refuses a duplicate itself and remains the authority. This is only the better
+  // message — the same arrangement validateNewScene() has with the unique indexes.
+  if (new Set(ids).size !== ids.length) {
+    throw new Error('The same Darshan was listed twice in the new order. Reload and try again.');
+  }
+
+  const { data, error } = await supabase.rpc('darshan_reorder', { p_ids: ids });
+  if (error) throw error;
+  return data;
 }
 
 export async function getDarshanItem(itemId) {

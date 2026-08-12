@@ -8,23 +8,33 @@
  * same functions, so "is this range valid?" cannot be answered one way in the builder and
  * another way on the screen (§46).
  *
- * Two things are load-bearing everywhere below:
+ * Three things are load-bearing everywhere below:
  *
- *  1. **Identity is the id, never the array position** (§25). A દ્રશ્ય's *printed* number is
- *     what a સંચાલક types and what a યુવક ticks, but it is a property he may renumber — so
- *     ranges are read in printed numbers and immediately turned into stable ids.
+ *  1. **Identity is the id, never the array position** (§25). A number is what a સંચાલક
+ *     types and what a યુવક ticks, but every number here is derived and may change — so
+ *     ranges are read in numbers and immediately turned into stable ids.
  *
- *  2. **Nothing here knows a total.** Not 110, not 109, not 108, and no `'4.1'` (§6 rules
+ *  2. **The number this file reads is `displayIndex`** — the continuous ૧…N a યુવક sees,
+ *     not the printed `sourceIndex` from the sheet (ORDERING.md decision #2). "From 1 To 30"
+ *     in the builder therefore means the first thirty **active** દ્રશ્યો in the current order,
+ *     which is exactly what the યુવક meets as ૧–૩૦. `sourceIndex` survives as a way to trace
+ *     a દ્રશ્ય back to the sheet — `searchScenes` still finds one by it — but nothing selects
+ *     or orders by it any more.
+ *
+ *  3. **Nothing here knows a total.** Not 110, not 109, not 108, and no `'4.1'` (§6 rules
  *     1–2). Every count comes from the collection or from the activity's own item list; a
  *     collection of 12 or of 400 needs no edit here.
  *
- * `collection` is whatever `useScenes()` or `listDarshan()` hands back. The two disagree
- * about field names — the manifest calls them `n`/`t`/`url`, the panel's DarshanItem calls
- * them `index`/`caption`/`imageUrl` — so every read goes through the small accessors below
- * and both shapes work. That is not defensive coding; both callers are real.
+ * `collection` is whatever `useScenes()` or `listDarshan()` hands back, and both of them
+ * have already run it through `withDisplayIndex()` (ORDERING.md §2) — so it arrives
+ * **canonically sorted and already numbered**, and this file does not sort it again
+ * (ORDERING.md rule 4: one canonical order, no screen re-sorts for itself). The two callers
+ * still disagree about field names — the manifest calls them `n`/`t`/`url`, the panel's
+ * DarshanItem calls them `index`/`caption`/`imageUrl` — so every read goes through the small
+ * accessors below and both shapes work. That is not defensive coding; both callers are real.
  */
 
-import { darshanId, isLearnable } from './darshan.js';
+import { isLearnable, darshanId } from './darshan.js';
 // The ક્રમ column is allowed to be written in Gujarati digits, and so is the સંચાલક's range
 // box and his search box — `૧૦૯` and `109` are the same number and refusing one of them
 // would be a mystery to whoever typed it. That rule already exists, once, for the sheet
@@ -34,12 +44,30 @@ import { gu } from './constants.js';
 
 // ==================================================================== reading a collection
 
-/** The printed number. `index` in the panel's shape, `n` in the manifest's. */
-const entryIndex = (e) =>
-  Number.isInteger(e?.index) ? e.index : Number.isInteger(e?.n) ? e.n : null;
+/** The printed number — `sourceIndex` once sequenced, `index`/`n` in the raw shapes. */
+const entrySource = (e) =>
+  Number.isInteger(e?.sourceIndex)
+    ? e.sourceIndex
+    : Number.isInteger(e?.index)
+      ? e.index
+      : Number.isInteger(e?.n)
+        ? e.n
+        : null;
 
-/** Presentation order, which defaults to the printed number but may diverge (§32). */
-const entryOrder = (e) => (Number.isInteger(e?.order) ? e.order : entryIndex(e));
+/**
+ * The number a યુવક sees — `withDisplayIndex()`'s, and only ever its.
+ *
+ * `null` is not a missing value here, it is a fact: **an entry with no display number is
+ * inactive**, withheld from the sequence the યુવક is counting through. It keeps its place in
+ * the array so the સંચાલક can still see it and turn it back on, and everything below treats
+ * it as unselectable — a range cannot reach it and assigning it is `unpublished-scene`.
+ *
+ * There is deliberately no fallback to `index`/`n`. A collection that reached here without
+ * `withDisplayIndex()` applied is a wiring fault, and one that quietly answered in printed
+ * numbers instead would give the સંચાલક a range that looks right and selects the wrong
+ * દ્રશ્યો — the one failure §25 exists to prevent. Reading nothing is loud; guessing is not.
+ */
+const entryDisplay = (e) => (Number.isInteger(e?.displayIndex) ? e.displayIndex : null);
 
 /** The વર્ણન. */
 const entryText = (e) => String(e?.t ?? e?.caption ?? '');
@@ -50,32 +78,37 @@ const entryImage = (e) => String(e?.url ?? e?.imageUrl ?? '');
 /** Stable identity, synthesised from the printed number only when the entry carries none. */
 const entryId = (e) => {
   if (e?.id) return String(e.id);
-  const n = entryIndex(e);
+  const n = entrySource(e);
   return n === null ? '' : darshanId(n);
 };
 
 /**
  * May a યુવક be asked to recall this દ્રશ્ય?
  *
- * The same `isLearnable` the feed and the panel apply, fed a normalised view of whichever
- * shape arrived — stated once so the panel's idea of "assignable" cannot drift from the
- * app's idea of "visible". A દ્રશ્ય with no picture or no વર્ણન has never been shown to
- * anybody, so putting it in a પ્રવૃત્તિ would ask him to remember something he was never
- * taught: an unpassable પ્રવૃત્તિ, and every later one locked behind it.
+ * Two conditions, and both are the same question asked at different depths:
+ *
+ *  - `isLearnable` — the one the feed and the panel already apply, fed a normalised view of
+ *    whichever shape arrived, so the panel's idea of "assignable" cannot drift from the app's
+ *    idea of "visible". A દ્રશ્ય with no picture or no વર્ણન has never been shown to anybody,
+ *    so putting it in a પ્રવૃત્તિ would ask him to remember something he was never taught.
+ *  - **a display number** — an inactive દ્રશ્ય is not in the sequence at all, so it cannot be
+ *    counted towards a પ્રવૃત્તિ he could pass.
+ *
+ * Either failure is an unpassable પ્રવૃત્તિ, and every later one locked behind it.
  */
-const isPublished = (e) =>
-  isLearnable({ active: e?.active, t: entryText(e), url: entryImage(e) });
-
-/** Order last, never first: a દ્રશ્ય the સંચાલક has not numbered still has to appear. */
-const orderKey = (row) => (Number.isInteger(row.order) ? row.order : Number.MAX_SAFE_INTEGER);
+const isPublished = (row) =>
+  row.display !== null && isLearnable({ active: row.entry?.active, t: row.text, url: entryImage(row.entry) });
 
 /**
  * The collection, read once into the three lookups every function here wants.
  *
- * `ordered` is the collection's own order (`order ?? n`, §26) — the order the સંચાલક set
- * and the યુવક sees. It is never a re-sort by id, by index, or by anything else, because
- * ક્રમ કદી તૂટે નહીં: a stored id list re-ordered through `rank` comes back in exactly the
- * order the દર્શન is presented in.
+ * `sequence` is the collection **exactly as it arrived**. It used to be sorted here by
+ * `order ?? n`; it is not any more, because ordering is now the caller's — `useScenes()` and
+ * `listDarshan()` each apply `withDisplayIndex()` (ORDERING.md §2), whose canonical sort is
+ * `position ?? sourceIndex ?? Infinity` tie-broken by `id`. That is the order the સંચાલક set
+ * and the યુવક sees, and a second sort here could only disagree with it. ક્રમ કદી તૂટે નહીં:
+ * a stored id list re-ordered through `rank` comes back in exactly the order the દર્શન is
+ * presented in.
  *
  * A repeated id keeps its first appearance. `validateDarshanItems` already reports a
  * duplicate id as an error against the content itself; silently letting the second row win
@@ -84,27 +117,26 @@ const orderKey = (row) => (Number.isInteger(row.order) ? row.order : Number.MAX_
 function indexed(collection) {
   const rows = (Array.isArray(collection) ? collection : [])
     .filter((e) => e && typeof e === 'object')
-    .map((entry, at) => ({
-      at,
-      entry,
-      id: entryId(entry),
-      index: entryIndex(entry),
-      order: entryOrder(entry),
-      text: entryText(entry),
-      published: isPublished(entry),
-    }))
+    .map((entry) => {
+      const row = {
+        entry,
+        id: entryId(entry),
+        source: entrySource(entry),
+        display: entryDisplay(entry),
+        text: entryText(entry),
+      };
+      row.published = isPublished(row);
+      return row;
+    })
     .filter((r) => r.id);
 
   const byId = new Map();
   for (const r of rows) if (!byId.has(r.id)) byId.set(r.id, r);
 
-  const unique = [...byId.values()];
-  // `at` breaks ties so the result does not depend on sort stability, the way resolveLevels
-  // falls back to levelId.
-  const ordered = [...unique].sort((a, b) => orderKey(a) - orderKey(b) || a.at - b.at);
-  const rank = new Map(ordered.map((r, i) => [r.id, i]));
+  const sequence = [...byId.values()];
+  const rank = new Map(sequence.map((r, i) => [r.id, i]));
 
-  return { rows: unique, ordered, byId, rank };
+  return { sequence, byId, rank };
 }
 
 /** A list of usable scene ids — whatever arrived, with the holes taken out. */
@@ -134,22 +166,28 @@ const toIndexNumber = (value) => toNumber(value);
 /**
  * "દ્રશ્ય ૧ થી ૩૦" → the thirty ids that names.
  *
- * Read in **printed numbers**, returned as ids. Array position is never identity (§25), so
- * a range is not `slice(from - 1, to)`: with one દ્રશ્ય renumbered or one withdrawn, that
- * silently selects a different thirty than the one the સંચાલક typed.
+ * Read in **display numbers** — the continuous ૧…N the યુવક is counting through — and
+ * returned as ids. That is decision #2: the સંચાલક picks by the number he can see on the
+ * યુવક's screen, so ૧–૩૦ here and ૧–૩૦ there are the same thirty દ્રશ્યો even after a
+ * withheld દ્રશ્ય has shifted every printed number past it.
+ *
+ * Array position is never identity (§25), so a range is still not `slice(from - 1, to)`:
+ * display numbers count only active entries, and the array holds the inactive ones too.
  *
  * Three tolerances, each because a person is typing:
  *
  *   - `from > to` is the same range said backwards, so the two are swapped rather than
  *     returning nothing and looking broken.
  *   - Gujarati digits are accepted, as everywhere else a number is typed.
- *   - A number that names no દ્રશ્ય is simply not in the result. `૧–૨૦૦` over a collection
- *     that stops at ૧૦૯ selects what exists; it never invents ids for the rest, which
- *     would put ninety-one દ્રશ્યો that do not exist into a પ્રવૃત્તિ nobody could pass.
+ *   - A number past the end of the sequence is simply not in the result. `૧–૨૦૦` over a
+ *     collection of a hundred-odd selects what exists; it never invents ids for the rest,
+ *     which would put ninety-odd દ્રશ્યો that do not exist into a પ્રવૃત્તિ nobody could pass.
  *
- * Withheld દ્રશ્યો inside the range are **kept**, not quietly dropped, so `validateAssignment`
- * can tell the સંચાલક they are in there. Dropping them would leave him with a range that
- * silently shrank and no reason given.
+ * An **inactive** દ્રશ્ય has no display number and so is never in a range — it is not part of
+ * the sequence the સંચાલક is reading, and there is no number he could have meant by it.
+ * A દ્રશ્ય that is in the sequence but not yet learnable — numbered, but still missing its
+ * picture or its વર્ણન — is **kept**, so `validateAssignment` can tell him it is in there.
+ * Dropping that one would leave him with a range that silently shrank and no reason given.
  */
 export function expandRange(collection, fromIndex, toIndex) {
   const a = toIndexNumber(fromIndex);
@@ -160,7 +198,7 @@ export function expandRange(collection, fromIndex, toIndex) {
   const hi = Math.max(a, b);
 
   return indexed(collection)
-    .ordered.filter((r) => r.index !== null && r.index >= lo && r.index <= hi)
+    .sequence.filter((r) => r.display !== null && r.display >= lo && r.display <= hi)
     .map((r) => r.id);
 }
 
@@ -172,10 +210,12 @@ export function expandRange(collection, fromIndex, toIndex) {
  * came from here. Read as a business rule it would be wrong — the natural division of the
  * દર્શન is a matter of meaning, not arithmetic.
  *
- * What it does guarantee is the arithmetic: every id appears **exactly once**, in the
- * collection's given order, and no two parts differ in size by more than one. The remainder
- * goes to the earliest parts, so ૧૦૯ into ૪ is 28/27/27/27 rather than 27/27/27/28 — the
- * heavier ones first, which is how a person dividing a book by hand does it.
+ * What it does guarantee is the arithmetic: every id appears **exactly once**, in the order
+ * it was given in, and no two parts differ in size by more than one. The caller hands it the
+ * sequenced list, so "in order" means the canonical order (ORDERING.md §2) and the parts come
+ * out as unbroken runs of display numbers. The remainder goes to the earliest parts, so a
+ * hundred-odd દ્રશ્યો into ૪ is 28/27/27/27 rather than 27/27/27/28 — the heavier ones first,
+ * which is how a person dividing a book by hand does it.
  *
  * `parts` greater than the number of દ્રશ્યો still returns `parts` lists; the last ones are
  * empty. That is the same rule, not an exception (base 0, remainder spread over the first
@@ -239,15 +279,16 @@ export function findDuplicates(assignments) {
  *
  * Only દ્રશ્યો a યુવક can actually be shown are counted. A દ્રશ્ય with no picture or no વર્ણન
  * is not "missing from લેવલ ૪"; it is missing from દર્શન, which `validateDarshanItems`
- * already says in the place where it can be fixed. Counting it here would leave the સંચાલક
+ * already says in the place where it can be fixed. Nor is an inactive one, which carries no
+ * display number and is not in the sequence at all. Counting either would leave the સંચાલક
  * with an unsatisfiable job: assigning it raises §7 E, and not assigning it raises §7 B.
  *
- * @returns {string[]} in collection order (§26)
+ * @returns {string[]} in canonical order (§26, ORDERING.md §2)
  */
 export function findMissing(assignments, collection) {
   const taken = new Set(assignedIds(assignments));
   return indexed(collection)
-    .ordered.filter((r) => r.published && !taken.has(r.id))
+    .sequence.filter((r) => r.published && !taken.has(r.id))
     .map((r) => r.id);
 }
 
@@ -256,14 +297,16 @@ export function findMissing(assignments, collection) {
  *
  * Two different problems with one shape: the id names nothing in the collection at all (a
  * દ્રશ્ય deleted or renamed after the config was written), or it names a દ્રશ્ય that is there
- * but withheld — hidden, or still without its picture or its વર્ણન. Both are returned here
- * because the contract's return is a flat id list; `validateAssignment` is where they part
- * company, because "does not exist" and "not published" send the સંચાલક to two different
- * screens.
+ * but withheld — deactivated and therefore carrying no display number, or still without its
+ * picture or its વર્ણન. Both are returned here because the contract's return is a flat id
+ * list; `validateAssignment` is where they part company, because "does not exist" and "not
+ * published" send the સંચાલક to two different screens.
  *
  * This is the check that stands in for the foreign key `level4_activity_items.scene_id`
  * deliberately does not have (§1): `public.scenes` is a sparse overlay, so most દ્રશ્યો have
- * no row to point at and a FK would reject nearly all of them.
+ * no row to point at and a FK would reject nearly all of them. It is also what catches the
+ * દ્રશ્ય a સંચાલક withheld *after* the config named it — the id stays valid, the display
+ * number goes away, and the stored પ્રવૃત્તિ becomes unpassable until he is told.
  *
  * @returns {string[]} in first-appearance order
  */
@@ -293,7 +336,7 @@ const s = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
  * ever opens the screen.
  *
  * `requireFullCoverage` is the સંચાલક's own decision and the only thing that changes
- * severity: a config that deliberately teaches ૧–૫૦ this month has fifty-nine દ્રશ્યો in no
+ * severity: a config that deliberately teaches ૧–૫૦ this month leaves the rest in no
  * પ્રવૃત્તિ and that is not a fault. When he has said the division must cover દર્શન, it is.
  *
  * @param {object}  input
@@ -346,7 +389,8 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
   }
 
   // §7 D and §7 E, told apart. One is content that vanished, the other is content that is
-  // not ready — the first is fixed in this builder, the second on the દર્શન screen.
+  // not ready or has been withheld — the first is fixed in this builder, the second on the
+  // દર્શન screen.
   const assigned = assignedIds(assignments);
   const unknown = assigned.filter((id) => !byId.has(id));
   const withheld = assigned.filter((id) => byId.has(id) && !byId.get(id).published);
@@ -366,7 +410,7 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
       issue(
         'unpublished-scene',
         `${gu(withheld.length)} દ્રશ્ય પ્રકાશિત નથી — ચિત્ર કે વર્ણન નથી, અથવા છુપાવેલું છે.`,
-        `${s(withheld.length, 'scene')} not published — no image, no description, or hidden. A yuvak has never seen them.`,
+        `${s(withheld.length, 'scene')} not published — no image, no description, or withheld from the collection, so they carry no number a yuvak has ever seen.`,
         { sceneIds: withheld }
       )
     );
@@ -409,8 +453,10 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
  * A stored id list, back in the order the દર્શન is actually presented in (§26).
  *
  * ક્રમ કદી તૂટે નહીં — the same rule `inOrder()` applies on the યુવક side, for the same
- * reason: item positions are stored per-activity, but the સંચાલક may renumber or reorder
- * the દર્શન afterwards, and a list that keeps its old order would show ૧૨ before ૭.
+ * reason: item positions are stored per-activity, but the સંચાલક may reorder or withhold
+ * દર્શન afterwards, and a list that kept its old order would show ૧૨ before ૭. The order it
+ * comes back in is the canonical one, which is the collection's own arrival order now that
+ * `withDisplayIndex()` has sorted it upstream.
  *
  * Ids the collection does not know are kept, at the end, in the order they arrived. The
  * યુવક-side `inOrder()` drops them, which is right for a screen; dropping them here would
@@ -426,47 +472,87 @@ export function orderSceneIds(sceneIds, collection) {
 }
 
 /**
+ * Why a row matched — so the list can say so instead of leaving him to guess.
+ *
+ * A search for `47` can find the દ્રશ્ય that is *forty-seventh* and the one the sheet
+ * *printed* as ૪૭, and after a single withholding those are two different pictures. A row
+ * that does not say which one it is is worse than no result at all, so the builder labels
+ * each one and this is the single definition it labels them by.
+ *
+ * @returns {'display'|'source'|'text'|''}
+ */
+export function matchKind(entry, query) {
+  const q = String(query ?? '').trim();
+  if (!q) return '';
+  const row = {
+    entry,
+    id: entryId(entry),
+    source: entrySource(entry),
+    display: entryDisplay(entry),
+    text: entryText(entry),
+  };
+  return kindOf(row, parseQuery(q));
+}
+
+/** The query, read once: a number (in either script) or a piece of વર્ણન. */
+function parseQuery(q) {
+  const digitsOnly = /^[0-9૦-૯]+$/.test(q);
+  const n = digitsOnly ? toNumber(q) : null;
+  return { n, prefix: n === null ? '' : String(n), needle: q.toLowerCase() };
+}
+
+/**
+ * Display number by **prefix**, source number **exactly**, વર્ણન by substring — in that order.
+ *
+ * The prefix is for the display number because that is the one he is navigating by: typing
+ * `૧૦` while looking for ૧૦૫ should not have to be finished before anything appears. The
+ * source number is a traceback — "which row was printed ૪૭?" — and has one answer, so
+ * matching it by prefix would bury that answer under every row printed ૪૭૦-something.
+ */
+function kindOf(row, { n, prefix, needle }) {
+  if (n !== null && row.display !== null && String(row.display).startsWith(prefix)) return 'display';
+  if (n !== null && row.source === n) return 'source';
+  if (needle && row.text.toLowerCase().includes(needle)) return 'text';
+  return '';
+}
+
+/**
  * The builder's search box: a number, or words out of the વર્ણન.
  *
- * A number is matched on the **printed** number, and by prefix — typing `૧૦` while looking
- * for ૧૦૫ should not have to be finished before anything appears, and typing the whole
- * number still puts the exact દ્રશ્ય in the results. Gujarati and Latin digits are the same
- * query; `૧૦૯` and `109` are the same દ્રશ્ય.
+ * A number is matched against both numberings — the display number a યુવક counts by and the
+ * printed number the sheet gave it — because the સંચાલક has both in his head and the box
+ * cannot know which one he typed. `matchKind` is what the row then says out loud. Gujarati
+ * and Latin digits are the same query; `૧૦૯` and `109` are the same દ્રશ્ય.
  *
  * Anything else is a substring of the વર્ણન, matched case-insensitively (which does nothing
  * in Gujarati and everything for an ASCII note). An empty query is not "no દ્રશ્યો" but
  * "no filter yet" — it returns the whole collection, so the box opens onto the દર્શન rather
  * than onto nothing.
  *
- * @returns {Array} the matching collection entries, in collection order (§26)
+ * @returns {Array} the matching collection entries, in canonical order (§26)
  */
 export function searchScenes(collection, query) {
-  const { ordered } = indexed(collection);
+  const { sequence } = indexed(collection);
   const q = String(query ?? '').trim();
-  if (!q) return ordered.map((r) => r.entry);
+  if (!q) return sequence.map((r) => r.entry);
 
-  const digitsOnly = /^[0-9૦-૯]+$/.test(q);
-  const n = digitsOnly ? toNumber(q) : null;
-  const prefix = n === null ? '' : String(n);
-  const needle = q.toLowerCase();
-
-  return ordered
-    .filter((r) => {
-      if (n !== null && r.index !== null && String(r.index).startsWith(prefix)) return true;
-      return r.text.toLowerCase().includes(needle);
-    })
-    .map((r) => r.entry);
+  const parsed = parseQuery(q);
+  return sequence.filter((r) => kindOf(r, parsed) !== '').map((r) => r.entry);
 }
 
 /**
  * What a selection amounts to — the admin's preview line and the યુવક's card ("૧–૩૦").
  *
- * `contiguous` is the question the label depends on, and it is asked of the **collection**,
- * not of arithmetic: a selection is contiguous when it is precisely every દ્રશ્ય the
- * collection has between its first and last printed numbers. So a દર્શન numbered ૧…૧૦૯ with
- * ૪૭ never issued still reads "૧–૫૦" for the first fifty દ્રશ્યો that exist, which is what
- * the સંચાલક means and what the યુવક counts. A selection with an unknown id in it is not
- * contiguous — there is a દ્રશ્ય in there that has no number to print.
+ * `fromIndex` and `toIndex` are **display** numbers, so the line the સંચાલક reads while he
+ * builds is character-for-character the line the યુવક reads on the card (decision #1).
+ *
+ * `contiguous` means an unbroken run of those display numbers, and it is asked of the
+ * **sequence**, not of arithmetic: a selection is contiguous when it is precisely every
+ * દ્રશ્ય the sequence has between its first and last display numbers. Display numbers have no
+ * holes in them — they count only active entries — so a દર્શન whose printed numbering skips
+ * ૪૭, or one with a withheld દ્રશ્ય sitting between two chosen ones, still reads "૧–૫૦". That
+ * is what the સંચાલક means and what the યુવક counts. A selection holding an unknown id, or an
+ * inactive one, is not contiguous: there is a દ્રશ્ય in there with no number to print.
  *
  * `count` counts every distinct id in the selection, known or not, because that is how many
  * items the પ્રવૃત્તિ holds and how many ticks it will take to pass.
@@ -474,11 +560,11 @@ export function searchScenes(collection, query) {
  * @returns {{count: number, fromIndex: number|null, toIndex: number|null, contiguous: boolean}}
  */
 export function summarise(sceneIds, collection) {
-  const { byId, ordered } = indexed(collection);
+  const { byId, sequence } = indexed(collection);
   const ids = uniqueIds(sceneIds);
 
   const numbers = ids
-    .map((id) => byId.get(id)?.index)
+    .map((id) => byId.get(id)?.display)
     .filter((i) => Number.isInteger(i))
     .sort((a, b) => a - b);
 
@@ -489,7 +575,7 @@ export function summarise(sceneIds, collection) {
   const fromIndex = numbers[0];
   const toIndex = numbers[numbers.length - 1];
 
-  const inWindow = ordered.filter((r) => r.index !== null && r.index >= fromIndex && r.index <= toIndex);
+  const inWindow = sequence.filter((r) => r.display !== null && r.display >= fromIndex && r.display <= toIndex);
   const chosen = new Set(ids);
   const contiguous =
     ids.length === numbers.length && // nothing unknown or unnumbered is hiding in there

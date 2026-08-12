@@ -74,5 +74,17 @@
 .level-name { font-size: 17px; font-weight: 700; }
 .level-lock, .level-soon { font-size: 12.5px; color: #8b7a66; line-height: 1.5; }
 
+/* One line under every level's name saying what that level is (shared/domain/journey.js).
+
+   Same size as .level-lock and .level-soon, and deliberately: a tile can carry both — "આ
+   લેવલમાં શું છે" and "એ ક્યારે ખૂલશે" — and the second must not read as more important
+   than the first. Slightly lighter than the lock line so the name still leads the tile. */
+.level-short {
+  font-size: 12.5px;
+  color: #8b7a66;
+  line-height: 1.55;
+  opacity: .92;
+}
+
 .home-actions { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 420px) { .home-actions { grid-template-columns: 1fr; } }

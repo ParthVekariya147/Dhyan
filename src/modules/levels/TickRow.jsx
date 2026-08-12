@@ -40,8 +40,15 @@ import { gu } from '../../lib/scenes';
  * rows outside the viewport and un-skips them on scroll, which is virtualisation done by
  * the engine, with no code, no dependency and no lost ક્રમ.
  *
- * ક્રમ કદી તૂટે નહીં (§1 rule 2): the row knows its printed number and renders it, and the
- * list that renders these is never shuffled or filtered into a different order.
+ * ક્રમ કદી તૂટે નહીં (§1 rule 2): the row knows its number and renders it, and the list that
+ * renders these is never shuffled or filtered into a different order.
+ *
+ * `n` is the **display** number — useScenes()'s `displayIndex`, a continuous ૧…N over the
+ * દ્રશ્યો that survive both gates (ORDERING.md §4), not the number printed inside the
+ * artwork. The row does not know the difference and must not: it is handed one number and
+ * prints it, in Gujarati numerals, in both places a યુવક can read it — the badge and the
+ * checkbox's accessible name, which is the one that would otherwise quietly stay in Latin
+ * digits and read a different sequence to a screen reader than the screen shows.
  */
 function TickRow({ id, n, text, ticked, onToggle }) {
   return (

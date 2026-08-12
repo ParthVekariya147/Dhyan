@@ -8,6 +8,9 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import { dateTimeGu, gu } from '../../../lib/format';
 import { saveError } from '../../../lib/errors';
 import { listDarshan } from '../../darshan/services/darshanService';
+// See the note in Level4EditorPage: the gate is settings['levels'].level4Gate (0014), and
+// the two lines below that report it read it from there and not from the configuration.
+import { getLevelsConfig } from '../../settings/services/settingsService';
 import {
   archiveConfig,
   cloneConfig,
@@ -48,8 +51,19 @@ export default function Level4ListPage() {
   const { can } = useAdminAuth();
   const mayEdit = can('settings.update');
 
+  /*
+    Three reads, awaited together — the versions, the collection, and the gate.
+
+    The gate joins them rather than being fetched separately because both places this page
+    reports it are rendered from `state.data`: a second, independently-resolving request
+    would let the page paint "Unlock gate: …" a moment after the version it sits beside,
+    which reads as the number having just changed.
+  */
   const state = useAsync(
-    () => Promise.all([listConfigs(), listDarshan()]).then(([configs, collection]) => ({ configs, collection })),
+    () =>
+      Promise.all([listConfigs(), listDarshan(), getLevelsConfig()]).then(
+        ([configs, collection, levelsConfig]) => ({ configs, collection, gate: levelsConfig.gate })
+      ),
     []
   );
 
@@ -66,6 +80,8 @@ export default function Level4ListPage() {
    */
   const configs = state.data?.configs || [];
   const collection = state.data?.collection || [];
+  /** What opens લેવલ ૪ — the setting, never `config.gateThreshold` (0014). */
+  const gate = state.data?.gate || null;
   useEffect(() => {
     if (!configs.length || configId) return;
     const live = configs.find((c) => c.status === L4_CONFIG_STATUS.PUBLISHED);
@@ -215,9 +231,13 @@ export default function Level4ListPage() {
                           : ''}
                       </span>
                     )}
-                    <span>
-                      Unlock gate: {config.requireGate ? `on, at ${gu(config.gateThreshold)} in a day` : 'off'}
-                    </span>
+                    {gate && (
+                      <span>
+                        Unlock gate:{' '}
+                        {gate.require ? `on, at ${gu(gate.threshold)} in a day` : 'off'} — set on
+                        the Levels page
+                      </span>
+                    )}
                   </p>
                 )}
 
@@ -322,21 +342,26 @@ export default function Level4ListPage() {
                               {a.active ? <span className="pill pill-ok">Active</span> : <span className="pill pill-off">Archived</span>}
                             </div>
                             {a.title && <h3>{a.title}</h3>}
-                            <div className="l4-range">
+                            {/* Display numbering, the same ૧…N a user counts through
+                                (ORDERING.md decision #1), so this line and his card read alike. */}
+                            <div className="l4-range" title="Numbered as users see them">
                               {s.count
-                                ? `${gu(s.fromIndex)} – ${gu(s.toIndex)}${s.contiguous ? '' : ' (with gaps)'}`
+                                ? `Darshan ${gu(s.fromIndex)} – ${gu(s.toIndex)}${s.contiguous ? '' : ' (with gaps)'}`
                                 : 'Nothing selected'}
                             </div>
-                            <div className="l4-range">{gu(s.count)} Darshan</div>
+                            <div className="l4-range">{gu(s.count)} in all</div>
 
                             {previewId === a.id && (
-                              /* The preview is the numbers a યુવક will be asked for, in the
-                                 order he will meet them — and nothing else, the same restraint
-                                 §12 puts on the test screen itself. Capped: a sub-level holding
-                                 the whole collection is a card, not a wall. */
+                              /* The preview is the numbers a યુવક will be asked for, exactly as
+                                 he will see them, in the order he will meet them — and nothing
+                                 else, the same restraint §12 puts on the test screen itself. A
+                                 Darshan withheld since this version was written has no such
+                                 number left, so its chip falls back to the sheet's, marked `#`.
+                                 Capped: a sub-level holding the whole collection is a card, not
+                                 a wall. */
                               <div className="l4-chips">
                                 {(a.sceneIds || []).slice(0, PREVIEW).map((id) => (
-                                  <span className="l4-chip" key={id}>{byId.get(id) ? gu(byId.get(id).index) : id}</span>
+                                  <span className="l4-chip" key={id}>{chipNumber(byId.get(id), id)}</span>
                                 ))}
                                 {s.count > PREVIEW && <span className="hint">+{gu(s.count - PREVIEW)} more</span>}
                                 {!s.count && <span className="hint">Nothing to preview.</span>}
@@ -470,12 +495,44 @@ export default function Level4ListPage() {
                   <li>
                     {gu(covered.size)} of {gu(collection.length)} Darshan in the collection
                   </li>
-                  <li>
-                    Unlock: {config?.requireGate
-                      ? `after ${gu(config.gateThreshold)} remembered in a single day`
-                      : 'open to everyone'}
-                  </li>
+                  {gate && (
+                    <li>
+                      Unlock:{' '}
+                      {gate.require
+                        ? `after ${gu(gate.threshold)} remembered in a single day`
+                        : 'open to everyone'}{' '}
+                      (set on the Levels page — publishing does not change it)
+                    </li>
+                  )}
                   {live && live.id !== config?.id && <li>Version {gu(live.version)} is retired at the same moment</li>}
+                </ul>
+
+                {/* "1 – 30" means two different things in this product — the numbers users
+                    count through, and the numbers printed on the artwork — and the moment of
+                    publishing is the wrong moment to be unsure which is being quoted. */}
+                <p style={{ marginTop: 10 }}>
+                  Each sub-level, numbered exactly as users see it — <strong>not</strong> the
+                  numbers printed on the artwork:
+                </p>
+                <ul style={{ margin: '6px 0 0 18px' }}>
+                  {activities
+                    .filter((a) => a.active)
+                    .slice(0, DIALOG_LIST)
+                    .map((a) => {
+                      const s = summarise(a.sceneIds || [], collection);
+                      return (
+                        <li key={a.id}>
+                          {a.code}: {s.count
+                            ? `Darshan ${gu(s.fromIndex)} – ${gu(s.toIndex)}${s.contiguous ? '' : ' (with gaps)'} · ${gu(s.count)} in all`
+                            : 'nothing selected'}
+                        </li>
+                      );
+                    })}
+                  {activities.filter((a) => a.active).length > DIALOG_LIST && (
+                    <li className="hint">
+                      +{gu(activities.filter((a) => a.active).length - DIALOG_LIST)} more
+                    </li>
+                  )}
                 </ul>
                 {!!check?.warnings?.length && (
                   <p style={{ marginTop: 10 }}>
@@ -499,6 +556,22 @@ export default function Level4ListPage() {
 
 /** How many numbers a preview shows before it says "+N more" (see the card). */
 const PREVIEW = 60;
+
+/** How many sub-levels the publish dialog spells out before it says "+N more". */
+const DIALOG_LIST = 12;
+
+/**
+ * The number to print on a preview chip: the one a user sees, or — for a Darshan withheld
+ * since this version was written, which has none — the one printed on the artwork, marked
+ * `#`. An id the collection has never heard of is shown as itself; `findInvalid` is already
+ * saying so above, and inventing a number for it would hide that.
+ */
+function chipNumber(item, id) {
+  if (!item) return id;
+  if (Number.isInteger(item.displayIndex)) return gu(item.displayIndex);
+  const source = Number.isInteger(item.sourceIndex) ? item.sourceIndex : item.index;
+  return Number.isInteger(source) ? `#${gu(source)}` : id;
+}
 
 const STATUS_LABEL = {
   DRAFT: 'Draft',

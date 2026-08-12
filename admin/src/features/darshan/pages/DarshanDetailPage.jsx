@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
-import { getDarshanItem, saveScene, setSceneImage, validateImageUrl } from '../services/darshanService';
+import { listDarshan, saveScene, setSceneImage, validateImageUrl } from '../services/darshanService';
 import { AsyncBlock } from '../../../components/StateBlocks';
 import { PageHeader } from '../../../components/StatCard';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -10,11 +10,17 @@ import { ACTIONS } from '../../../../../shared/domain/audit.js';
 import { saveError } from '../../../lib/errors';
 
 /**
- * §30 — one દ્રશ્ય, and the three things it is made of.
+ * §30 — one દ્રશ્ય, and the four things it is made of.
  *
  *   the **link**        where the picture is, in Google Drive
+ *   the **શીર્ષક**       the short name it is listed under (0013)
  *   the **વર્ણન**       what the દ્રશ્ય shows
  *   the **number**      the ક્રમ, and separately the order it is presented in
+ *
+ * The title is the newest of the four and the only one that changes nothing for a યુવક: it
+ * is not part of the content gate, so naming a દ્રશ્ય neither publishes it nor withholds it
+ * (DARSHAN_DATA_CONTRACT.md §2.1). It is edited here rather than anywhere else because it
+ * belongs beside the વર્ણન — the two are the words of a દ્રશ્ય, long and short.
  *
  * That is the whole editable surface, and it is deliberately the whole of it. This page
  * used to carry a second image control — "Publish from Google Drive" — which queued a
@@ -33,11 +39,56 @@ import { saveError } from '../../../lib/errors';
  * Every change here is confirmed first (§57), audited after (§41), and reversible: disable
  * rather than delete (§31), and a new link replaces nothing — the old file stays in Drive,
  * so a rollback is pasting the previous link back (§28).
+ *
+ * **Withholding renumbers, and says so first** (ORDERING.md decision #3). The number a યુવક
+ * sees is a દ્રશ્ય's place among the ones he is *shown*, so turning one off — or back on —
+ * moves every number below it. That is not a side effect to discover afterwards: the dialog states
+ * how many દર્શન shift before anything is written. He may still go ahead. He is simply never
+ * surprised.
  */
 export default function DarshanDetailPage() {
   const { itemId } = useParams();
-  const state = useAsync(() => getDarshanItem(itemId), [itemId]);
-  const item = state.data;
+  // The whole sequenced collection, not one row. `listDarshan()` reads all of it either way —
+  // `getDarshanItem()` was a `.find()` over exactly this — and the rest of it is what makes
+  // the renumber count below a count rather than a guess.
+  const state = useAsync(
+    () => listDarshan().then((items) => ({ items, item: items.find((i) => i.id === itemId) || null })),
+    [itemId]
+  );
+  const item = state.data?.item || null;
+  const items = useMemo(() => state.data?.items || [], [state.data]);
+
+  /**
+   * What turning this દ્રશ્ય off — or on — does to everybody else's numbers.
+   *
+   * Counted from the sequence that is loaded, on the one rule that produces it: `displayIndex`
+   * runs 1…N over the numbered દર્શન in canonical order, so every numbered દ્રશ્ય *after* this
+   * one shifts by exactly one and nothing before it moves at all. Withholding shifts them
+   * down, reactivating shifts them up; the count is the same either way.
+   *
+   * Counted on `displayIndex != null` and **not** on `active`, because they are not the same
+   * question and this is the one that matters here. shared/domain/darshan.js numbers a દ્રશ્ય
+   * only when a યુવક can actually be shown it — image *and* વર્ણન — so a row switched on
+   * before its વર્ણન was written reads `active: true` in this panel and still carries no
+   * number. Counting the `active` badge instead would promise a renumbering that never
+   * happens, and `changes` below is the same distinction: turning on a દ્રશ્ય with no image
+   * moves nobody.
+   *
+   * `willBe` is the number this દ્રશ્ય itself holds — its own place among the numbered ones.
+   * For one that is already shown it is `displayIndex`; for a withheld one it is the number it
+   * would come back as.
+   */
+  const renumber = useMemo(() => {
+    const at = items.findIndex((i) => i.id === itemId);
+    if (at < 0) return null;
+    const now = items[at];
+    const numbered = (i) => i.displayIndex != null;
+    return {
+      changes: numbered(now) !== (now.active ? false : !!now.caption && !!now.imageUrl),
+      willBe: items.slice(0, at).filter(numbered).length + 1,
+      after: items.slice(at + 1).filter(numbered).length,
+    };
+  }, [items, itemId]);
 
   const [pending, setPending] = useState(null); // the confirmed action, or null
   const [busy, setBusy] = useState(false);
@@ -48,6 +99,8 @@ export default function DarshanDetailPage() {
   // સંચાલક clearing the field — so '' cannot double as the sentinel the way it does for
   // `order`, or clearing a વર્ણન would silently snap back to the old text.
   const [caption, setCaption] = useState(null);
+  // The short name, with the same null-means-untouched sentinel and for the same reason.
+  const [title, setTitle] = useState(null);
 
   async function commit() {
     if (!pending) return;
@@ -63,6 +116,7 @@ export default function DarshanDetailPage() {
       setNewUrl('');
       setOrder('');
       setCaption(null);
+      setTitle(null);
       state.retry();
     } catch (e) {
       setMsg({ tone: 'danger', text: saveError(e) });
@@ -104,7 +158,13 @@ export default function DarshanDetailPage() {
                   <h2>Details</h2>
                   <dl className="kv">
                     <dt>ID</dt><dd className="mono">{item.id}</dd>
-                    <dt>Number (in image)</dt><dd className="mono">{item.index}</dd>
+                    <dt>Number (in image)</dt><dd className="mono">{item.sourceIndex ?? item.index}</dd>
+                    {/* The number a યુવક actually counts by. Withheld દર્શન are not counted at
+                        all, so this is blank for one — the contract, not a missing value. */}
+                    <dt>Number users see</dt>
+                    <dd className="mono">
+                      {item.displayIndex == null ? 'Not shown' : gu(item.displayIndex)}
+                    </dd>
                     <dt>Order</dt><dd className="mono">{item.order}</dd>
                     <dt>Status</dt>
                     <dd>
@@ -168,6 +228,56 @@ export default function DarshanDetailPage() {
                     }}
                   >
                     Save image link
+                  </button>
+
+                  <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
+
+                  {/*
+                    The short name (0013), placed immediately above the વર્ણન because the two
+                    are edited together and the difference between them is easiest to see when
+                    they are side by side: a few words here, a whole sentence below.
+
+                    A plain text input, so a Gujarati keyboard or IME writes into it exactly as
+                    it writes into the વર્ણન box — nothing here transforms, normalises or
+                    trims-to-ASCII what is typed. Only the surrounding whitespace is trimmed on
+                    save, the same as the વર્ણન.
+
+                    It is not repeated in the Details card above. The વર્ણન is not either, for
+                    the reason given there (§23): a value shown in two places is a value that
+                    can be read stale in one of them.
+                  */}
+                  <div className="field">
+                    <label htmlFor="title">Title (શીર્ષક)</label>
+                    <input
+                      id="title"
+                      type="text"
+                      value={title ?? item.title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="આ દ્રશ્યનું ટૂંકું નામ…"
+                    />
+                    <span className="hint">
+                      A few words naming this Darshan, for lists and headings. It is not shown
+                      instead of the description and it does not decide whether users see this
+                      Darshan — that still needs an image and a description.
+                    </span>
+                  </div>
+                  <button
+                    className="btn"
+                    type="button"
+                    disabled={title === null || title.trim() === item.title}
+                    onClick={() =>
+                      setPending({
+                        title: title.trim() ? 'Save this title?' : 'Clear the title?',
+                        body: title.trim()
+                          ? `${item.id} will be listed as “${title.trim()}”. Nothing users see changes — the title is used in this panel and in headings.`
+                          : `${item.id} will go back to being listed by its number alone.`,
+                        patch: { title: title.trim() },
+                        action: ACTIONS.DARSHAN_UPDATED,
+                        meta: { index: item.index },
+                      })
+                    }
+                  >
+                    Save title
                   </button>
 
                   <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
@@ -248,16 +358,16 @@ export default function DarshanDetailPage() {
 
                   <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
 
-                  {/* §31 — disable, never delete. There is no delete button on this page. */}
+                  {/* §31 — disable, never delete. There is no delete button on this page.
+                      Decision #3 — and it does not happen without the renumbering being
+                      stated first, in Darshan, counted from the sequence above. */}
                   <button
                     className={`btn ${item.active ? 'btn-danger' : ''}`}
                     type="button"
                     onClick={() =>
                       setPending({
                         title: item.active ? 'Turn this Darshan off?' : 'Turn this Darshan on?',
-                        body: item.active
-                          ? 'A Darshan that is turned off will not be shown to users. Nothing is deleted — it can be turned back on at any time.'
-                          : 'This Darshan will start showing to users again.',
+                        body: <RenumberWarning item={item} renumber={renumber} />,
                         patch: { active: !item.active },
                         action: item.active ? ACTIONS.DARSHAN_DISABLED : ACTIONS.DARSHAN_ACTIVATED,
                         meta: { index: item.index },
@@ -283,6 +393,74 @@ export default function DarshanDetailPage() {
           </>
         )}
       </AsyncBlock>
+    </>
+  );
+}
+
+/**
+ * ORDERING.md decision #3 — the sentence that stops a renumbering being a surprise.
+ *
+ * Every number in it is counted from the collection that is loaded (`renumber`), never
+ * written down here and never estimated: the collection is whatever the sheet holds, and a
+ * literal in this paragraph would be wrong the first time a દ્રશ્ય was added (§62).
+ *
+ * It says what changes *and* what does not, because the second half is the part that stops
+ * this looking dangerous: the number drawn inside the artwork is identity, the finished work
+ * of every યુવક follows the દ્રશ્ય and not its position, and turning it back on puts every
+ * number back exactly where it was.
+ */
+function RenumberWarning({ item, renumber }) {
+  const willBe = renumber?.willBe ?? 0;
+  const after = renumber?.after ?? 0;
+  // `changes` false means this switch does not add or remove a number at all — turning on a
+  // દ્રશ્ય that still has no image, most often. Nothing shifts, and saying it would shift
+  // would be the surprise this dialog exists to prevent.
+  const changes = !!renumber?.changes;
+  const many = after === 1 ? 'the one Darshan below it' : `the ${gu(after)} Darshan below it`;
+
+  return (
+    <>
+      {item.active ? (
+        <p>
+          A Darshan that is turned off is not shown to users. Nothing is deleted — it can be
+          turned back on at any time.
+        </p>
+      ) : changes ? (
+        <p>This Darshan will start showing to users again, as number {gu(willBe)}.</p>
+      ) : (
+        <p>
+          This Darshan is switched back on, but users still will not see it
+          {item.reason ? ` — ${item.reason.toLowerCase()}` : ''}. So nothing is renumbered.
+        </p>
+      )}
+
+      {!changes && item.active && (
+        <p style={{ marginTop: 8 }}>
+          It carries no number today
+          {item.reason ? ` — ${item.reason.toLowerCase()}` : ''}, so no other Darshan is renumbered.
+        </p>
+      )}
+
+      {changes && (
+        <p style={{ marginTop: 8 }}>
+          {after === 0 ? (
+            item.active
+              ? 'It is the last Darshan users see, so no other Darshan is renumbered.'
+              : 'It goes to the end of the collection, so no other Darshan is renumbered.'
+          ) : (
+            <>
+              This renumbers {many}: what users now see as{' '}
+              {gu(item.active ? willBe + 1 : willBe)} becomes{' '}
+              {gu(item.active ? willBe : willBe + 1)}, and so on to the end of the collection.
+            </>
+          )}
+        </p>
+      )}
+
+      <p style={{ marginTop: 8 }}>
+        The number printed inside each image does not change, and nothing anyone has already
+        finished is affected — Level 3 and Level 4 follow the Darshan itself, not its number.
+      </p>
     </>
   );
 }

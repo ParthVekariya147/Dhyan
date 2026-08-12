@@ -84,12 +84,17 @@
 /* The submit sits above the fold of the finger, not below the last row: the final box a
    યુવક ticks is often in the middle of the list. `aria-live` on the container announces it
    when it appears, so it is not a visual-only event (§31). */
+/* Two actions below ૧૦૦% — [દર્શન ફરી જુઓ] and, quieter, [આટલું નોંધાવો]. `wrap` because
+   both are Gujarati words at 16px and a narrow phone will not hold them on one line; when
+   they wrap, the gold one stays on top, which is the order they are meant to be read in. */
 .l4-actions {
   position: sticky;
   bottom: 0;
   z-index: 5;
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   padding: 14px 0 18px;
   background: linear-gradient(180deg, rgba(16, 13, 10, 0), var(--color-ink) 42%);
 }

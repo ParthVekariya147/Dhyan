@@ -16,7 +16,20 @@ import { supabase } from '../../../lib/supabase';
  * receives an empty result rather than a denial to work around.
  */
 
-const TABLE = 'profiles';
+/*
+  A view over `profiles`, not the table (0011_level4_gate_view.sql).
+
+  It is `profiles.*` plus one derived column, `level4_gate_open` — the લેવલ ૪ gate as the
+  *published configuration* defines it now, rather than `profiles.level4_unlocked`, which
+  answers 0008's fixed threshold of 80 and stops being the rule the moment a સંચાલક sets
+  ૭૫ or ૫૦ (LEVEL4.md decision #3).
+
+  Safe to swap in wholesale because every use below is a read — §19 keeps this panel
+  read-only over people, so there is no write here that a view would refuse. The view is
+  `security_invoker`, so the profiles and progress policies apply exactly as they did to
+  the table; nothing became visible that was not before.
+*/
+const TABLE = 'profiles_level4';
 
 /** Callers speak camelCase; the columns are snake_case. One place to translate. */
 const COLUMN = {
@@ -207,7 +220,9 @@ export async function fetchAllUsers({
 export async function countUsers(filter = {}) {
   let q = supabase.from(TABLE).select('id', { count: 'exact', head: true });
   if (filter.subZoneId) q = q.eq('sub_zone_id', filter.subZoneId);
-  if (filter.level4Unlocked !== undefined) q = q.eq('level4_unlocked', filter.level4Unlocked);
+  // The published gate, not 0008's fixed 80 — see TABLE and toUser(). The filter key is
+  // named for what it now asks so a caller cannot pass the old meaning by accident.
+  if (filter.level4Open !== undefined) q = q.eq('level4_gate_open', filter.level4Open);
   if (filter.createdAfter) q = q.gte('created_at', filter.createdAfter);
 
   const { count, error } = await q;
@@ -273,6 +288,16 @@ function toUser(v) {
     // Read-only here by design. §19 keeps this panel read-only and a suspend/disable write
     // path is a product decision, not a mapping fix.
     status: v.status || 'ACTIVE',
+    /*
+      Two facts, deliberately both kept, because they answer different questions.
+
+      `level4GateOpen` is whether લેવલ ૪ is open to this યુવક *now*, under the threshold the
+      સંચાલક has published — the thing the app enforces and the thing the panel should show.
+      `level4Unlocked` is 0008's fixed-80 record, which stays true once earned and is what
+      src/lib/progress.js still reads. With the default configuration they agree; with a
+      threshold of ૫૦ the first goes true at ૫૦ and the second waits for ૮૦.
+    */
+    level4GateOpen: !!v.level4_gate_open,
     level4Unlocked: !!v.level4_unlocked,
     createdAt: v.created_at || null,
   };

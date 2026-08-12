@@ -167,16 +167,23 @@ function progressByActivity(progressRows) {
  * §2.2, in JavaScript. The mirror of `level4_activity_states()`.
  *
  *   completed(a) = an explicit COMPLETED row  OR  (a has items AND all of them are covered)
- *   status(a)    = LOCKED    if the gate is shut
- *                | COMPLETED if completed(a)
+ *   status(a)    = COMPLETED if completed(a)
+ *                | LOCKED    if the gate is shut
  *                | LOCKED    if any active activity below it is not completed
  *                | whatever an explicit row says (REVISION_REQUIRED / IN_PROGRESS)
  *                | AVAILABLE
  *
- * The branch order is the rule and is not interchangeable. COMPLETED is asked *before* the
- * position check so that an activity already passed is never re-locked by a reorder that
- * put something unfinished in front of it — §1 rule 4: a ધ્યાન already done is never taken
- * away.
+ * The branch order is the rule and is not interchangeable. COMPLETED is asked *first* — ahead
+ * of both the gate and the position check — so that neither can take back a કસોટી already
+ * passed (§1 rule 4: a ધ્યાન already done is never taken away). The reorder case was always
+ * covered; the gate case is 0012's, and it is the one that bites in practice, because
+ * `gateOpen` is not a fact about the યુવક alone. It reads `gate_threshold` off the published
+ * configuration, which the સંચાલક may raise — and a number moving must not read as a
+ * punishment to someone standing below its new value.
+ *
+ * The two remaining LOCKED branches are untouched, and they are what keeps ક્રમ intact: a
+ * કસોટી he has *not* completed is still shut by a closed gate and still shut by an unfinished
+ * one before it. Nothing here opens ground that was not already walked.
  *
  * `coveredSceneIds` is the union of the દ્રશ્યો inside every activity the યુવક has
  * explicitly completed, in **any** version (`level4_state().coveredSceneIds`). That is what
@@ -216,8 +223,8 @@ export function deriveStatuses({ activities, progressRows, coveredSceneIds, gate
     const done = isCompleted(activity);
 
     let status;
-    if (!gateOpen) status = L4_ACTIVITY_STATUS.LOCKED;
-    else if (done) status = L4_ACTIVITY_STATUS.COMPLETED;
+    if (done) status = L4_ACTIVITY_STATUS.COMPLETED;
+    else if (!gateOpen) status = L4_ACTIVITY_STATUS.LOCKED;
     else if (anythingBelowUnfinished) status = L4_ACTIVITY_STATUS.LOCKED;
     else if (
       explicit === L4_ACTIVITY_STATUS.REVISION_REQUIRED ||

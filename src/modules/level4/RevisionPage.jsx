@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { L4_ACTIVITY_STATUS, markRevision, useLevel4Activity } from '../../lib/level4';
+import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
+import PageIntro from '../../components/PageIntro';
 import Lightbox from '../darshan/Lightbox';
 /*
   Two stylesheets, both belonging to other modules and neither modified.
@@ -18,6 +20,36 @@ import '../levels/levels.css';
 import '../darshan/darshan.css';
 
 /**
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAGE CONTRACT — લેવલ ૪, પુનરાવર્તન (/level/4/:activityId/revision)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Purpose        Show the દર્શન behind one કસોટી's numbers again, so a યુવક who could not
+ *                place them all can look and then try again. The learning half of લેવલ ૪.
+ *
+ * Input          useLevel4Activity() — this કસોટી's full entries (image, title, વર્ણન,
+ *                number) in the સંચાલક's order, plus its status.
+ * Visible        Each item's master image, its વર્ણન, its number; a lightbox on tap.
+ * Actions        Look. Enlarge. Go back to the કસોટી.
+ * Persisted      `revision_count` only — a number the સંચાલક reads. Nothing gates on it,
+ *                and a failed write is swallowed rather than allowed to block the way back.
+ * Completion     None. Nothing here is finished, scored or required.
+ * Next           /level/4/:activityId — ફરી કસોટી આપો, the same કસોટી.
+ * Previous       /level/4 — the કસોટી list (and મુખપૃષ્ઠ, in the bar).
+ * Excluded       Ticks, submission, right-and-wrong, any count of what was missed, any
+ *                word that reads as a correction — and a PDF, a thumbnail or a re-encode:
+ *                these are the same master images the દર્શન feed renders, at the same
+ *                quality, through the same pipeline (§17, §31).
+ * Loading        Three dots inside the shell, with both bar links present.
+ * Locked         A કસોટી not yet reached renders no images at all — showing them would
+ *                hand over the answers to a કસોટી he is about to sit.
+ * Empty          Items all withheld → said plainly, with લેવલ ૪ as the way on.
+ * Error          One Gujarati line from src/lib/level4.js, and a way onward.
+ * Source of truth  The published લેવલ ૪ configuration for which items and in what order;
+ *                  the દર્શન collection for the artwork; shared/domain/journey.js for the
+ *                  words.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
  * પુનરાવર્તન — the revision screen for one લેવલ ૪ કસોટી (§17, §18, §31, §32).
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -56,6 +88,8 @@ import '../darshan/darshan.css';
 export default function RevisionPage() {
   const { activityId } = useParams();
   const { loading, error, activity, scenes, status, canOpen } = useLevel4Activity(activityId);
+  // What this screen is for, from shared/domain/journey.js — never typed in here.
+  const spec = usePageSpec(JOURNEY_PAGE.LEVEL4_REVISION);
   const [active, setActive] = useState(null);
 
   const open = useCallback((item) => setActive(item), []);
@@ -148,10 +182,19 @@ export default function RevisionPage() {
 
         {activity.description && <p className="level-note">{activity.description}</p>}
 
-        <p className="level-note">
-          આ કસોટીનાં {gu(scenes.length)} દ્રશ્યો શાંતિથી ફરી જુઓ. અહીં કંઈ ટિક કરવાનું નથી —
-          ફક્ત દર્શન. ચિત્ર પર અડકો તો મોટું દેખાશે.
-        </p>
+        {/*
+          The count, and then the description.
+
+          The count stays a line of its own because it is about *this* કસોટી and changes
+          with it; what does not change — that there is nothing to tick here, that touching
+          a picture enlarges it, that this is દર્શન and not a test — is the shared
+          description, which also carries 'આમાં આ નથી' for the યુવક who arrives here
+          expecting to be marked (§16: revision is not a penalty and is never counted as
+          one).
+        */}
+        <p className="level-note">આ કસોટીનાં {gu(scenes.length)} દ્રશ્યો.</p>
+
+        <PageIntro spec={spec} />
 
         {/*
           The only thing the previous attempt is allowed to say. Never a count of what was
@@ -277,7 +320,14 @@ function RevisionScene({ item, rank, onOpen }) {
   }, []);
 
   const eager = rank <= 1;
-  const n = item.n ?? item.index;
+  /*
+    The number a યુવક reads — useScenes()'s continuous ૧…N (ORDERING.md §4), the same one
+    the કસોટી he has just come from printed. Emphatically **not** `rank + 1`: `rank` is a
+    position in this activity and decides only how hard the browser is asked to work
+    (see above). Numbering these ૧…N would tell him a દ્રશ્ય he ticked as ૩૧ is called ૧ on
+    the very screen that exists to help him place it.
+  */
+  const n = item.displayIndex;
 
   return (
     <article
@@ -314,8 +364,9 @@ function RevisionScene({ item, rank, onOpen }) {
       </div>
       <div className="cap">
         <span className="txt">{item.t}</span>
-        {/* Gujarati numerals (§14), unlike the દર્શન feed's card — every number a યુવક reads
-            in લેવલ ૪ goes through gu(), including the ones inside a caption. */}
+        {/* Gujarati numerals (§14) — every number a યુવક reads goes through gu(), including
+            the ones inside a caption. The દર્શન feed's own card now does the same, so this
+            screen and the one it borrows its markup from print an identical badge. */}
         <span className="num">{gu(n)}</span>
       </div>
     </article>

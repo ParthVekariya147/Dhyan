@@ -1,0 +1,119 @@
+/* The page description (src/components/PageIntro.jsx).
+
+   Same dark-and-gold palette as everything else, and — like the level screens — nothing
+   here is red and nothing is styled as a warning (§1 rule 4). "આમાં આ નથી" describes a
+   page; it is not a refusal, and it must not look like one.
+
+   Loaded by the component itself rather than by each page, because this component is
+   rendered from four different lazy chunks and Vite ships a chunk's CSS with the chunk —
+   a stylesheet imported by only one of them would leave the others unstyled. */
+
+.page-intro {
+  max-width: 560px;
+  margin: 14px auto 0;
+  text-align: center;
+}
+
+/* Matches .level-note deliberately: on લેવલ ૩ and લેવલ ૪ this line replaced a .level-note,
+   and it must read as the same voice in the same place rather than as a new element. */
+.page-intro-lead {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.85;
+  color: #8b7a66;
+}
+
+/* ---------------------------------------------------------------- the details */
+
+.page-intro-more {
+  margin-top: 8px;
+}
+
+.page-intro-more > summary {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 12.5px;
+  letter-spacing: .3px;
+  color: var(--color-gold-soft);
+  opacity: .78;
+  /* The marker is removed on both engines — a native triangle sits oddly beside centred
+     Gujarati text, and the caret below is drawn in the flow instead. */
+  list-style: none;
+}
+.page-intro-more > summary::-webkit-details-marker { display: none; }
+.page-intro-more > summary::after {
+  content: ' ▾';
+  font-size: 10px;
+}
+.page-intro-more[open] > summary::after { content: ' ▴'; }
+.page-intro-more > summary:hover { opacity: 1; }
+.page-intro-more > summary:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.page-intro-body {
+  margin-top: 10px;
+  padding: 14px 16px;
+  text-align: start;
+  border: 1px solid rgba(240, 199, 120, .16);
+  border-radius: 12px;
+  background: rgba(240, 199, 120, .035);
+}
+
+.page-intro-block + .page-intro-block { margin-top: 12px; }
+
+.page-intro-h {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: .4px;
+  color: var(--color-gold);
+  opacity: .85;
+}
+
+.page-intro-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #8b7a66;
+}
+
+.page-intro-body ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-intro-body li {
+  position: relative;
+  padding-inline-start: 16px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #8b7a66;
+}
+
+.page-intro-body li::before {
+  content: '·';
+  position: absolute;
+  inset-inline-start: 4px;
+  color: var(--color-gold);
+  opacity: .7;
+}
+
+/* What is absent is marked with a dash rather than a cross: a ✕ beside every line would
+   read as a list of things taken away from him. It is dimmer than the list above it for
+   the same reason — it is the smaller half of the answer. */
+.page-intro-body .is-absent li { opacity: .72; }
+.page-intro-body .is-absent li::before { content: '–'; opacity: .55; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-intro-more[open] .page-intro-body {
+    animation: pageIntroIn .28s cubic-bezier(.2, .7, .3, 1) both;
+  }
+}
+
+@keyframes pageIntroIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}

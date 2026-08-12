@@ -7,7 +7,9 @@ import { useScenes } from '../../lib/useScenes';
   re-exports it from shared/domain/level4.js precisely so these screens never reach past it.
 */
 import { L4_ACTIVITY_STATUS, L4_PREPARING_GU, useLevel4 } from '../../lib/level4';
+import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
+import PageIntro from '../../components/PageIntro';
 import ProgressRing from '../levels/ProgressRing';
 /*
   The ring, the bar, the panels and the list rhythm all live in the levels module's
@@ -23,6 +25,35 @@ import './level4.css';
 const LEVEL = 4;
 
 /**
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAGE CONTRACT — લેવલ ૪, the કસોટી list (/level/4)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Purpose        The front door of લેવલ ૪: which કસોટીઓ the સંચાલક has published, which one
+ *                is open, and what each of them covers. A container, not a test.
+ *
+ * Input          useLevel4() — the published configuration, this યુવક's status per કસોટી,
+ *                and the gate. useScenes() only for the printed numbers in a card's range.
+ * Visible        A ring counting finished કસોટીઓ, the instruction, and one card per કસોટી
+ *                with its code, title, range, item count and state.
+ * Actions        Open a કસોટી that is not locked. Open the દર્શન of one waiting for
+ *                revision. Go back to લેવલ ૩ or મુખપૃષ્ઠ.
+ * Persisted      Nothing. Nothing on this page writes; the attempt is made one page in.
+ * Completion     Every published કસોટી COMPLETED → લેવલ ૪ is finished, and says so.
+ * Next           /level/4/:activityId — whichever કસોટી is open. There is no single 'આગળ'
+ *                here on purpose: the list *is* the choice, and it is a choice of one.
+ * Previous       /level/3 — the level લેવલ ૪ is earned at and returned to every morning.
+ * Excluded       Images, વર્ણન, ticks (all of those belong to the two pages behind this
+ *                one), the સંચાલક's configuration controls, and any hard-coded ૪.૧/૪.૨ —
+ *                the number of કસોટીઓ is data, and nothing here asks what a code is.
+ * Loading        Three dots under a navigable bar.
+ * Locked         The gate, in the સંચાલક's own number, with લેવલ ૩ as the way on.
+ * Empty          Nothing published → the shared 'હજુ તૈયાર થઈ રહ્યું છે' sentence.
+ * Error          One Gujarati line from src/lib/level4.js and a ફરી પ્રયાસ કરો button.
+ * Source of truth  The published લેવલ ૪ configuration for the ladder and the gate;
+ *                  useScenes() for printed numbers; shared/domain/journey.js for wording.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
  * લેવલ ૪ — the container (§11, decision #1 in LEVEL4.md §0).
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -58,21 +89,32 @@ export default function Level4Page() {
     useLevel4();
 
   /*
-    id → the number printed on the દ્રશ્ય, and nothing else.
+    id → the number the યુવક reads on the દ્રશ્ય, and nothing else.
 
-    The cards show a range ("દ્રશ્ય ૧–૩૦"), and a range is made of printed numbers, so the
-    effective collection is consulted for those numbers only. It comes from useScenes() —
-    the same list the whole યુવક app renders, overlay and both gates applied — so a range
-    here can never describe દ્રશ્યો a યુવક cannot see.
+    The cards show a range ("દ્રશ્ય ૧–૩૦"), and a range is made of the numbers he actually
+    sees, so the effective collection is consulted for those numbers only. It comes from
+    useScenes() — the same list the whole યુવક app renders, overlay and both gates applied,
+    and now sequenced by `withDisplayIndex()` — so a range here can never describe દ્રશ્યો a
+    યુવક cannot see, and can never name a number that appears nowhere else.
+
+    `s.displayIndex`, not `s.n ?? s.index` (ORDERING.md §4). The old map printed the stored
+    number, so a કસોટી of the first thirty દ્રશ્યો read "દ્રશ્ય ૧–૩૧" the moment the સંચાલક
+    withheld one of them — a range wider than its own contents, describing a number the
+    યુવક would never find in the કસોટી. Every number on this page and inside that કસોટી now
+    comes from the one sequence.
   */
   const numberOf = useMemo(
-    () => new Map(scenes.map((s) => [s.id, s.n ?? s.index])),
+    () => new Map(scenes.map((s) => [s.id, s.displayIndex])),
     [scenes]
   );
 
   // The name the સંચાલક chose (§36). What the level *does* is never his to change (§37),
   // which is why only the name comes from settings.
   const name = levels.find((l) => l.levelId === LEVEL)?.name ?? '';
+
+  // The level's description, from the same kind of place as its name (§36) — see
+  // shared/domain/journey.js. Never null, so every state below can print it.
+  const spec = usePageSpec(JOURNEY_PAGE.LEVEL4);
 
   if (loading || scenesLoading) {
     return (
@@ -141,8 +183,16 @@ export default function Level4Page() {
     An invitation, not a rebuke (§1 rule 4) — it says what opens the level, never how far
     away he is, never how many days he has taken. A યુવક who typed /level/4 gets this same
     invitation rather than a redirect home, which would answer a question he did not ask.
+
+    Shown only to a યુવક who has nothing here yet (0012). A closed gate above કસોટીઓ he has
+    already passed is a different situation and gets a different page: the list, with what he
+    earned still open and still repeatable, and the invitation moved to a line above it. This
+    whole screen in that case would be the app telling him લેવલ ૪ is not his — over a number
+    the સંચાલક moved after he had climbed it.
   */
-  if (!gateOpen) {
+  const earned = activities.some((a) => a.status === L4_ACTIVITY_STATUS.COMPLETED);
+
+  if (!gateOpen && !earned) {
     return (
       <div className="level-wrap">
         <Level4Bar />
@@ -184,13 +234,34 @@ export default function Level4Page() {
           score={done}
           total={activities.length}
           label="પૂરી થયેલી કસોટીઓ"
-          sub="એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે. પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે."
+          sub="એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે. પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે — અને જેટલી વાર કરવી હોય એટલી વાર કરી શકાય."
         />
 
-        <p className="level-note">
-          દરેક કસોટીમાં ફક્ત નંબર દેખાશે. દ્રશ્ય મનમાં આવે તો ટિક કરો — કંઈ યાદ ન આવે તો
-          દર્શન ફરી જોઈ લેવાનાં છે, એમાં કશું ખોટું નથી.
-        </p>
+        {/*
+          What લેવલ ૪ is, before he opens a કસોટી and finds a page of bare numbers.
+
+          The sentence that used to be typed here — "દરેક કસોટીમાં ફક્ત નંબર દેખાશે…" — is now
+          the કસોટી page's own instruction, where it belongs; this one describes the ladder:
+          one opens the next, and a finished કસોટી stays finished. 'આમાં આ નથી' behind the
+          closed line says the pictures are one page further in, not missing.
+        */}
+        <PageIntro spec={spec} />
+
+        {/*
+          The gate, closed above કસોટીઓ he has already passed (0012).
+
+          Reachable one way only: the સંચાલક raised `gate_threshold` past where this યુવક
+          stands — `progress` is never lowered, so nothing he does can shut this himself. What
+          he keeps is on screen below, open and repeatable; what this line describes is only
+          the કસોટીઓ still ahead. Said as the invitation the locked page says, in the
+          configuration's own number — never as something he lost, because he did not lose it.
+        */}
+        {!gateOpen && (
+          <p className="level-note l4-banner">
+            લેવલ ૩ માં {gu(gateThreshold)} પૂરાં કરો, પછી હવે પછીની કસોટીઓ ખૂલશે. પૂરી થયેલી
+            કસોટીઓ તમારી છે — જેટલી વાર કરવી હોય એટલી વાર કરી શકો.
+          </p>
+        )}
       </header>
 
       <ol className="l4-list">
@@ -205,6 +276,8 @@ export default function Level4Page() {
             */
             previous={activities[i - 1] ?? null}
             range={rangeOf(a.sceneIds, numberOf)}
+            /* Why a card is shut, when ક્રમ is not the reason — see lockLine in the card. */
+            gateClosed={!gateOpen}
           />
         ))}
       </ol>
@@ -220,7 +293,13 @@ export default function Level4Page() {
 }
 
 /**
- * The printed span a કસોટી covers — "દ્રશ્ય ૧–૩૦".
+ * The span a કસોટી covers — "દ્રશ્ય ૩૧–૬૦".
+ *
+ * Read off the activity's own દ્રશ્યો, never written as a literal and never derived from how
+ * many items it holds: `from` and `to` are the smallest and largest **display** numbers its
+ * ids resolve to. So ૪.૨ composed of the second thirty દ્રશ્યો says ૩૧–૬૦, the same numbers
+ * its કસોટી prints — a local ૧–૩૦ here would be a second numbering of the same દ્રશ્યો
+ * (decision #1).
  *
  * Built from the numbers the collection actually has, so a દ્રશ્ય withdrawn since the
  * સંચાલક composed this કસોટી is left out of the range rather than printed as a hole —
@@ -250,7 +329,18 @@ const STATE = {
     action: 'ફરી કરીએ',
     tone: 'is-open',
   },
-  [L4_ACTIVITY_STATUS.COMPLETED]: { label: 'પૂરું થયું ✓', action: 'ફરી જુઓ', tone: 'is-done' },
+  /*
+    'ફરી કસોટી આપો', not 'ફરી જુઓ'. The old word was the honest description of a page he could
+    only look at; since the કસોટી may be answered again — as often as he likes, with the pass
+    already his and nothing at stake — the card should say what the tap actually does. A
+    યુવક who wants the pictures instead has the second link below (§16), so neither journey
+    is hidden behind the other.
+  */
+  [L4_ACTIVITY_STATUS.COMPLETED]: {
+    label: 'પૂરું થયું ✓',
+    action: 'ફરી કસોટી આપો',
+    tone: 'is-done',
+  },
 };
 
 /**
@@ -261,9 +351,22 @@ const STATE = {
  * that can only say no. It still says what opens it, in the voice the home page and લેવલ ૩
  * already use for લેવલ ૪'s lock: what to do next, never what was missed.
  */
-function ActivityCard({ activity, previous, range }) {
+function ActivityCard({ activity, previous, range, gateClosed }) {
   const state = STATE[activity.status] ?? STATE[L4_ACTIVITY_STATUS.LOCKED];
   const locked = activity.status === L4_ACTIVITY_STATUS.LOCKED;
+  /*
+    Why this card is shut, in its own words.
+
+    ક્રમ is the ordinary reason and is named by the કસોટી before it. A closed gate is the
+    other one, and it can now appear *below* finished કસોટીઓ (0012) — where "લેવલ ૪.૩ પૂરું
+    થાય, પછી આ ખૂલશે" would be plainly untrue, since ૪.૩ is sitting right above it marked
+    પૂરું થયું. The gate is asked first for exactly that case.
+  */
+  const lockLine = gateClosed
+    ? 'લેવલ ૩ પૂરું થાય, પછી આ ખૂલશે'
+    : previous
+      ? `લેવલ ${gu(previous.code)} પૂરું થાય, પછી આ ખૂલશે`
+      : 'આગળની કસોટી પૂરી થાય, પછી આ ખૂલશે';
 
   const body = (
     <>
@@ -283,11 +386,7 @@ function ActivityCard({ activity, previous, range }) {
       {activity.description && <span className="l4-desc">{activity.description}</span>}
 
       {locked ? (
-        <span className="l4-lock">
-          {previous
-            ? `લેવલ ${gu(previous.code)} પૂરું થાય, પછી આ ખૂલશે`
-            : 'આગળની કસોટી પૂરી થાય, પછી આ ખૂલશે'}
-        </span>
+        <span className="l4-lock">{lockLine}</span>
       ) : (
         <span className="l4-go">{state.action} →</span>
       )}
@@ -303,11 +402,21 @@ function ActivityCard({ activity, previous, range }) {
       )}
 
       {/*
-        The one extra door, and only where it helps: a કસોટી waiting to be revised gets
-        its દર્શન one tap away, rather than making the યુવક open the test to find the way
-        back to the pictures (§16).
+        The second door, where it helps — and it helps in exactly two places.
+
+        A કસોટી waiting to be revised gets its દર્શન one tap away, rather than making the
+        યુવક open the test to find the way back to the pictures (§16). A finished one gets
+        it for the opposite reason: the card's own action is now 'ફરી કસોટી આપો', so without
+        this line the only thing a યુવક could do with a passed કસોટી is sit it again — and
+        going back to look at the દર્શન he has earned is the gentler half of repeating, not
+        a lesser one. Two named journeys, neither hidden inside the other.
+
+        Everywhere else this link is absent on purpose. AVAILABLE and IN_PROGRESS cards lead
+        to the કસોટી, which carries [દર્શન ફરી જુઓ] itself; a LOCKED card offers nothing at
+        all, because there is nothing yet to revise.
       */}
-      {activity.status === L4_ACTIVITY_STATUS.REVISION_REQUIRED && (
+      {(activity.status === L4_ACTIVITY_STATUS.REVISION_REQUIRED ||
+        activity.status === L4_ACTIVITY_STATUS.COMPLETED) && (
         <Link className="l4-aside linklike" to={`/level/4/${activity.id}/revision`}>
           દર્શન ફરી જુઓ
         </Link>
@@ -326,6 +435,15 @@ function Level4Bar() {
     <header className="level-bar">
       <Link className="linklike" to="/">મુખપૃષ્ઠ</Link>
       <Link className="linklike" to="/darshan">દર્શન જુઓ</Link>
+      {/*
+        The way back to લેવલ ૩, matching the way forward that લેવલ ૩ now carries.
+
+        It is the level this one is earned at and the level a યુવક returns to every morning
+        (§9 clears the day there, never here), so it is not a back button — it is the other
+        half of the same climb. Always shown: લેવલ ૩ is open to everyone, always, so there
+        is no state in which this link could turn him away.
+      */}
+      <Link className="linklike" to="/level/3">લેવલ ૩</Link>
     </header>
   );
 }

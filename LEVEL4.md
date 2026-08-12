@@ -17,7 +17,7 @@ Asked and answered before a line was written. They are not open:
 |---|---|
 | 1 | **Level 4 becomes a container.** The current flat 1→N list with the `'જવાબ જુઓ'` reveal is **removed**. `/level/4` shows activity cards (૪.૧, ૪.૨, …). |
 | 2 | **Completion is permanent *and* the day is still scored.** Passing ૪.૧ unlocks ૪.૨ forever — midnight never takes it back. Every attempt also writes `progress.level4_score` for the IST day, so the સંચાલક dashboard keeps working unchanged. |
-| 3 | **The gate is the સંચાલક's to set.** `require_gate` + `gate_threshold` live on the configuration. Default `true` / `80`, which reproduces today's behaviour exactly. Migration 0008's trigger is **not touched**. |
+| 3 | **The gate is the સંચાલક's to set.** ~~`require_gate` + `gate_threshold` live on the configuration.~~ **Superseded by 0014:** they live in `settings['levels'].value.level4Gate`, set on the **Levels** page, and the columns on `level4_configs` are no longer read. Default `true` / `80` either way, which reproduces today's behaviour exactly. Migration 0008's trigger is **not touched**. See the note under §2.2. |
 | 4 | **Version change carries over by item coverage.** A new activity counts as already complete when every દ્રશ્ય in it was covered by activities the યુવક already passed. Nothing is lost and nothing is falsely credited. |
 
 ---
@@ -122,16 +122,46 @@ covered(user)   = union of item scene_ids of EVERY activity the user has an expl
 
 completed(u, a) = explicit COMPLETED row  OR  (items(a) ≠ ∅ AND items(a) ⊆ covered(u))
 
-gateOpen(u, c)  = (NOT c.require_gate)
-                  OR exists (select 1 from progress
-                             where user_id = u and level3_score >= c.gate_threshold)
+gate            = settings['levels'].value.level4Gate     -- { require, threshold } (0014)
+                  default { require: true, threshold: 80 }
 
-status(u, a)    = LOCKED  if NOT gateOpen
-                | COMPLETED if completed(u, a)
+gateOpen(u)     = (NOT gate.require)
+                  OR exists (select 1 from progress
+                             where user_id = u and level3_score >= gate.threshold)
+
+status(u, a)    = COMPLETED if completed(u, a)          -- asked FIRST (0012)
+                | LOCKED  if NOT gateOpen
                 | LOCKED  if any active activity at a lower position is not completed
                 | REVISION_REQUIRED / IN_PROGRESS  if an explicit row says so
                 | AVAILABLE  otherwise
 ```
+
+**The gate is one setting, not a property of an edition (0014).** It moved off
+`level4_configs` because it could not be answered until a configuration existed — a સંચાલક
+setting the project up had nowhere to say what opens લેવલ ૪, and the page named *Levels* was
+the first place he looked. `require_gate` and `gate_threshold` still exist on the table, are
+still written by older drafts, and are **read by nothing**; `level4_gate_setting()` is the
+single source. Publishing, cloning or archiving a configuration does not change the gate.
+
+Setting it is not the same as opening લેવલ ૪: with no configuration published there is
+nothing behind the gate, and the યુવક app says લેવલ ૪ is being prepared exactly as before.
+The number decides *when*, not *whether*.
+
+**`completed` is asked before everything else, and that is the whole of the repeat rule
+(0012).** Access and repetition are two questions, not one:
+
+```
+accessible(u, a)  = status(u, a) ≠ LOCKED
+repeatable(u, a)  = accessible(u, a)          -- there is no third condition, and no cap
+```
+
+An activity is unlocked by the ordinary progression and by nothing else — a યુવક standing at
+૪.૨ cannot reach ૪.૩, by URL, by refresh, or by answering ૪.૧ eleven times. But once it is
+unlocked it stays unlocked, and once it is completed it stays completed: `level4_attempts`
+holds every attempt, `attempt_count` has no ceiling anywhere, and neither a reorder nor the
+સંચાલક raising `gate_threshold` past this યુવક can put a તાળું back on a કસોટી he has passed.
+The two LOCKED branches still govern everything he has *not* completed, which is what keeps
+ક્રમ intact.
 
 ### 2.3 RPCs — the only write path for a યુવક
 
@@ -150,8 +180,9 @@ All `security definer`, `set search_path = public`, `grant execute … to authen
 distinct `errcode`/message so the client can tell them apart:
 
 1. activity exists, is `active`, and belongs to the **PUBLISHED** config → else `level4_not_published`
-2. `gateOpen` → else `level4_gate_closed`
-3. every active activity at a lower `position` is `completed` → else `level4_locked`
+2. `gateOpen` → else `level4_gate_closed` — **skipped if `completed(u, a)`** (0012)
+3. every active activity at a lower `position` is `completed` → else `level4_locked` —
+   **skipped if `completed(u, a)`** (0012)
 4. `required := items(activity)`; `selected := distinct(p_selected) ∩ required`
 5. `passed := (|selected| = |required| AND |required| > 0)`
 6. insert `level4_attempts`

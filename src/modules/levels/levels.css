@@ -149,10 +149,6 @@
 .tick-body { flex: 1; min-width: 0; }
 .tick-text { display: block; font-size: 15.5px; line-height: 1.75; color: #f4ead8; }
 
-/* Holds લેવલ ૪'s row height steady before an answer is revealed, so the list does not
-   jump under the finger as the yuvak works down it. */
-.tick-blank { display: block; min-height: 22px; }
-
 .tick-main input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
 .tick-box {
@@ -175,22 +171,14 @@
   outline-offset: 3px;
 }
 
-/* 'જવાબ જુઓ' (§7). Quiet by design — it is an ordinary, blameless choice, not a
-   confession, so it is not styled as a warning or a last resort. */
-.tick-reveal {
-  display: block;
-  margin: 0 15px 13px 74px;
-  padding: 8px 16px;
-  font: inherit;
-  font-size: 13.5px;
-  color: var(--color-gold-soft);
-  background: rgba(240, 199, 120, .06);
-  border: 1px solid rgba(240, 199, 120, .3);
-  border-radius: 999px;
-  cursor: pointer;
-}
-.tick-reveal:hover { border-color: rgba(240, 199, 120, .55); }
-.tick-reveal:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; }
+/*
+  '.tick-reveal' and '.tick-blank' lived here and are gone.
+
+  They styled લેવલ ૪'s 'જવાબ જુઓ' button and the gap it left behind. લેવલ ૪ no longer
+  reveals an answer at all — its કસોટી screen is the index number and a checkbox, and that
+  absence is the point of it (LEVEL4.md rule 3). Rules kept "just in case" are how a
+  removed feature grows back, and these shipped to ~2,000 phones for nothing.
+*/
 
 .level-foot {
   margin: 26px auto 0;
@@ -258,9 +246,36 @@
 .spinner-page .dot:nth-child(2) { animation-delay: .15s; }
 .spinner-page .dot:nth-child(3) { animation-delay: .3s; }
 
+/*
+  The door on to લેવલ ૪, at the end of લેવલ ૩'s list.
+
+  Centred and set apart by a rule rather than boxed in a card: it is the end of the page,
+  not another item on it, and a card here would compete with the ~109 rows above it. Gold
+  and quiet in both of its states — the invitation to come back tomorrow must not look
+  poorer than the invitation to go on (§1 rule 4, ફક્ત આનંદ).
+*/
+.level-next {
+  margin: 26px auto 40px;
+  padding-top: 22px;
+  max-width: 560px;
+  text-align: center;
+  border-top: 1px solid rgba(240, 199, 120, .18);
+}
+.level-next-line {
+  margin: 0 0 6px;
+  color: var(--color-gold-soft);
+  font-size: 16px;
+  line-height: 1.7;
+}
+/* The note under a closed gate sets its own margins here; .level-note centres by default
+   in this block and would otherwise keep the list's left alignment. */
+.level-next .level-note { margin: 0 0 14px; text-align: center; }
+.level-next .btn-inline { margin-top: 10px; }
+
 @media (max-width: 480px) {
   .tick-main { gap: 11px; padding: 13px 12px; }
   .tick-n { min-width: 42px; font-size: 14px; }
   .tick-text { font-size: 15px; }
-  .tick-reveal { margin-left: 65px; }
+  .level-next { margin: 20px auto 32px; padding-top: 18px; }
+  .level-next-line { font-size: 15px; }
 }

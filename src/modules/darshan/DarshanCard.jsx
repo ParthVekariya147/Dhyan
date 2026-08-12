@@ -1,7 +1,15 @@
 import { useEffect, useRef } from 'react';
+import { gu } from '../../lib/scenes';
 
 /**
  * One દર્શન scene: a picture, its number, its વર્ણન.
+ *
+ * The number is `item.displayIndex` — useScenes()'s continuous ૧…N (ORDERING.md §4), not
+ * `item.n`, which is the number printed inside the artwork and skips wherever the સંચાલક has
+ * withheld a દ્રશ્ય. લેવલ ૨ is where a યુવક first meets these numbers and it is where he
+ * learns the ક્રમ, so this card and લેવલ ૩'s row and લેવલ ૪'s કસોટી must all say the same
+ * one; a feed that counted ૧૦૫, ૧૦૭, ૧૦૮ would teach him a sequence no other screen keeps.
+ * Through `gu()`, like every number a યુવક reads.
  *
  * The image is one `<img src>` pointing at Google's image CDN, and that is the whole of it —
  * no `<picture>`, no `srcset`, no format negotiation. The URL itself carries the width and
@@ -44,7 +52,7 @@ export default function DarshanCard({ item, onOpen }) {
         onClick={() => onOpen(item)}
         role="button"
         tabIndex={0}
-        aria-label={`દ્રશ્ય ${item.n} મોટું જુઓ`}
+        aria-label={`દ્રશ્ય ${gu(item.displayIndex)} મોટું જુઓ`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -56,7 +64,7 @@ export default function DarshanCard({ item, onOpen }) {
       </div>
       <div className="cap">
         <span className="txt">{item.t}</span>
-        <span className="num">{item.n}</span>
+        <span className="num">{gu(item.displayIndex)}</span>
       </div>
     </article>
   );

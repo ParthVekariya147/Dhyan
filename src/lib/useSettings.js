@@ -6,6 +6,7 @@ import {
   LEVELS_SETTINGS_DOC,
   resolveLevels,
 } from '../../shared/domain/settings.js';
+import { JOURNEY_SETTINGS_DOC, resolveJourney } from '../../shared/domain/journey.js';
 
 const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
 
@@ -90,6 +91,26 @@ export function useLevels() {
   const { settings, loading } = useSettingsRow(LEVELS_SETTINGS_DOC);
   const levels = useMemo(() => resolveLevels(settings?.levels), [settings]);
   return { levels, loading };
+}
+
+/**
+ * settings.journey — the wording of every page's description (shared/domain/journey.js).
+ *
+ * Never null and never partial, at any point in the lifecycle: resolveJourney() starts
+ * from the code's own descriptions and lets the row replace individual sentences. So a
+ * page renders its description on the very first paint, before the row has arrived and
+ * whether or not one exists — which is the point. A description that appears half a second
+ * late is a page that flickers; a description that never appears because a settings read
+ * failed is a યુવક left guessing what the screen wants from him (§1).
+ *
+ * `loading` is returned for callers who would rather wait. None of the pages do: the worst
+ * case is one paint of the code's wording before the સંચાલક's replaces it, and the two say
+ * the same thing in different words.
+ */
+export function useJourney() {
+  const { settings, loading } = useSettingsRow(JOURNEY_SETTINGS_DOC);
+  const journey = useMemo(() => resolveJourney(settings?.pages), [settings]);
+  return { journey, loading };
 }
 
 /** Accepts a full YouTube URL or a bare id, since the admin may paste either. */

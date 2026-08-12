@@ -51,7 +51,9 @@ export async function loadDashboard() {
 async function loadUserMetrics() {
   const [total, gated, newWeek, newMonth] = await Promise.all([
     countUsers(),
-    countUsers({ level4Unlocked: true }),
+    // "How many have reached લેવલ ૪" under the threshold that is published *now* — not
+    // 0008's fixed 80. See userService's TABLE comment.
+    countUsers({ level4Open: true }),
     countUsers({ createdAfter: daysAgo(7) }),
     countUsers({ createdAfter: daysAgo(30) }),
   ]);

@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { useLevels } from '../../lib/useSettings';
 import { useScenes } from '../../lib/useScenes';
 import { useDailyProgress } from '../../lib/progress';
+import { useLevel4Gate } from '../../lib/level4';
+import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
+import PageIntro from '../../components/PageIntro';
 import ProgressRing from './ProgressRing';
 import TickRow from './TickRow';
 import './levels.css';
@@ -20,6 +23,36 @@ import './levels.css';
 const LEVEL = 3;
 
 /**
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAGE CONTRACT — લેવલ ૩, વર્ણન યાદી (/level/3)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Purpose        The daily સાધના. A યુવક reads each વર્ણન, brings the દ્રશ્ય to mind, and
+ *                ticks it. This is the level where the picture goes away.
+ *
+ * Input          useScenes() (number + વર્ણન), useDailyProgress() (today's ticks),
+ *                useLevel4Gate() (what opens લેવલ ૪, in the સંચાલક's own number).
+ * Visible        Today's ring, the instruction, and 1 → N rows of number + વર્ણન + tick.
+ * Actions        Tick and untick. Look at the દર્શન. Go on to લેવલ ૪ once it is open.
+ * Persisted      `progress` — today's ticks and today's score, written to the phone at
+ *                once and flushed to Postgres within the minute.
+ * Completion     None, and deliberately: this level is done again every day. Crossing the
+ *                configured threshold **in a single day** opens લેવલ ૪ permanently.
+ * Next           /level/4 — and only once the gate is open. A link to a locked level is an
+ *                invitation to be turned away.
+ * Previous       /darshan — લેવલ ૨, which is also the 'દર્શન જુઓ' door in the bar.
+ * Excluded       The image (§1 rule 1 — `s.url` is never touched here, so not one image
+ *                byte is requested), right-and-wrong, sorting or filtering, a 'પૂરું કરો'
+ *                button, streaks, and any count of what is missing.
+ * Loading        Three dots under the bar, with the bar already navigable.
+ * Empty          No વર્ણન published yet → said plainly, with 'દર્શન જુઓ' as the way on.
+ * Error          A failed flush is quiet: the ticks are on the phone, it retries by itself,
+ *                and 'અત્યારે મોકલો' is offered for whoever would rather not wait.
+ * Source of truth  દર્શન collection for the વર્ણન; `progress` for the day; the published
+ *                  લેવલ ૪ configuration for the gate; shared/domain/journey.js for the
+ *                  words a યુવક reads.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
  * લેવલ ૩ — વર્ણન યાદી (§7), the heart of the સાધના.
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -82,6 +115,34 @@ export default function LevelPage() {
   // is why only the name comes from settings.
   const name = levels.find((l) => l.levelId === LEVEL)?.name ?? '';
 
+  /*
+    What this level is *for*, in the same place the name comes from — configuration, with
+    the code's own wording underneath it. The two are the same kind of thing: the સંચાલક may
+    rename લેવલ ૩ and may rephrase its instruction, and neither changes what the page does
+    (§36 / §37). `spec` is never null, so the description is on screen from the first paint.
+  */
+  const spec = usePageSpec(JOURNEY_PAGE.LEVEL3);
+
+  /*
+    લેવલ ૪'s gate, so this page can show where the day's work leads (LEVEL4.md decision #3).
+
+    `P.score3` is counted in as well as the server's answer, and the local half is what
+    makes the door open the moment it is earned rather than at the next flush: the gate is
+    derived from the `progress` row, and that row is up to 60 seconds behind the phone by
+    design (progress.js §12). Reading only the server would leave a યુવક who has just ticked
+    his threshold looking at the invitation he has this second satisfied — the one moment on
+    this page where being right a minute later is worse than being right now.
+
+    It cannot over-promise: the local half only ever *offers* the door. `level4_gate_open()`
+    decides on arrival and `level4_submit` re-checks it on every attempt (§37), so the worst
+    case is a યુવક who taps through and is shown the same invitation on the other side.
+  */
+  const gate = useLevel4Gate();
+  const level4Open =
+    gate.ready &&
+    gate.published &&
+    (!gate.requireGate || gate.gateOpen || P.score3 >= gate.gateThreshold);
+
   // ---------------------------------------------------------------- states
   if (loading || !P.ready) {
     return (
@@ -110,7 +171,7 @@ export default function LevelPage() {
 
   return (
     <div className="level-wrap">
-      <LevelBar />
+      <LevelBar level4={level4Open} />
 
       <header className="level-head">
         <p className="level-eyebrow">લેવલ {gu(LEVEL)}</p>
@@ -123,13 +184,16 @@ export default function LevelPage() {
         />
 
         {/*
-          §9, said out loud. The absence of a 'પૂરું કરો' button is only reassuring if the
-          યુવક knows why it is absent.
+          What this page is, in the યુવક's own words — and §9 said out loud.
+
+          It used to be this one sentence typed here: "જે ટિક કરો તે તરત સચવાય છે… રાત્રે ૧૨
+          વાગ્યે આજની ટિક ખાલી થશે". That sentence is still the middle of the instruction —
+          the absence of a 'પૂરું કરો' button is only reassuring if he knows why it is absent
+          — but it now comes from shared/domain/journey.js along with the two things it never
+          said: that there is no picture here **on purpose**, and what he is meant to do
+          instead. Behind the one closed line under it are 'આમાં આ નથી' and what opens લેવલ ૪.
         */}
-        <p className="level-note">
-          જે ટિક કરો તે તરત સચવાય છે — એપ્લિકેશન બંધ કરો તો પણ કંઈ જતું નથી. રાત્રે ૧૨ વાગ્યે
-          આજની ટિક ખાલી થશે અને આજનું પરિણામ કાયમ સચવાયેલું રહેશે.
-        </p>
+        <PageIntro spec={spec} />
 
         {/*
           The one state where the ring and the boxes honestly disagree: today's score
@@ -162,15 +226,22 @@ export default function LevelPage() {
       {/*
         The list. Rendered whole — see TickRow for why this is not virtualised and how
         `content-visibility` does the same job in levels.css.
+
+        `s.displayIndex` and not `s.n ?? s.index` (ORDERING.md §4). The stored number is the
+        one printed inside the artwork and it keeps a hole where the સંચાલક has withheld a
+        દ્રશ્ય — a યુવક reading "…૧૦૫, ૧૦૭…" down this list is being asked to hold a ક્રમ
+        that is not the ક્રમ he is shown. `displayIndex` is the continuous ૧…N useScenes()
+        derives over exactly the દ્રશ્યો in this array, and it is the same number he will
+        see on the દર્શન card and in લેવલ ૪'s કસોટી. No `.sort()` here and none needed:
+        the list arrives in canonical order.
       */}
       <ol className="tick-list">
         {scenes.map((s) => (
           <TickRow
             key={s.id}
             id={s.id}
-            n={s.n ?? s.index}
+            n={s.displayIndex}
             text={s.t}
-            level={LEVEL}
             ticked={P.ticked3.has(s.id)}
             onToggle={onToggle}
           />
@@ -183,11 +254,61 @@ export default function LevelPage() {
           ? `આજનું ધ્યાન સંપૂર્ણ — ${gu(P.score3)} દ્રશ્યો. જય સ્વામિનારાયણ 🙏`
           : `આજ સુધી ટિક: ${gu(P.score3)} / ${gu(total)}`}
       </p>
+
+      {/*
+        ────────────────────────────────────────────────────────────────────────
+        The way on to લેવલ ૪ — the door at the end of this level
+        ────────────────────────────────────────────────────────────────────────
+
+        લેવલ ૩ is where લેવલ ૪ is earned, and until now nothing on this page said so. A યુવક
+        who did the work here had to go back to મુખપૃષ્ઠ and find the tile to discover what
+        it bought him. The end of the list is where he *is* when he finishes, so the door
+        belongs here.
+
+        Two states, and never a third. Open: an invitation onward. Not open: the same
+        sentence મુખપૃષ્ઠ and Level4Page print, in the સંચાલક's own number — what opens the
+        level, never how far away he is, never a count of what is missing (§1 rule 4, §10).
+        Before the gate is known, and when no configuration is published, this renders
+        nothing at all rather than a promise that might be withdrawn.
+      */}
+      {gate.published && (
+        level4Open ? (
+          <section className="level-next">
+            <p className="level-next-line">લેવલ ૪ તમારા માટે ખુલ્લું છે.</p>
+            {/*
+              `P.retry()` on the way out, and it is not decoration.
+
+              The gate is read from `progress`, and a tick is a localStorage write that
+              reaches Postgres on the next flush (progress.js §12). A યુવક who crosses the
+              threshold and taps straight through would otherwise arrive at લેવલ ૪ a moment
+              before the row that opens it, and be shown the invitation he has just earned.
+              This asks progress.js to send the day now; navigation never waits on it, and
+              Level4Page re-reads the gate on mount either way.
+            */}
+            <Link to="/level/4" className="btn-gold btn-inline" onClick={() => P.retry()}>
+              લેવલ ૪ પર જાઓ
+            </Link>
+          </section>
+        ) : gate.requireGate ? (
+          <section className="level-next">
+            <p className="level-next-line">
+              લેવલ ૩ માં {gu(gate.gateThreshold)} પૂરાં કરો, પછી લેવલ ૪ ખૂલશે
+            </p>
+            <p className="level-note">
+              એક જ દિવસમાં {gu(gate.gateThreshold)} દ્રશ્યો — પછી એ લેવલ કાયમ ખુલ્લું રહેશે.
+            </p>
+          </section>
+        ) : null
+      )}
     </div>
   );
 }
 
-function LevelBar() {
+/**
+ * @param {{ level4: boolean }} props `level4` adds the shortcut to લેવલ ૪, which is shown
+ *   only once it is open — a link to a locked level is an invitation to be turned away.
+ */
+function LevelBar({ level4 = false }) {
   return (
     <header className="level-bar">
       <Link className="linklike" to="/">મુખપૃષ્ઠ</Link>
@@ -197,6 +318,7 @@ function LevelBar() {
         not sit stuck. Nothing records that he went.
       */}
       <Link className="linklike" to="/darshan">દર્શન જુઓ</Link>
+      {level4 && <Link className="linklike" to="/level/4">લેવલ ૪</Link>}
     </header>
   );
 }

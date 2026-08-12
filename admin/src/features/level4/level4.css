@@ -110,8 +110,21 @@
 .l4-row:last-child { border-bottom: 0; }
 .l4-row:hover { background: var(--panel-2); }
 .l4-row input[type="checkbox"] { width: auto; flex: 0 0 auto; }
-.l4-row-n { font-variant-numeric: tabular-nums; color: var(--muted); flex: 0 0 52px; }
+/* Two numbers on every row, and the difference between them has to be readable at a glance
+   (ORDERING.md decision #2). The one the user sees leads — full weight, full contrast; the
+   one printed on the artwork follows in grey, smaller, prefixed `#`. They are the same number
+   until a Darshan is withheld, and from that moment on picking by the wrong one silently
+   selects the wrong pictures, so the hierarchy is doing real work. */
+.l4-row-n { font-variant-numeric: tabular-nums; font-weight: 650; flex: 0 0 40px; text-align: right; }
+.l4-row-src { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11.5px; flex: 0 0 46px; }
 .l4-row-t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Which numbering a search result matched on — `47` finds both the forty-seventh Darshan and
+   the one printed 47, and a row that does not say which is worse than no result at all. The
+   display match is the expected one and carries no badge; the other two announce themselves. */
+.l4-row-why {
+  color: var(--muted); font-size: 11px; flex: 0 0 auto;
+  border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+}
 /* Held by another sub-level: still selectable, because moving a દ્રશ્ય from one to another is
    an ordinary edit — the duplicate is reported by the engine, not forbidden by the row. */
 .l4-row-taken { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; }

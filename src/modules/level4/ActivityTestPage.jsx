@@ -7,7 +7,14 @@ import { useScenes } from '../../lib/useScenes';
   apart there, once, so no screen has to guess and no Postgres string can reach a યુવક.
 */
 import { L4_ACTIVITY_STATUS, guLevel4Error, submitAttempt, useLevel4 } from '../../lib/level4';
+/*
+  The page's description — text only, and that is worth stating on this screen of all of
+  them. shared/domain/journey.js holds sentences; it holds no દ્રશ્ય, no વર્ણન and no way to
+  reach one. Importing it here cannot become the door that puts an answer on this page.
+*/
+import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
+import PageIntro from '../../components/PageIntro';
 /* The row rhythm, the ring-less head, the panels and — the one that matters on a phone —
    the `content-visibility` list technique are all already solved in the levels module's
    stylesheet. See NumberRow below for why the row itself is not TickRow. */
@@ -15,6 +22,41 @@ import '../levels/levels.css';
 import './level4.css';
 
 /**
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAGE CONTRACT — લેવલ ૪, one કસોટી (/level/4/:activityId)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Purpose        Test whether a યુવક can bring each દ્રશ્ય of this કસોટી to mind from its
+ *                number alone. He has already seen the pictures at લેવલ ૨ and, if he has
+ *                been here before, at this કસોટી's own પુનરાવર્તન.
+ *
+ * Input          useLevel4() — this કસોટી's `sceneIds`, its status, and the gate.
+ *                useScenes() — for the printed number of each id, and nothing else.
+ * Visible        The કસોટી's code and title, the instruction, and one row per item:
+ *                **number and checkbox**. Then the tick count, and one action.
+ * Actions        Tick, untick, submit at ૧૦૦%, or go and look at the દર્શન again.
+ * Persisted      One row per attempt via `level4_submit`, and — if every item is ticked —
+ *                this કસોટી marked COMPLETED, permanently. The in-flight ticks are NOT
+ *                persisted: a half-finished attempt is not a thing worth resuming.
+ * Completion     Every item of this કસોટી ticked, and the submit acknowledged by the
+ *                server. The server re-checks the gate, the lock and the item set; this
+ *                page's ૧૦૦% is a courtesy, never the authority (§37).
+ * Next           Passed → the next કસોટી, or the લેવલ ૪ list if this was the last.
+ *                Not passed → this કસોટી's પુનરાવર્તન, /level/4/:activityId/revision.
+ * Previous       /level/4 — the કસોટી list.
+ * Excluded       **The image. The title. The વર્ણન. The answer.** Not hidden — absent, and
+ *                enforced in three places (see below). Also excluded: any count of what is
+ *                missing, any red, any word that reads as a failure, and a 'દર્શન જુઓ' link
+ *                in the bar — the honest door is [દર્શન ફરી જુઓ] and there is only one.
+ * Loading        Three dots inside the frame, with the way back to the list still there.
+ * Error          A submit that never landed: one Gujarati line, the ticks left on screen,
+ *                and 'ફરી મોકલો'. Nothing of his is lost.
+ * Empty          Unknown or withdrawn કસોટી → a calm line and the list, one tap away.
+ * Source of truth  The published લેવલ ૪ configuration for the item set and the order;
+ *                  `level4_submit` for whether an attempt passed; shared/domain/journey.js
+ *                  for the words — text only, never content.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
  * લેવલ ૪ — the memory test (§12–§16). The most careful screen in the app.
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -46,9 +88,23 @@ import './level4.css';
  * therefore "every દ્રશ્ય of this કસોટી is ticked" (§15) and nothing else — there is no
  * correctness comparison anywhere in લેવલ ૪.
  *
- * So 'પૂરું કરો' appears only at ૧૦૦% (§14). Below that there is no button and no count of
- * what is missing (§1 rule 4) — there is an invitation to go and look at the દર્શન again,
- * which is not a penalty and is not recorded as one.
+ * So 'પૂરું કરો' appears only at ૧૦૦% (§14) — finishing a કસોટી means covering all of it,
+ * and nothing else finishes one. Below that the invitation to go and look at the દર્શન again
+ * is the first thing offered, because that is the ordinary next step of the સાધના and not a
+ * penalty. Beside it, quietly, 'આટલું નોંધાવો' records the half-attempt: the કસોટી stays
+ * open, nothing is marked wrong, and the only difference is that `level4_attempts` now
+ * remembers that he sat down and tried. There is still no count of what is missing anywhere
+ * on this screen (§1 rule 4), before the attempt or after it.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * A finished કસોટી is still a કસોટી
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * COMPLETED does not close this page and never has (decision #2): the boxes are empty again,
+ * the button behaves the same way, and `level4_submit` accepts the attempt however many
+ * times it is sent — there is no attempt limit in the database and none here. What 0012
+ * added is that nothing can withdraw that afterwards, not even the સંચાલક raising
+ * `gate_threshold` past where this યુવક stands; see the gate branch below.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * Where the state lives (§33)
@@ -91,14 +147,23 @@ export default function ActivityTestPage() {
 
   const activity = activities.find((a) => a.id === activityId) ?? null;
 
+  // What this screen is for, in the words a યુવક reads (shared/domain/journey.js). Text
+  // only: this hook fetches sentences, never a દ્રશ્ય.
+  const spec = usePageSpec(JOURNEY_PAGE.LEVEL4_TEST);
+
   /*
-    The whole of what this screen knows about a દ્રશ્ય: its id, and the number printed on it.
+    The whole of what this screen knows about a દ્રશ્ય: its id, and the number a યુવક reads
+    on it — `displayIndex`, looked up by id, never counted off this list (see numbering()).
 
     Ordered by the કસોટી's own `sceneIds`, which the RPC returns in the order the સંચાલક
     arranged (§26) — ક્રમ કદી તૂટે નહીં (§1 rule 2), and it is his ક્રમ here, not the
-    collection's. An id the collection no longer has (a દ્રશ્ય withdrawn since this
-    કસોટી was published) is dropped rather than rendered as a numberless hole, exactly as
-    inOrder() drops it in scenes.js.
+    collection's. So the two are separate facts and stay separate: the *order* is the
+    activity's, the *number* is the collection's.
+
+    An id the collection no longer has (a દ્રશ્ય withdrawn since this કસોટી was published)
+    has no `displayIndex` and is dropped rather than rendered as a numberless hole, exactly
+    as inOrder() drops it in scenes.js — and src/lib/level4.js has already dropped it from
+    `required` server-side, so nothing here re-opens a hole the sequence has closed.
   */
   const items = useMemo(() => {
     if (!activity) return [];
@@ -244,8 +309,16 @@ export default function ActivityTestPage() {
     );
   }
 
-  // The gate, said in the configuration's own words — never a literal (decision #3).
-  if (!gateOpen) {
+  /*
+    The gate, said in the configuration's own words — never a literal (decision #3).
+
+    Not asked of a કસોટી he has already passed (0012). `gateOpen` can go from true to false
+    under a યુવક who has climbed several of these — the સંચાલક raises `gate_threshold` — and
+    this screen is where that would hurt most: a card marked પૂરું થયું, tapped, answering
+    with a તાળું. What he earned stays open and stays repeatable; the gate governs only the
+    કસોટીઓ still ahead, which arrive here as LOCKED and are handled just below.
+  */
+  if (!gateOpen && activity.status !== L4_ACTIVITY_STATUS.COMPLETED) {
     return (
       <Frame>
         <section className="level-locked">
@@ -289,10 +362,21 @@ export default function ActivityTestPage() {
       <header className="level-head">
         <p className="level-eyebrow">લેવલ {gu(activity.code)}</p>
         <h1>{activity.title || 'ફક્ત નંબર'}</h1>
-        <p className="level-note">
-          ફક્ત નંબર જુઓ. દ્રશ્ય મનમાં આવે તો ટિક કરો. અહીં કંઈ સાચું-ખોટું નથી — જે યાદ છે તે
-          તમે જ જાણો છો.
-        </p>
+        {/*
+          The instruction, and on this screen it is doing real work.
+
+          A યુવક who opens a કસોટી and finds thirty bare numbers has a fair question — where
+          did the pictures go — and until now the answer was one line typed here. It is now
+          the shared description, which says the same thing and then says the part that line
+          could not: **ચિત્ર કે વર્ણન બતાવવામાં આવશે નહીં** is deliberate, all thirty must be
+          ticked before 'પૂરું કરો' appears, and going back to the દર્શન is an ordinary step
+          rather than a penalty (§16).
+
+          `spec` carries sentences and nothing else — see the import note at the top. There
+          is no field on it that could hold a વર્ણન, so the rule this file is built around
+          survives having a description on the page.
+        */}
+        <PageIntro spec={spec} />
 
         {/*
           Already his, and saying so plainly. Decision #2: a કસોટી once passed is never
@@ -331,12 +415,31 @@ export default function ActivityTestPage() {
       </p>
 
       {/*
-        §14 — the button exists only at ૧૦૦%.
+        §14 — 'પૂરું કરો' still exists only at ૧૦૦%, and it is still the only thing that
+        finishes a કસોટી.
 
         લેવલ ૩ deliberately has no 'પૂરું કરો' because every tick there is already saved and
         there is nothing to submit. Here there is: an attempt is one event, written once by
-        `level4_submit`, and until it is sent nothing has happened. So the button appears —
-        and only when it can honestly be pressed.
+        `level4_submit`, and until it is sent nothing has happened.
+
+        Below ૧૦૦% there are now two doors instead of one. The દર્શન remain the first of
+        them — going back to look is the ordinary next step of the સાધના and is dressed as
+        such (§16). Beside it, quietly, is the half-attempt: `level4_submit` records it,
+        `passed` comes back false, and the કસોટી stays exactly as open as it was. That is
+        worth having for one reason only — an attempt that fell short is a real event of his
+        સાધના, and until now it left no trace at all: he simply could not press anything, so
+        `level4_attempts` remembered the days he succeeded and none of the days he sat down
+        and tried. The history is his record, and a record with only the good days in it is
+        not one.
+
+        What it is careful not to become is a failure. It is never the gold button, it is
+        never the only door, its word is 'નોંધાવો' and not 'મોકલો', and what comes back is
+        §16's 'દર્શન ફરી જોઈ લઈએ' panel — no count, no list of which ones, nothing red.
+        Nothing anywhere in લેવલ ૪ compares answers, and a recorded half-attempt does not
+        start.
+
+        With nothing ticked there is nothing to record, so only the દર્શન are offered — an
+        empty attempt is not a moment of the સાધના, it is a page he opened and left.
 
         Sticky, because the last box a યુવક ticks is not always the last one in the list, and
         a button that appeared silently four screens below him would never be found.
@@ -347,9 +450,21 @@ export default function ActivityTestPage() {
             {sending ? 'મોકલાય છે…' : 'પૂરું કરો'}
           </button>
         ) : (
-          <Link to={`/level/4/${activity.id}/revision`} className="btn-quiet btn-inline">
-            દર્શન ફરી જુઓ
-          </Link>
+          <>
+            <Link to={`/level/4/${activity.id}/revision`} className="btn-gold btn-inline">
+              દર્શન ફરી જુઓ
+            </Link>
+            {checked.size > 0 && (
+              <button
+                type="button"
+                className="btn-quiet btn-inline"
+                onClick={onSubmit}
+                disabled={sending}
+              >
+                {sending ? 'નોંધાય છે…' : 'આટલું નોંધાવો'}
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -368,12 +483,26 @@ export default function ActivityTestPage() {
 /**
  * The દર્શન collection, reduced to the only thing this screen is allowed to know.
  *
+ * **`id → number`, and it stays `id → number`.** That is the property, not the
+ * implementation: the collection reaching this file carries `t`, `url`, `fullUrl` and
+ * `driveId`, and this one expression is the boundary at which all of them are thrown away.
+ * Everything below the call site works with `{ id, n }` pairs, so there is no answer left in
+ * the file to leak — rule 3 (LEVEL4.md §6) is enforced by the shape, not by discipline.
+ *
+ * The number is now `displayIndex` rather than `s.n ?? s.index` (ORDERING.md §4) — the same
+ * continuous ૧…N useScenes() puts on every screen, so a દ્રશ્ય the યુવક ticked as ૩૧ at
+ * લેવલ ૩ is ૩૧ here too. Note what this is *not*: it is not the item's position in the
+ * કસોટી. ૪.૨ composed of the second thirty દ્રશ્યો prints ૩૧…૬૦, because the number is
+ * looked up by `id` in the sequenced collection and never counted off the activity's own
+ * list. A local ૧…N would be a second numbering of the same દ્રશ્યો, which is the very thing
+ * decision #1 exists to prevent.
+ *
  * Deliberately *not* imported from Level4Page, which computes the same map: this file has
  * to be readable on its own as a file that never touches scene content, and an import from
  * a page that renders titles and descriptions is exactly the door a future edit walks
- * through. Four lines of duplication is a cheap price for that.
+ * through. One line of duplication is a cheap price for that.
  */
-const numbering = (scenes) => new Map(scenes.map((s) => [s.id, s.n ?? s.index]));
+const numbering = (scenes) => new Map(scenes.map((s) => [s.id, s.displayIndex]));
 
 /** The કસોટી immediately before this one, by published position — never by code (§6 rule 2). */
 function previousOf(activities, activity) {
