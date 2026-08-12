@@ -75,6 +75,9 @@ function DhunDeck() {
   const { settings } = useSettings();
   const { pathname } = useLocation();
   const audio = useRef(null);
+  /* The whole corner — panel and both buttons. What counts as "outside" is measured against
+     this, so a tap anywhere in the deck (choosing a ધૂન, dragging the volume) is inside. */
+  const deck = useRef(null);
 
   const [pref, setPref] = useState(readDhunPref);
   // `playing` is never set by an intention — only by the element's own play/pause events.
@@ -149,11 +152,39 @@ function DhunDeck() {
     };
   }, [blocked, pref.on, playing, track?.id, silentRoute]);
 
+  /**
+   * How the panel closes: Escape, or a touch anywhere that is not the panel.
+   *
+   * Escape was the only way, and on a phone there is no Escape — so once the list was open
+   * it stayed open, floating over every screen the yuvak moved to, until he happened to find
+   * the ⋯ again. A panel that can only be dismissed by the control that opened it is a panel
+   * most people will simply leave on.
+   *
+   * `pointerdown` and not `click`, because the panel should be gone by the time the yuvak's
+   * finger lifts on whatever he was actually reaching for — waiting for `click` leaves it on
+   * screen through the whole press, and on a tap that starts a scroll no click ever arrives.
+   *
+   * Capture phase, so a handler somewhere below that stops propagation cannot leave the
+   * panel stranded open. Nothing here consumes the event: this only reads where it landed,
+   * so the tap still does whatever it was going to do.
+   *
+   * Anything inside `deck` is use, not dismissal — that is the whole of the yuvak's ask:
+   * picking a ધૂન, dragging the volume, and the ⋯ itself, which closes through its own
+   * toggle rather than through this. The listener is only attached while the panel is open,
+   * so a closed deck costs nothing on the દર્શન feed's scroll.
+   */
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === 'Escape' && setOpen(false);
+    const onDown = (e) => {
+      if (!deck.current?.contains(e.target)) setOpen(false);
+    };
     addEventListener('keydown', onKey);
-    return () => removeEventListener('keydown', onKey);
+    addEventListener('pointerdown', onDown, true);
+    return () => {
+      removeEventListener('keydown', onKey);
+      removeEventListener('pointerdown', onDown, true);
+    };
   }, [open]);
 
   // No dhun uploaded yet — and PLAN.md §12 says that is today's state. Nothing is drawn:
@@ -192,7 +223,7 @@ function DhunDeck() {
   };
 
   return (
-    <div className="dhun">
+    <div className="dhun" ref={deck}>
       {/*
         preload="none", deliberately. This element exists on every screen for every one of
         ~2,000 yuvaks on mobile data, and `metadata` or `auto` would fetch part or all of an
