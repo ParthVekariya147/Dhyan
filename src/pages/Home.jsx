@@ -90,11 +90,20 @@ export default function Home() {
         </div>
 
         {/*
-          The guided journey: વિડિયો → દર્શન → ઓળખ → પરિણામ → બાકી દર્શન → સ્મૃતિ દર્શન.
-          It resumes at whatever stage the yuvak left off, so this one entry point is
-          correct on every visit.
+          The way in is લેવલ ૧, and only લેવલ ૧.
+
+          This used to open /learn — the older self-contained journey, which is a second
+          ladder with its own stages and its own progress row. Having two entry points meant
+          what a યુવક's ધ્યાન consisted of depended on which button he happened to press, and
+          the one the page pushed hardest was the one the levels of §7 do not describe. So
+          the primary button starts the same climb the tiles below continue: લેવલ ૧ વિડિયો
+          and the two questions, then લેવલ ૨ દર્શન, then ૩.
+
+          The destination is read out of LEVEL_CODE rather than written again here. A second
+          copy of '/welcome' is a second thing to remember to change, and the day લેવલ ૧ moves
+          this button would quietly keep pointing at where it used to be.
         */}
-        <Link to="/learn" className="level-btn is-primary">
+        <Link to={LEVEL_CODE[1].to} className="level-btn is-primary">
           <span className="level-name">ધ્યાન શરૂ કરો</span>
           <span className="level-soon">વિડિયો દર્શનથી શરૂ</span>
         </Link>

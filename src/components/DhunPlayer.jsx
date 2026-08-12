@@ -17,7 +17,7 @@ import './dhun.css';
  * Scrolling never touches it either. The old page's only fixed-position behaviour was a
  * scroll listener; this has none, so 108 images going past changes nothing about playback.
  *
- * The corner panel also carries what §8 asks for on the PDF દર્શન page — both dhun names,
+ * The corner panel also carries what §8 asks for on the દર્શન page — both dhun names,
  * play/stop and a volume slider. Putting it in the floating panel rather than in the દર્શન
  * header means it is reachable from every screen and never scrolls away, and it keeps the
  * દર્શન feed the uninterrupted reading surface it is meant to be.

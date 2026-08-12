@@ -166,13 +166,56 @@
 }
 
 /* ---- video ---- */
+/* Sized by ratio and never by a fixed height, exactly like .scene-frame above: a phone
+   in portrait gets a true 16:9 window at whatever width the wrap leaves it, with no
+   letterbox band and nothing cropped. */
 .video-shell {
-  position: relative; margin: 22px 0 0; width: 100%; aspect-ratio: 16 / 9;
+  position: relative; margin: 22px 0 0; width: 100%; max-width: 100%; aspect-ratio: 16 / 9;
   border-radius: 14px; overflow: hidden; background: #000;
   box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
 }
 .video-shell iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-shell.is-loading { background: linear-gradient(180deg, #221a12, #1a140e); }
+
+/* Fullscreen. The reasoning is written out once, over the same player on the entry gate
+   — see the fullscreen block in src/pages/entry-gate.css. In short: the element that
+   goes fullscreen is the <iframe> itself, the shell keeps its 16:9 placeholder in the
+   flow so exit reverts with nothing to undo, and each prefix needs its OWN rule because
+   one unknown pseudo-class drops a whole selector list.
+
+   One extra hazard on this page that the gate does not have: `.stage` animates
+   `transform` via dropIn. An element with a live transform is a containing block for
+   fixed positioning, and that is the classic way a fullscreen iframe ends up sized to a
+   card instead of the screen. dropIn ends on `transform: none`, so the hazard lasts .6s
+   and is gone — but it is the reason `position: fixed` is restated below rather than
+   left to the UA sheet. Do not give `.stage` a persistent transform or filter. */
+.video-shell iframe:fullscreen {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  max-width: none; max-height: none; border-radius: 0; background: #000;
+}
+.video-shell iframe:-webkit-full-screen {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  max-width: none; max-height: none; border-radius: 0; background: #000;
+}
+.video-shell:has(iframe:fullscreen) { overflow: visible; border-radius: 0; }
+.video-shell:has(iframe:-webkit-full-screen) { overflow: visible; border-radius: 0; }
+
+/* Otherwise the bars around a 16:9 video on a 20:9 phone are painted with the UA
+   backdrop, which is white in some engines. */
+.video-shell iframe::backdrop { background: #000; }
+.video-shell iframe::-webkit-backdrop { background: #000; }
+
+/* A phone held sideways is ~360px tall; a full-width 16:9 video there pushes
+   "દર્શન શરૂ કરો" entirely below the fold. The height budget is carried through the ratio
+   as a max-WIDTH rather than set as a height — two definite axes would beat
+   `aspect-ratio` and put a black seam down each side of the picture. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .video-shell {
+    max-width: calc(62vh * 16 / 9);
+    max-width: calc(62dvh * 16 / 9);
+    margin-inline: auto;
+  }
+}
 
 /* ---- result ---- */
 .result-grid {

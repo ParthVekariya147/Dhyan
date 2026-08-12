@@ -56,7 +56,12 @@ export function validateYoutubeUrl(input) {
  */
 export const DEFAULT_LEVELS = [
   { levelId: 1, order: 1, name: 'વિડિયો દર્શન', enabled: true },
-  { levelId: 2, order: 2, name: 'PDF દર્શન', enabled: true },
+  // Named plainly 'દર્શન'. It was 'PDF દર્શન' from the days when the collection was a PDF
+  // a યુવક scrolled; it has not been one for a long time — /darshan is a feed of the master
+  // images themselves — and a name that describes a file format the app no longer uses
+  // tells him nothing about what he is about to open. The level's behaviour is unchanged;
+  // only the word is (§36 — the name is data, the level is not).
+  { levelId: 2, order: 2, name: 'દર્શન', enabled: true },
   { levelId: 3, order: 3, name: 'વર્ણન યાદી', enabled: true },
   // Level 4 is the memory-recall stage: index number only. The panel may enable or
   // disable the level; it must never be able to change what that stage shows (§37), and

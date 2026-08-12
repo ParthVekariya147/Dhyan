@@ -29,10 +29,32 @@ export default function VideoStage({ onContinue }) {
         <div className="video-shell is-loading" />
       ) : id ? (
         <div className="video-shell">
+          {/*
+            `playsinline=1` — iOS only, and kept deliberately. Without it, iOS Safari
+            hands the first tap on play straight to the native full-screen player: the
+            yuvak never sees the page again until he backs out, and backing out ends
+            playback. With it the video plays in the frame above "દર્શન શરૂ કરો", and the
+            player's own full-screen button still reaches the native path when he wants
+            it. It has no effect on Android at all, so it is not what was stopping
+            full-screen there — that was the permission list, below.
+
+            `fullscreen` is named in `allow`, not left to the legacy `allowFullScreen`
+            attribute alone. The two are supposed to be equivalent — the HTML spec folds
+            the attribute into the container policy — but the fold is only dependable
+            while `allow` is ABSENT. Once `allow` is written out, older Chromium, Android
+            WebView (which is what an installed PWA gets on a good number of phones) and
+            WebKit have all shipped versions that read the written list as the whole
+            policy and drop fullscreen from it, which disables the player's own
+            full-screen button inside a cross-origin frame. The token costs one word.
+
+            Nothing here selects a resolution, and nothing may: YouTube picks the stream
+            from the real viewport and the connection, and any `vq=` we added would only
+            take quality away.
+          */}
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${id}`}
+            src={`https://www.youtube-nocookie.com/embed/${id}?playsinline=1`}
             title="વર્ણી ધ્યાન વિડિયો"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture"
             allowFullScreen
             loading="lazy"
             referrerPolicy="strict-origin-when-cross-origin"

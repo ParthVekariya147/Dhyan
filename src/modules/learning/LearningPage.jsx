@@ -32,6 +32,29 @@ export default function LearningPage() {
   );
 
   if (!L.ready) {
+    /*
+      A spinner is a promise that something is coming. When the progress could not be read
+      at all — and the phone had no mirror to fall back on (§29) — nothing is coming, and
+      the provider says so rather than leaving `ready` false in silence. This is the one
+      screen that must offer a way forward instead of spinning: the retry, and the way home
+      for a yuvak whose connection is not going to come back this minute.
+    */
+    if (L.loadError) {
+      return (
+        <div className="learn-wrap">
+          <header className="learn-bar">
+            <Link className="linklike" to="/">મુખપૃષ્ઠ</Link>
+          </header>
+          <div className="notice notice-warn" role="status">
+            <p>આગળ વધવામાં સમસ્યા આવી. ફરી પ્રયાસ કરો.</p>
+            <button type="button" className="btn-quiet" onClick={L.retryLoad}>
+              ફરી પ્રયત્ન કરો
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="spinner-page">
         <span className="dot" /><span className="dot" /><span className="dot" />

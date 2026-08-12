@@ -46,6 +46,18 @@
   background: #000;
   aspect-ratio: 16 / 9;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+
+  /* The box is reserved by ratio, never by a fixed height, so a portrait phone gets a
+     true 16:9 window at whatever width the card leaves it — no letterbox band above and
+     below the picture, and nothing cropped off the sides. `max-width` is stated even
+     though the parent already constrains it: `aspect-ratio` derives one axis from the
+     other, and any future rule that gives this box a height would otherwise be able to
+     compute a width wider than the card and push the page sideways.
+
+     No `transform`, `filter`, `perspective`, `backdrop-filter`, `will-change` or
+     `contain` on this element or on `.gate-video` / `.auth-card` / `.gate-wrap` — see
+     the fullscreen block below for why that matters. */
+  max-width: 100%;
 }
 .video-frame iframe {
   position: absolute;
@@ -53,6 +65,89 @@
   width: 100%;
   height: 100%;
   border: 0;
+}
+
+/* ---- fullscreen ------------------------------------------------------------
+   §14 — the video has to be watchable on a phone, and on a phone that means the
+   player's own fullscreen button.
+
+   What goes fullscreen here is the <iframe> element itself: the YouTube player calls
+   requestFullscreen() inside its own document, and the browser promotes the embedding
+   frame in OUR document. So every rule below targets the iframe, not a wrapper of ours,
+   and the wrapper keeps its 16:9 placeholder in the flow while the iframe is away in
+   the top layer — which is what makes the questions and the બટન underneath stay exactly
+   where the thumb left them, and what makes exit revert with nothing to undo.
+
+   Written as separate rules per prefix on purpose. A selector LIST is dropped whole by
+   any engine that does not understand one member of it, so pairing `:fullscreen` with
+   `:-webkit-full-screen` in one comma list would silently disable both everywhere. */
+.video-frame iframe:fullscreen {
+  /* The UA fullscreen rules are !important in Chromium and WebKit, so this is not
+     fighting them — it is stating the same size for the engines whose UA sheet is
+     weaker, and undoing the two things above that DO survive into fullscreen: the
+     rounded corner cuts a curve out of the picture at the screen edge, and a stale
+     absolute box can leave the player painting into a 16:9 slot on a 20:9 screen. */
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  background: #000;
+}
+.video-frame iframe:-webkit-full-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  background: #000;
+}
+
+/* The top layer is meant to escape ancestor clipping, but `overflow: hidden` plus a
+   border-radius on the direct parent is the one combination that has historically kept
+   clipping a fullscreen iframe on Android WebView and older iOS. Lifting both for the
+   duration costs nothing: while the iframe is in the top layer the wrapper is an empty
+   black rectangle behind it, so there is no longer anything for it to clip. */
+.video-frame:has(iframe:fullscreen) {
+  overflow: visible;
+  border-radius: 0;
+}
+.video-frame:has(iframe:-webkit-full-screen) {
+  overflow: visible;
+  border-radius: 0;
+}
+
+/* Without this the gap around a 16:9 video on a 20:9 phone is painted with the UA's
+   backdrop, which is white in some engines — a full-screen white flash out of a page
+   that is otherwise ink and gold. */
+.video-frame iframe::backdrop { background: #000; }
+.video-frame iframe::-webkit-backdrop { background: #000; }
+
+/* A phone held sideways is ~360px tall. A full-width 16:9 video there is taller than
+   the viewport, so the two questions and the બટન fall entirely below the fold and the
+   page looks like a video and nothing else. Capping the video by HEIGHT and letting the
+   ratio give back the width keeps one question visible under it.
+
+   The cap is written as a max-WIDTH carrying the height budget through the ratio, and
+   not as a height. Setting a height here would give the box two definite axes the moment
+   the width also hit the edge of the card, and the ratio would lose: the picture would
+   sit in a box slightly wider than 16:9 with a black seam down each side. Width stays
+   the leading axis, `aspect-ratio` derives the height from it, and the box simply takes
+   the smaller of "as wide as the card" and "as wide as 62% of the screen height allows".
+
+   Bounded to short viewports so it can never reach a desktop window or a portrait
+   phone. `dvh` second so it wins where it is understood: in landscape the browser chrome
+   eats a large fraction of a small height, and `vh` alone measures without the chrome. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .video-frame {
+    max-width: calc(62vh * 16 / 9);
+    max-width: calc(62dvh * 16 / 9);
+    margin-inline: auto;
+  }
 }
 
 /* This one is an <a>, not a <button>, and that was quietly breaking it.

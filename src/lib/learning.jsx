@@ -116,13 +116,25 @@ function sanitize(raw) {
 
 export function LearningProvider({ children }) {
   const { user } = useAuth();
-  const uid = user?.uid ?? null;
+  /*
+    `id`, not `uid`. The Supabase user object has no `uid` — that was the Firestore shape
+    this module was ported from, and the whole file is downstream of this one line: with
+    `uid` permanently null the load effect took its signed-out branch, `ready` never
+    became true, and every yuvak who reached the journey watched three dots forever.
+    src/lib/auth.jsx and src/lib/progress.js both read `user.id`; so does this.
+  */
+  const uid = user?.id ?? null;
 
   const [state, setState] = useState(EMPTY);
   const [ready, setReady] = useState(false);
   const [draft, setDraft] = useState(() => new Set());
   const [syncError, setSyncError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  // Bumped by retryLoad. The load lives in an effect, so re-running it means re-keying it
+  // — that way a retry takes exactly the path the first attempt took, cached copy and all,
+  // instead of being a second, subtly different copy of the same request.
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   // Latest state, readable from callbacks without adding it to their dependencies.
   const latest = useRef(state);
@@ -133,17 +145,46 @@ export function LearningProvider({ children }) {
     if (!uid) {
       setState(EMPTY);
       setDraft(new Set());
+      setLoadError(null);
       setReady(false);
       return;
     }
 
     let alive = true;
     setReady(false);
+    setLoadError(null);
 
     // The cached copy renders immediately so the first screen after login is not a
     // spinner (§5, §24); the server copy replaces it a moment later.
     const cached = readLocal(localKey(uid));
     if (cached) setState(sanitize(cached));
+
+    /*
+      One exit for every outcome, because there is no third state a yuvak can be left in.
+
+      A read can fail two ways that look nothing alike in code: Postgrest can *return* an
+      error, or the promise can *reject* — a dead tunnel, a CORS refusal, a throw inside
+      the SDK — in which case no `error` field is ever inspected. The original code handled
+      only the first and had no .catch at all, so the second left `ready` false with nobody
+      left to set it.
+
+      Whether a failure is fatal depends on the phone, not on the error: §29 makes the
+      local mirror a complete copy of the progress, so a yuvak who has been here before
+      carries on with it and never sees a failure at all. Only a first visit that cannot
+      read the server has nothing to show — and there, continuing from EMPTY would be worse
+      than stopping, because the first save would overwrite the very row we failed to read.
+      So that case, and only that case, holds `ready` false and reports loadError; the
+      screen turns it into a message with ફરી પ્રયત્ન કરો instead of an endless spinner.
+    */
+    const settle = (failure) => {
+      if (!alive) return;
+      if (failure && !cached) {
+        setLoadError(failure);
+        return;
+      }
+      setLoadError(null);
+      setReady(true);
+    };
 
     supabase
       .from('learning_state')
@@ -151,23 +192,31 @@ export function LearningProvider({ children }) {
       .eq('user_id', uid)
       .maybeSingle()
       .then(({ data, error }) => {
+        if (error) {
+          settle(error.code || 'load-failed');
+          return;
+        }
         if (!alive) return;
-        if (!error && data) {
+        if (data) {
           const server = sanitize(fromStateRow(data));
           setState(server);
           writeLocal(localKey(uid), server);
         } else if (!cached) {
-          // Offline, denied, or simply no row yet. The cached copy stands if there is
-          // one, so nothing is lost either way.
+          // maybeSingle() answers data:null, error:null for a yuvak who simply has no row
+          // yet. That is the first morning, not a failure — he starts at NOT_STARTED.
           setState(EMPTY);
         }
-        setReady(true);
-      });
+        settle(null);
+      })
+      .catch((err) => settle(err?.code || 'load-failed'));
 
     return () => {
       alive = false;
     };
-  }, [uid]);
+  }, [uid, loadAttempt]);
+
+  /** Re-run the load. The counterpart of retrySync, for the read rather than the write. */
+  const retryLoad = useCallback(() => setLoadAttempt((n) => n + 1), []);
 
   // Restore the tick draft whenever the session changes (§29 — a refresh mid-stage
   // must not clear what the yuvak has already ticked).
@@ -358,13 +407,18 @@ export function LearningProvider({ children }) {
     }
   }, [uid]);
 
-  // A failed write is retried as soon as the device says it is back online.
+  // A failed write — or a failed first read, which strands the yuvak far more visibly —
+  // is retried as soon as the device says it is back online, so the commonest cause of
+  // both (a tunnel that dropped) fixes itself without anybody being asked to tap anything.
   useEffect(() => {
-    if (!syncError || !uid) return;
-    const onOnline = () => retrySync();
+    if (!uid || (!syncError && !loadError)) return;
+    const onOnline = () => {
+      if (loadError) retryLoad();
+      if (syncError) retrySync();
+    };
     window.addEventListener('online', onOnline);
     return () => window.removeEventListener('online', onOnline);
-  }, [syncError, uid, retrySync]);
+  }, [syncError, loadError, uid, retrySync, retryLoad]);
 
   const value = useMemo(() => {
     const remembered = state.rememberedItemIds;
@@ -393,8 +447,16 @@ export function LearningProvider({ children }) {
       retrySync,
       syncError,
       saving,
+      // The read's own pair, deliberately separate from syncError: one says "what you did
+      // is not saved yet", the other "there is nothing to show you yet". They are answered
+      // by different screens and must not be collapsed into one flag.
+      retryLoad,
+      loadError,
     };
-  }, [state, ready, draft, toggleRemember, goTo, begin, submit, complete, retrySync, syncError, saving]);
+  }, [
+    state, ready, draft, toggleRemember, goTo, begin, submit, complete,
+    retrySync, syncError, saving, retryLoad, loadError,
+  ]);
 
   return <LearningCtx.Provider value={value}>{children}</LearningCtx.Provider>;
 }
