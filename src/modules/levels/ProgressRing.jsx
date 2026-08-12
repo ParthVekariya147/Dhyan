@@ -25,7 +25,7 @@ export default function ProgressRing({ score, total, label, sub }) {
   const done = total > 0 ? Math.min(1, Math.max(0, score / total)) : 0;
 
   return (
-    <div className="ring">
+    <div className="progress-ring">
       <svg viewBox="0 0 128 128" className="ring-svg" aria-hidden="true">
         <circle className="ring-track" cx="64" cy="64" r={R} />
         <circle

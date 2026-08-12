@@ -185,13 +185,38 @@ export default function LevelsPage() {
                       </div>
                       <div className="field" style={{ marginBottom: 0, width: 200 }}>
                         <label htmlFor="l4-gate-n">Remembered in a single day</label>
+                        {/*
+                          Converted here, on the way into state — not on the way out to the
+                          database, which was the bug.
+
+                          `e.target.value` is a string even on type="number": '60', never 60.
+                          validateLevel4Gate() tests `typeof` on purpose (shared/domain/
+                          settings.js), because the SQL side reads `jsonb_typeof(...) =
+                          'number'` and quietly falls back to the default for anything else —
+                          so a '60' that passed here would show as 60 in this panel and gate
+                          at 80 in Postgres. The consequence was that every save following a
+                          keystroke in this field was refused with 'enter a number' over a
+                          field plainly showing one, and the only threshold that ever
+                          validated was the one loaded from the row and left untouched. The
+                          Number() at the upsert could not help: validation runs first.
+
+                          An emptied field stays '' rather than becoming 0. `Number('')` is 0,
+                          and 0 is a real, honoured threshold — "any day he opens લેવલ ૩ at
+                          all" — so coercing here would turn a half-typed field into a gate
+                          every યુવક passes, saved without a word about it.
+                        */}
                         <input
                           id="l4-gate-n"
                           type="number"
                           min="0"
                           step="1"
                           value={gate.threshold}
-                          onChange={(e) => setGate((g) => ({ ...g, threshold: e.target.value }))}
+                          onChange={(e) =>
+                            setGate((g) => ({
+                              ...g,
+                              threshold: e.target.value === '' ? '' : Number(e.target.value),
+                            }))
+                          }
                           disabled={!gate.require}
                         />
                       </div>

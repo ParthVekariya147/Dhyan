@@ -61,12 +61,45 @@ body {
 
 /* ---- header ---- */
 .site-header { padding: 64px 20px 46px; text-align: center; animation: dropIn 1s cubic-bezier(.2,.7,.3,1) both; }
+/* 'જય સ્વામિનારાયણ' is the app's one <h1>, and it was the last raw font-size in src/
+   (styles/tokens.css: a screen picks a NAME). Three things were wrong with it at once, and
+   all three showed on the same line of Gujarati:
+
+     * **No line-height at all**, so the line box was whatever `normal` gave — around 1.1
+       on Shruti, which is the face Windows actually resolves --font-gu to (Noto Sans
+       Gujarati is not installed there; see the note above the font stack). Gujarati puts
+       matras above AND below the base, so a Latin-sized line box has nowhere to put them
+       and they meet the line's own glyphs. tokens.css says exactly this and names the
+       number: --lh-title.
+     * **letter-spacing on an Indic script.** Tracking is inserted between typographic
+       units, and with a legacy face like Shruti a combining mark can be spaced away from
+       the consonant it belongs to — which is not loose text, it is a mark sitting on the
+       wrong glyph. There is no amount of it that is right here; the value is `normal`.
+     * **42px at the top of the clamp**, roughly ⅔ larger than --fs-page-title, so the
+       heading was set at a size the rest of the app has no name for and the collisions
+       above were drawn at their largest.
+
+   `padding-bottom` rather than a bigger line-height for the room underneath: the gradient
+   is clipped to the glyphs, so the descending matras of ણ and ્ need space below the text
+   box without also opening a gap the eye reads as a margin. */
 .site-header h1 {
-  font-size: clamp(24px, 6vw, 42px); font-weight: 700; letter-spacing: .5px;
+  font-size: var(--fs-page-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  letter-spacing: normal;
+  padding-bottom: 4px;
   background: linear-gradient(180deg, #fff3d8, var(--color-gold) 55%, #c9922f);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.site-header p { margin-top: 10px; font-size: clamp(13px, 3vw, 15px); color: var(--color-muted); letter-spacing: .4px; }
+/* Same script, same reasoning — this line carries a યુવક's name and, on /darshan, a
+   Gujarati sentence that wraps on a narrow phone. */
+.site-header p {
+  margin-top: 10px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: normal;
+  color: var(--color-muted);
+}
 .rule {
   width: 0; height: 1px; margin: 22px auto 0;
   background: linear-gradient(90deg, transparent, var(--color-gold), transparent);

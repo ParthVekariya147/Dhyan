@@ -59,7 +59,21 @@
 
 /* ---------------------------------------------------------------- ring */
 
-.ring { position: relative; width: 168px; margin: 18px auto 0; }
+/* `progress-ring`, and never plain `ring` again.
+
+   `ring` is a Tailwind utility — `.ring { box-shadow: 0 0 0 1px currentColor }` — and
+   index.css pulls Tailwind in for the whole app. Tailwind v4 scans the source for class
+   names and emits the utilities it finds, so `className="ring"` in ProgressRing.jsx asked
+   it, quite correctly, for a one-pixel ring in the current text colour. That is the pale
+   square that was drawn around the પ્રગતિ ચક્ર: not a border in any stylesheet here, which
+   is why looking for one found nothing. The rule below only sets width, margin and
+   position, so the two never collided — they simply both applied.
+
+   The rest of the ring's classes (`ring-svg`, `ring-track`, `ring-body`, …) are safe:
+   Tailwind's `ring-*` utilities take a width or a colour, and none of those words is one.
+   Bare single-word class names are the ones to keep away from — `flex`, `grid`, `border`,
+   `table`, `hidden`, `fixed`, `truncate` are all utilities too. */
+.progress-ring { position: relative; width: 168px; margin: 18px auto 0; }
 .ring-svg { width: 100%; height: auto; display: block; transform: rotate(-90deg); }
 
 .ring-track {
