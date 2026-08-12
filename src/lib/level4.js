@@ -99,14 +99,13 @@ const L4_ERRORS = {
   level4_gate_closed: 'લેવલ ૩ પૂરું થયા પછી આ કસોટી ખૂલશે. પહેલાં લેવલ ૩ કરો.',
   level4_locked: 'આ પહેલાંની કસોટી પૂરી થાય પછી આ ખૂલશે. એક પછી એક, ક્રમ પ્રમાણે.',
   /*
-    0016 — the one refusal that is not an obstacle.
+    Kept, and unreachable — deliberately.
 
-    Every other line in this map says "not yet". This one says "already done", and it is
-    worded so that a યુવક who meets it cannot read it as having lost something: the કસોટી is
-    finished, it stays finished, and the દર્શન behind it are still his to look at whenever he
-    likes. He reaches this only by submitting a કસોટી he has already passed — a stale tab, a
-    back button, or a second phone — so it is a surprise, and a surprise is exactly when
-    wording matters.
+    0016 refused a submission on a કસોટી already passed; 0017 reversed that, and nothing in
+    the database raises this identifier any more. The sentence stays because a browser holding
+    yesterday's bundle can still be talking to a database that has not been migrated yet, and
+    the cost of the wrong Gujarati line in that window is higher than the cost of five lines
+    of dead map. Delete it once no deployment predates 0017.
   */
   level4_already_passed: 'આ કસોટી તમે પૂરી કરી લીધી છે — એ કાયમ પૂરી જ રહેશે. દર્શન ફરી જોવાં હોય તો ખુશીથી જુઓ.',
   level4_not_signed_in: 'ફરી લોગિન કરો, પછી આ કસોટી ચાલુ રહેશે. તમારું ધ્યાન સચવાયેલું છે.',
@@ -331,13 +330,12 @@ function normaliseState(raw) {
  *     દ્રશ્યો were all covered by activities the યુવક already passed is already done, and
  *     he is not asked to sit it again.
  *
- * **Opening and attempting are two questions, and this answers only the first** (0016). A
- * COMPLETED કસોટી is not LOCKED, so it may always be opened — its દર્શન are the યુવક's for
- * good. It may not be *submitted* again: that one submission has been made and it counted.
- * The distinction is `canOpen` versus `canAttempt` in useLevel4Activity() below, and it is
- * enforced by `level4_submit`, which answers `level4_already_passed` regardless of what any
- * screen offers. A કસોટી he has not yet passed is unaffected — he may attempt it as many
- * times as it takes, because a failed attempt is not spent.
+ * Repetition needs no rule of its own here, and deliberately has none (0017). A COMPLETED
+ * કસોટી is simply not LOCKED, so every screen that asks "may he open this?" already says yes,
+ * as many times as he likes — `level4_submit` holds no attempt limit and 0012 removed the two
+ * ways access could be withdrawn from underneath one. What a later attempt cannot do is
+ * *lower* anything: a COMPLETED row is never demoted, so practising a કસોટી and ticking
+ * eleven of twelve leaves it passed.
  *
  * `level4_submit` re-derives all of this server-side before it writes anything (§2.3
  * steps 1–3), so nothing here can grant access; it can only fail to *offer* it, which is
@@ -652,16 +650,14 @@ export function useLevel4Activity(activityId) {
     */
     canOpen: Boolean(activity) && status !== S.LOCKED,
     /*
-      Whether the કસોટી may still be *sat* (0016), as opposed to merely opened.
+      Whether the કસોટી may be *sat*, as opposed to merely opened.
 
-      One submission per કસોટી, spent by passing it — not by attempting it. A યુવક who fell
-      short may come back as often as he needs; a યુવક who passed has finished, and the
-      screen offers him the દર્શન instead of a second exam. `level4_submit` refuses either
-      way, so this only decides what is *offered*, which is the safe direction: a screen that
-      offers something the server will refuse is a small unkindness, and one that hides
-      something he is entitled to is a larger one.
+      Since 0017 these are the same question again: there is no attempt limit, so anything
+      that can be opened can be answered. It is kept as a separate field because the two are
+      genuinely different questions — 0016 held them apart for an afternoon — and a caller
+      that means "may he submit" should say so rather than lean on them coinciding.
     */
-    canAttempt: Boolean(activity) && status !== S.LOCKED && status !== S.COMPLETED,
+    canAttempt: Boolean(activity) && status !== S.LOCKED,
     retry,
   };
 }

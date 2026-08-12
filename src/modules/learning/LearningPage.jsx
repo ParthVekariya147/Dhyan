@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { useLearning } from '../../lib/learning';
 import { STAGE } from '../../lib/stages';
 import { SCENES, gu, sceneById, sceneIds } from '../../lib/scenes';
+/* What is said at the end of a ધ્યાન — one file for every such moment in the app, so this
+   screen and the two levels congratulate a યુવક in the same voice. */
+import { sessionComplete } from '../../lib/milestones';
 import SceneRunner from './SceneRunner';
 import VideoStage from './VideoStage';
 import SubmitResult from './SubmitResult';
@@ -142,22 +145,26 @@ export default function LearningPage() {
       case STAGE.MEMORY_RECALL:
         return <MemoryRecall indexes={recallIndexes} onFinish={L.complete} />;
 
-      case STAGE.COMPLETED:
+      case STAGE.COMPLETED: {
+        const done = sessionComplete(gu(L.rememberedCount), gu(L.completedSessions));
         return (
           <section className="stage stage-done">
+            {/* Wording from shared/domain/milestones.js, so the end of a ધ્યાન session reads
+                as the same voice a યુવક meets at the end of લેવલ ૩ and લેવલ ૪. The count
+                stays: it is a count of what he *has* held, which is the only kind this app
+                prints (§1 rule 4). */}
             <header className="runner-head">
-              <h2>દર્શન સંપૂર્ણ</h2>
+              <h2>{done.title}</h2>
             </header>
             <div className="done-mark" aria-hidden="true">🪔</div>
-            <p className="result-line">
-              તમે {gu(L.rememberedCount)} દ્રશ્યો યાદ રાખ્યાં. કુલ {gu(L.completedSessions)} વખત ધ્યાન પૂરું કર્યું.
-            </p>
-            <p className="runner-hint">જય સ્વામિનારાયણ 🙏</p>
+            <p className="result-line">{done.line}</p>
+            <p className="runner-hint">{done.grow}</p>
             <nav className="runner-nav runner-nav-single">
               <button type="button" className="btn-gold" onClick={L.begin}>ફરી ધ્યાન કરો</button>
             </nav>
           </section>
         );
+      }
 
       default:
         return null;

@@ -23,31 +23,54 @@
 
 /* Off is the quiet state and on is the lit one, so a glance at the corner answers
    "is it playing?" without reading the icon — which matters, because that button is the
-   only thing on screen that reflects whether the browser actually allowed playback. */
+   only thing on screen that reflects whether the browser actually allowed playback.
+
+   Quiet is not the same as invisible, and that is what was wrong here. The off state was a
+   near-black disc carrying a 35%-alpha gold hairline, sitting on a near-black page: on a
+   phone in daylight the button a યુવક needs in order to STOP the music was the hardest
+   thing on screen to find. The state still reads at a glance — one is outlined, the other
+   is filled gold — but the outline is now a real edge, the icon is the brighter gold rather
+   than the mid one, and the disc is lifted off the page by both a shadow and a faint glow.
+
+   The two of them are one control, so `.dhun-more` below is drawn in the same language and
+   differs only in weight. */
+.dhun-btn, .dhun-more {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; cursor: pointer;
+  background: radial-gradient(120% 120% at 30% 20%, #33261a, #1d160f 70%);
+  color: var(--color-gold-soft);
+  line-height: 1;
+  transition: background .3s ease, transform .2s ease, color .3s ease, border-color .3s ease;
+}
+
 .dhun-btn {
-  width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
-  background: rgba(28, 22, 16, .92);
-  border: 1px solid rgba(240, 199, 120, .35);
-  color: var(--color-gold);
-  font-size: 18px; line-height: 1;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
-  transition: background .3s ease, transform .2s ease, color .3s ease;
+  width: 48px; height: 48px;
+  border: 1.5px solid rgba(240, 199, 120, .72);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .55), 0 0 16px rgba(240, 199, 120, .16);
 }
 .dhun-btn.is-playing {
   background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
   border-color: transparent;
   color: #2a1d12;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .55), 0 0 20px rgba(240, 199, 120, .32);
 }
-.dhun-btn:active { transform: scale(.92); }
+.dhun-btn:active, .dhun-more:active { transform: scale(.92); }
 
+/* 44px, not the 34px it was. tokens.css puts the app's control floor at 48 and names iOS's
+   44 as the smaller of the two published one-handed minimums; a 34px circle was under both,
+   and it is the control that opens the only place a યુવક can change ધૂન or volume. It stays
+   visibly the secondary of the pair through weight and size, never through being faint. */
 .dhun-more {
-  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
-  background: rgba(28, 22, 16, .92);
-  border: 1px solid rgba(240, 199, 120, .22);
-  color: var(--color-muted);
-  font-size: 15px; line-height: 1;
+  width: 44px; height: 44px;
+  border: 1.5px solid rgba(240, 199, 120, .45);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .5);
 }
-.dhun-more:active { transform: scale(.92); }
+/* Open is a state worth showing: without it, tapping the button appears to do nothing on a
+   screen where the panel opens above it and may be off the edge of a short viewport. */
+.dhun-more.is-open {
+  border-color: var(--color-gold);
+  background: rgba(240, 199, 120, .16);
+}
 
 .dhun-panel {
   min-width: 200px;

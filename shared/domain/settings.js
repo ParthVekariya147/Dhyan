@@ -140,6 +140,97 @@ export function validateLevel4Gate(gate) {
 }
 
 /**
+ * settings['app'].value.tickWord — the word a ticked row carries.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What it is for
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * લેવલ ૪'s કસોટી is a list of bare numbers and boxes — no ચિત્ર, no વર્ણન, by design and
+ * enforced in three places (see src/modules/level4/ActivityTestPage.jsx). The consequence
+ * is a row that is mostly empty band, and a screen of thirty of them reads as unfinished
+ * rather than as deliberate. This fills that band, and only once the box is ticked: the
+ * યુવક brings the દ્રશ્ય to mind, ticks, and the row answers with the name.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why a settings value and not a literal
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * §36 — a word a યુવક reads belongs to the સંચાલક. `show: false` turns it off entirely and
+ * returns the rows to exactly what they are today, so this can be withdrawn without a
+ * deploy if it turns out to be noise on a thirty-row list.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why it cannot leak an answer
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * This is **one string for the whole list**, identical on every row, and it is a
+ * configuration value that has never met a દ્રશ્ય. It cannot be per-scene because there is
+ * nowhere per-scene for it to come from: no row is asked for its own word, and the value
+ * arrives from settings rather than from the કસોટી. That is the same reasoning the page
+ * applies to its own imports, and it is why the row still takes no text prop at all — the
+ * word reaches it as an inherited CSS custom property set once on the list.
+ */
+export const TICK_WORD_KEY = 'tickWord';
+
+/**
+ * On, with the name. A project that has never opened the field gets the behaviour the
+ * feature was asked for; `show: false` is how it is turned off, and it has to be said.
+ */
+export const DEFAULT_TICK_WORD = Object.freeze({ show: true, text: 'સ્વામિનારાયણ' });
+
+/**
+ * A row's band is about 150px wide on a 320px phone, which is ~14 Gujarati characters at
+ * the row's own size. Past that the word wraps and the row grows — not a break, but not
+ * what anybody chose either, and on a thirty-row list it is thirty rows that grew. The cap
+ * is set above the natural words for this (સ્વામિનારાયણ is 12) and well below a sentence,
+ * because a sentence is what this must not become: §16 keeps instructions off this screen.
+ */
+export const TICK_WORD_MAX = 24;
+
+/**
+ * settings['app'].value.tickWord → the word actually rendered.
+ *
+ * Forgiving, in the same shape and for the same reason as resolveLevel4Gate() above: this
+ * is jsonb somebody once wrote, and every way it can be wrong has to end at something a row
+ * can render. The one direction worth stating: an unusable `text` falls back to the default
+ * word rather than to nothing, because "nothing" is indistinguishable from the સંચાલક having
+ * turned the feature off, and those are different answers.
+ *
+ * Whitespace is collapsed rather than preserved. The word travels to the row as a CSS
+ * string, where a newline is not a line break but an escape sequence for the letter 'n' —
+ * so a pasted two-line value would not wrap, it would render the letter n. Collapsing here
+ * means the panel and the row cannot disagree about what was saved.
+ */
+export function resolveTickWord(stored) {
+  const w = stored && typeof stored === 'object' ? stored : {};
+  const text = typeof w.text === 'string' ? w.text.replace(/\s+/g, ' ').trim() : '';
+  return {
+    show: w.show !== false,
+    text: text && text.length <= TICK_WORD_MAX ? text : DEFAULT_TICK_WORD.text,
+  };
+}
+
+/** Refuses what resolveTickWord() would silently correct — same division of labour as above. */
+export function validateTickWord(word) {
+  const w = word && typeof word === 'object' ? word : null;
+  if (!w) return { ok: false, gu: 'The ticked-row word setting is missing.' };
+  if (typeof w.show !== 'boolean') return { ok: false, gu: 'Ticked-row word: on or off must be set.' };
+  if (!w.show) return { ok: true };
+
+  if (typeof w.text !== 'string') return { ok: false, gu: 'Ticked-row word: enter a word.' };
+  const text = w.text.replace(/\s+/g, ' ').trim();
+  if (!text) return { ok: false, gu: 'Ticked-row word: enter a word, or turn it off.' };
+  if (text.length > TICK_WORD_MAX) {
+    return {
+      ok: false,
+      gu: `Ticked-row word: ${TICK_WORD_MAX} characters or fewer — it has to fit inside a row.`,
+    };
+  }
+  return { ok: true, text };
+}
+
+/**
  * Accepts a full YouTube URL or a bare id, since the admin may paste either.
  * Shared so the panel's "is this link valid?" answer is the same rule the યુવક app
  * will apply when it renders the પ્રવેશદ્વાર.

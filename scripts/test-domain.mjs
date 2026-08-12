@@ -33,7 +33,14 @@ import {
   validateDarshanItems,
   withDisplayIndex,
 } from '../shared/domain/darshan.js';
-import { resolveLevel4Gate, validateLevel4Gate } from '../shared/domain/settings.js';
+import {
+  DEFAULT_TICK_WORD,
+  TICK_WORD_MAX,
+  resolveLevel4Gate,
+  resolveTickWord,
+  validateLevel4Gate,
+  validateTickWord,
+} from '../shared/domain/settings.js';
 import { nextLevelAfter } from '../shared/domain/journey.js';
 import {
   ENTRY_ROUTE,
@@ -686,6 +693,73 @@ group('validateLevel4Gate — what the સંચાલક is told instead of sil
   // No upper bound, deliberately: a limit here would be a second total (§6 rule 1) and would
   // go stale the day a દ્રશ્ય is added to the collection.
   eq('an absurdly high threshold is allowed', ok({ require: true, threshold: 100000 }), true);
+}
+
+/*
+  `resolveTickWord()` / `validateTickWord()` — the word a ticked લેવલ ૪ row carries.
+
+  Two things are being protected here, and neither is cosmetic.
+
+  The first is that the word reaches the row as a **CSS string**, set once on the list as a
+  custom property. Whitespace therefore has to be collapsed before it gets there: a newline
+  inside a CSS string is not a line break, it is an escape sequence for the letter that
+  follows it, so a pasted two-line value would render as 'ન' rather than wrapping. The
+  resolver is the only place that can guarantee it, because it is the only thing both the
+  panel and the app agree to go through.
+
+  The second is that resolve and validate must not disagree. If validate accepted something
+  the resolver then replaced, the panel would say "Saved" and show the સંચાલક his own word
+  while every યુવક read a different one — the same fault the Level 4 gate pair exists to
+  prevent, one screen along.
+*/
+group('resolveTickWord — a settings row that could say anything');
+{
+  const w = (stored) => resolveTickWord(stored);
+
+  eq('absent', w(undefined), { show: true, text: DEFAULT_TICK_WORD.text });
+  eq('not an object', w('સ્વામિનારાયણ'), { show: true, text: DEFAULT_TICK_WORD.text });
+  eq('the ordinary case', w({ show: true, text: 'જય સ્વામિનારાયણ' }), { show: true, text: 'જય સ્વામિનારાયણ' });
+
+  // Only an explicit `false` turns it off. A missing key means "never configured", and the
+  // feature was asked for, so absence resolves to on.
+  eq('show absent', w({ text: 'નીલકંઠ' }), { show: true, text: 'નીલકંઠ' });
+  eq('show false', w({ show: false, text: 'નીલકંઠ' }).show, false);
+  eq('show a string is not false', w({ show: 'no', text: 'નીલકંઠ' }).show, true);
+
+  // The word falls back to the default rather than to nothing: an empty band is what
+  // `show: false` means, and the two must stay distinguishable.
+  eq('text empty', w({ show: true, text: '   ' }).text, DEFAULT_TICK_WORD.text);
+  eq('text not a string', w({ show: true, text: 42 }).text, DEFAULT_TICK_WORD.text);
+  eq('text too long', w({ show: true, text: 'ક'.repeat(TICK_WORD_MAX + 1) }).text, DEFAULT_TICK_WORD.text);
+  eq('text exactly at the cap', w({ show: true, text: 'ક'.repeat(TICK_WORD_MAX) }).text, 'ક'.repeat(TICK_WORD_MAX));
+
+  // The CSS-string reason above. A newline must never survive this function.
+  eq('a newline is collapsed', w({ show: true, text: 'જય\nસ્વામિનારાયણ' }).text, 'જય સ્વામિનારાયણ');
+  eq('tabs and runs of spaces collapse', w({ show: true, text: ' જય\t\t સ્વામિ ' }).text, 'જય સ્વામિ');
+}
+
+group('validateTickWord — refuses exactly what the resolver would have replaced');
+{
+  const ok = (word) => validateTickWord(word).ok;
+
+  eq('the ordinary case', ok({ show: true, text: 'સ્વામિનારાયણ' }), true);
+  // Off means the word decides nothing, so refusing a save over it would be refusing over a
+  // field that does not apply — same as the gate's threshold when `require` is false.
+  eq('off, with an empty word', ok({ show: false, text: '' }), true);
+
+  eq('missing', ok(null), false);
+  eq('show not a boolean', ok({ show: 'yes', text: 'સ્વામિનારાયણ' }), false);
+  eq('on, no word', ok({ show: true, text: '   ' }), false);
+  eq('on, word not a string', ok({ show: true, text: 7 }), false);
+  eq('on, over the cap', ok({ show: true, text: 'ક'.repeat(TICK_WORD_MAX + 1) }), false);
+  eq('at the cap', ok({ show: true, text: 'ક'.repeat(TICK_WORD_MAX) }), true);
+
+  // The pair must agree: anything validate() lets through has to survive resolve() unchanged,
+  // or the panel and the row would be showing two different words with nothing to say so.
+  for (const text of ['સ્વામિનારાયણ', 'જય સ્વામિનારાયણ', 'નીલકંઠ', 'ક'.repeat(TICK_WORD_MAX)]) {
+    const word = { show: true, text };
+    eq(`accepted, and kept: ${text}`, resolveTickWord(word).text, validateTickWord(word).text);
+  }
 }
 
 // ==================================================================== the way onward

@@ -136,6 +136,11 @@
 }
 .l4-panel-line { margin-top: 14px; font-size: 15.5px; line-height: 1.9; color: #f4ead8; }
 
+/* The sentence that says the સાધના goes on (shared/domain/milestones.js). Quieter than the
+   line above it and set in the muted colour on purpose: it is an encouragement, not another
+   fact about the કસોટી, and at the same weight the two would compete. */
+.l4-panel-grow { margin-top: 10px; font-size: 14.5px; line-height: 1.9; color: var(--color-muted); }
+
 @media (max-width: 480px) {
   .l4-card { padding: 15px 14px 13px; }
   .l4-aside { margin-left: 14px; }

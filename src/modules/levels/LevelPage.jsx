@@ -5,6 +5,10 @@ import { useScenes } from '../../lib/useScenes';
 import { useDailyProgress } from '../../lib/progress';
 import { useLevel4Gate } from '../../lib/level4';
 import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
+/* The two things this page says when something is finished — a day of ધ્યાન, and the day
+   લેવલ ૪ is earned. Both live with the app's other finishing moments so they read as one
+   voice (shared/domain/milestones.js). */
+import { dayComplete, levelUnlocked } from '../../lib/milestones';
 import { gu } from '../../lib/scenes';
 import PageIntro from '../../components/PageIntro';
 import NavArrow from '../../components/NavArrow';
@@ -144,6 +148,12 @@ export default function LevelPage() {
     gate.published &&
     (!gate.requireGate || gate.gateOpen || P.score3 >= gate.gateThreshold);
 
+  /* What is said the day the threshold is crossed — from shared/domain/milestones.js, with
+     every other finishing moment in the app. The level number is passed in rather than
+     written into the sentence: લેવલ ૪ is what this page opens today, and the wording should
+     not have to be found and edited the day that changes. */
+  const unlocked = levelUnlocked(gu(LEVEL + 1));
+
   // ---------------------------------------------------------------- states
   if (loading || !P.ready) {
     return (
@@ -249,11 +259,12 @@ export default function LevelPage() {
         ))}
       </ol>
 
-      {/* ફક્ત આનંદ (§1 rule 4) — the only thing said at the end is thanks. */}
+      {/* ફક્ત આનંદ (§1 rule 4) — the only thing said at the end is thanks, and now one line
+          pointing at tomorrow, because લેવલ ૩ is the level a યુવક comes back to every morning
+          and a full stop here reads as a thing finished rather than a thing kept up. The
+          wording is shared/domain/milestones.js, with the app's five other such moments. */}
       <p className="level-foot" aria-live="polite">
-        {complete
-          ? `આજનું ધ્યાન સંપૂર્ણ — ${gu(P.score3)} દ્રશ્યો. જય સ્વામિનારાયણ 🙏`
-          : `આજ સુધી ટિક: ${gu(P.score3)} / ${gu(total)}`}
+        {complete ? dayComplete(gu(P.score3)) : `આજ સુધી ટિક: ${gu(P.score3)} / ${gu(total)}`}
       </p>
 
       {/*
@@ -284,10 +295,9 @@ export default function LevelPage() {
               the foot of a long list. Named plainly here: what he has done, and what it
               opened. Said once, without a count and without a comparison to anyone.
             */}
-            <p className="level-next-line">
-              અભિનંદન — આગળના લેવલ માટે જરૂરી યાદશક્તિની ચકાસણી તમે પૂરી કરી છે.
-            </p>
-            <p className="level-note">લેવલ ૪ હવે તમારા માટે કાયમ ખુલ્લું છે.</p>
+            <p className="level-next-line">{unlocked.title}</p>
+            <p className="level-note">{unlocked.line}</p>
+            <p className="level-note">{unlocked.grow}</p>
             {/*
               `P.retry()` on the way out, and it is not decoration.
 

@@ -73,7 +73,21 @@
    Tailwind's `ring-*` utilities take a width or a colour, and none of those words is one.
    Bare single-word class names are the ones to keep away from — `flex`, `grid`, `border`,
    `table`, `hidden`, `fixed`, `truncate` are all utilities too. */
-.progress-ring { position: relative; width: 168px; margin: 18px auto 0; }
+/* No width on the component itself: 168px belongs to the ring, and the caption underneath
+   is not the ring. While the two shared a box, `.ring-sub`'s `max-width: 460px` could never
+   take effect — the parent was 168px, so a one-line sentence was folded into a narrow
+   column under the circle and લેવલ ૪'s ran to four lines. The ring keeps its size below;
+   the caption now gets the width it always asked for. */
+.progress-ring { margin: 18px auto 0; text-align: center; }
+
+/* The positioning context is the DIAL, not the whole component — see ProgressRing.jsx.
+   `.ring-body` centres itself on this box with `inset: 0`, so this box has to be the
+   circle and nothing but the circle. It was `.progress-ring` that carried `position:
+   relative`, which quietly included the caption below the ring in what the figure was
+   being centred over: two lines of sub on લેવલ ૩ and four on લેવલ ૪ pushed ૪/૧૦૭ and
+   'આજની પ્રગતિ' down past the middle of the circle and, on લેવલ ૪, most of the way out of
+   it. The SVG is square and `display: block`, so this box is exactly the ring. */
+.ring-dial { position: relative; width: 168px; margin: 0 auto; }
 .ring-svg { width: 100%; height: auto; display: block; transform: rotate(-90deg); }
 
 .ring-track {
@@ -162,6 +176,37 @@
 
 .tick-body { flex: 1; min-width: 0; }
 .tick-text { display: block; font-size: 15.5px; line-height: 1.75; color: #f4ead8; }
+
+/* ---- the word a ticked row carries (settings/app → tickWord) ----
+
+   Drawn by CSS from an inherited custom property, and never passed to the row as a prop.
+
+   That is not a flourish, it is the whole reason this is safe. લેવલ ૪'s row exists in order
+   to have no prop that could carry text (src/modules/level4/ActivityTestPage.jsx: "A row
+   with no prop for a વર્ણન cannot be given one by mistake"), and adding `word` to it would
+   have handed the next edit somewhere to put `it.text`. So the word is set ONCE, on the
+   <ol>, from one settings value, and inherits down: there is no per-row channel to misuse,
+   and a row still cannot be told anything about the દ્રશ્ય it stands for.
+
+   Unset — which is every list except that one — resolves to the empty string, so this rule
+   is inert on લેવલ ૩'s વર્ણન rows until somebody deliberately sets the property there.
+   A malformed value makes `content` invalid at computed-value time, which suppresses the
+   pseudo-element entirely; the failure is a row that looks like today's row.
+
+   Painted at opacity 0 rather than only existing when ticked, so there is something to fade
+   from. index.css turns the transition off under prefers-reduced-motion; the class still
+   flips, so the word simply appears. */
+.tick-body::after {
+  content: var(--tick-word, "");
+  display: block;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--color-gold-soft);
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity .22s ease, transform .22s ease;
+}
+.tick-row.is-on .tick-body::after { opacity: 1; transform: none; }
 
 .tick-main input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
@@ -294,7 +339,7 @@
 @media (max-width: 480px) {
   .tick-main { gap: 11px; padding: 13px 12px; }
   .tick-n { min-width: 42px; font-size: 14px; }
-  .tick-text { font-size: 15px; }
+  .tick-text, .tick-body::after { font-size: 15px; }
   .level-next { margin: 20px auto 32px; padding-top: 18px; }
   .level-next-line { font-size: 15px; }
 }

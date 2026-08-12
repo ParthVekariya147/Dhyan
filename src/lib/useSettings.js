@@ -4,7 +4,9 @@ import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supaba
 import {
   APP_SETTINGS_DOC,
   LEVELS_SETTINGS_DOC,
+  TICK_WORD_KEY,
   resolveLevels,
+  resolveTickWord,
 } from '../../shared/domain/settings.js';
 import { JOURNEY_SETTINGS_DOC, resolveJourney } from '../../shared/domain/journey.js';
 
@@ -111,6 +113,28 @@ export function useJourney() {
   const { settings, loading } = useSettingsRow(JOURNEY_SETTINGS_DOC);
   const journey = useMemo(() => resolveJourney(settings?.pages), [settings]);
   return { journey, loading };
+}
+
+/**
+ * settings.app → the word a ticked row carries (shared/domain/settings.js).
+ *
+ * Returns the string to render, or '' for "render nothing" — the two cases that mean
+ * nothing (the સંચાલક turned it off, and the row has not arrived yet) are deliberately
+ * collapsed into one value, so a caller cannot show the default word by forgetting to
+ * check `loading`.
+ *
+ * **Empty while loading, and that is the point.** Every other settings hook here renders
+ * the code's default immediately and lets the row replace it, because a page that is blank
+ * until a read returns is the worse failure (§1). This one is the exception: nothing on the
+ * screen is missing without it — an unticked row looks exactly as it always has — so the
+ * alternative is a યુવક who ticks a box in the first half-second, sees 'સ્વામિનારાયણ'
+ * appear, and watches it change or vanish when the row lands. A word that flickers is worse
+ * than a word that arrives a moment late.
+ */
+export function useTickWord() {
+  const { settings, loading } = useSettingsRow(APP_SETTINGS_DOC);
+  const word = useMemo(() => resolveTickWord(settings?.[TICK_WORD_KEY]), [settings]);
+  return { tickWord: loading || !word.show ? '' : word.text, loading };
 }
 
 /** Accepts a full YouTube URL or a bare id, since the admin may paste either. */

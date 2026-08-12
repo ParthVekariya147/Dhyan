@@ -159,9 +159,32 @@ An activity is unlocked by the ordinary progression and by nothing else — a �
 ૪.૨ cannot reach ૪.૩, by URL, by refresh, or by answering ૪.૧ eleven times. But once it is
 unlocked it stays unlocked, and once it is completed it stays completed: `level4_attempts`
 holds every attempt, `attempt_count` has no ceiling anywhere, and neither a reorder nor the
-સંચાલક raising `gate_threshold` past this યુવક can put a તાળું back on a કસોટી he has passed.
-The two LOCKED branches still govern everything he has *not* completed, which is what keeps
-ક્રમ intact.
+સંચાલક raising the gate past this યુવક can put a તાળું back on a કસોટી he has passed. The two
+LOCKED branches still govern everything he has *not* completed, which is what keeps ક્રમ
+intact.
+
+**The attempt rule has been set three times.** 0012 unlimited → 0016 one submission, spent by
+passing → 0017 unlimited again, which is what stands. Read 0017's header before changing it a
+fourth time; the whole rule is one `if` in `level4_submit` and about six lines of wording on
+three screens, and the option never tried is a સંચાલક-facing setting beside `level4Gate`.
+
+### Passing is a mark the સંચાલક sets (0016)
+
+`required_count` on `level4_activities` — how many દ્રશ્યો of that કસોટી must be recalled.
+**NULL means all of them**, which is what every કસોટી meant before the column existed, so an
+untouched configuration is unchanged.
+
+```
+passed(attempt) = |selected ∩ effective_items(a)|  ≥  required(a)   AND  required(a) > 0
+
+required(a)     = least( coalesce(a.required_count, |effective_items(a)|),
+                         |effective_items(a)| )
+```
+
+The `least(...)` is load-bearing: a mark typed when the કસોટી held ૨૭ દ્રશ્યો would otherwise
+become unreachable the day the સંચાલક withholds three of them — the same trap
+`level4_effective_items()` closes one level down. Clamping means the requirement is always
+satisfiable by ticking everything on screen. This half of 0016 was never reversed.
 
 ### 2.3 RPCs — the only write path for a યુવક
 

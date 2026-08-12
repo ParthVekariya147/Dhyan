@@ -22,6 +22,44 @@ import './dhun.css';
  * header means it is reachable from every screen and never scrolls away, and it keeps the
  * દર્શન feed the uninterrupted reading surface it is meant to be.
  */
+/**
+ * The three corner icons, drawn rather than typed.
+ *
+ * They were '♪', '❚❚' and '⋯' — literal characters, and that is the problem: a character is
+ * drawn by whichever installed font claims it, and the app's own font stack falls through to
+ * Shruti on Windows (see the note over --font-gu in index.css). The play/pause pair came out
+ * as two different weights on two different machines, and '⋯' (midline horizontal ellipsis)
+ * is missing often enough to land in a fallback face at a different size from the button
+ * beside it. Icons a control's meaning depends on should not be a font lookup.
+ *
+ * Sized in attributes and coloured by `currentColor`, the same way src/components/NavArrow.jsx
+ * is, so each one inherits the state its button is in and needs nothing from the stylesheet
+ * to be the right size.
+ */
+const NoteIcon = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor"
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <path d="M9 18V5l11-2v13" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="17" cy="16" r="3" />
+  </svg>
+);
+
+const PauseIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" focusable="false">
+    <rect x="6.5" y="5" width="4" height="14" rx="1.6" />
+    <rect x="13.5" y="5" width="4" height="14" rx="1.6" />
+  </svg>
+);
+
+const MoreIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" focusable="false">
+    <circle cx="5" cy="12" r="2" />
+    <circle cx="12" cy="12" r="2" />
+    <circle cx="19" cy="12" r="2" />
+  </svg>
+);
+
 export default function DhunPlayer() {
   const { user, unconfigured } = useAuth();
 
@@ -223,18 +261,18 @@ function DhunDeck() {
           aria-label={playing ? 'ધૂન બંધ કરો' : 'ધૂન શરૂ કરો'}
           aria-pressed={playing}
         >
-          {playing ? '❚❚' : '♪'}
+          {playing ? <PauseIcon /> : <NoteIcon />}
         </button>
 
         <button
           type="button"
-          className="dhun-more"
+          className={`dhun-more ${open ? 'is-open' : ''}`}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           title="ધૂન પસંદ કરો"
           aria-label="ધૂન પસંદ કરો"
         >
-          ⋯
+          <MoreIcon />
         </button>
       </div>
     </div>

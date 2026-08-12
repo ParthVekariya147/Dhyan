@@ -34,9 +34,8 @@ import '../darshan/darshan.css';
  * Persisted      `revision_count` only — a number the સંચાલક reads. Nothing gates on it,
  *                and a failed write is swallowed rather than allowed to block the way back.
  * Completion     None. Nothing here is finished, scored or required.
- * Next           Not yet passed → /level/4/:activityId, ફરી કસોટી આપો, the same કસોટી.
- *                Already passed → /level/4, the list. That કસોટી takes no further
- *                submission (0016), so it is not offered as a destination.
+ * Next           /level/4/:activityId — ફરી કસોટી આપો, the same કસોટી, whether or not it has
+ *                already been passed (0017: there is no attempt limit).
  * Previous       /level/4 — the કસોટી list (and મુખપૃષ્ઠ, in the bar).
  * Excluded       Ticks, submission, right-and-wrong, any count of what was missed, any
  *                word that reads as a correction — and a PDF, a thumbnail or a re-encode:
@@ -205,7 +204,7 @@ export default function RevisionPage() {
         */}
         <p className="level-note">
           {done
-            ? 'આ કસોટી પૂરી થઈ ગઈ છે — હવે એ ફરી આપવાની નથી. એનાં દર્શન જેટલી વાર જોવાં હોય તેટલી વાર જોઈ શકાય.'
+            ? 'આ કસોટી પૂરી થઈ ગઈ છે. દર્શન જેટલી વાર જોવાં હોય તેટલી વાર જોઈ શકાય, અને કસોટી ફરી આપવી હોય તો એ પણ થઈ શકે.'
             : 'જેટલી વાર જોવું હોય તેટલી વાર જુઓ. પછી ફરી કસોટી આપો.'}
         </p>
       </header>
@@ -227,47 +226,43 @@ export default function RevisionPage() {
       </main>
 
       {/*
-        Two feet, because there are two યુવકો on this page (0016).
+        One foot, one door, for both યુવકો on this page (0017).
 
-        One has not passed this કસોટી and is here to look before trying again — the door back
-        to it is the point of the page, and the revision count is bumped on the way.
+        The one who has not passed is here to look before trying again — the way back to the
+        કસોટી is the point of the page. The one who *has* passed may sit it again whenever he
+        likes, so he gets the same door; only the line above it changes, because "ધ્યાનથી
+        જોયું?" would read as unfinished business to someone who finished.
 
-        The other has passed it. His કસોટી is finished and takes no further submission, so
-        offering 'ફરી કસોટી આપો' would send him to a screen that can only tell him no. He came
-        here for the દર્શન and they are the whole page above; what he needs at the bottom is
-        the way back to the list, and nothing that reads like unfinished business.
+        This is the button the સંચાલક asked for after 0016 removed it: a યુવક who opens a
+        completed કસોટી, looks through its દર્શન, and wants to sit it again should be able to
+        do that from the bottom of the page he is already on.
       */}
-      {done ? (
-        <div className="level-foot">
-          <p>આ કસોટીનાં દર્શન જ્યારે જોવાં હોય ત્યારે અહીં આવી શકાય.</p>
-          <Link to="/level/4" className="btn-quiet btn-inline" style={{ fontFamily: 'inherit' }}>
-            લેવલ ૪ ની યાદી
-          </Link>
-        </div>
-      ) : (
-        <div className="level-foot">
-          <p>ધ્યાનથી જોયું? હવે ફરી કસોટી આપો.</p>
-          {/*
-            §18, §22 — the count is bumped *on the way*, not on arrival, because what it
-            records is that he went and looked before trying again.
+      <div className="level-foot">
+        <p>
+          {done
+            ? 'ફરી કસોટી આપવી હોય તો અહીંથી આપી શકાય — પૂરી થયેલી કસોટી પૂરી જ રહેશે.'
+            : 'ધ્યાનથી જોયું? હવે ફરી કસોટી આપો.'}
+        </p>
+        {/*
+          §18, §22 — the count is bumped *on the way*, not on arrival, because what it
+          records is that he went and looked before trying again.
 
-            A <Link> rather than a button with an await: the navigation must not wait on the
-            round trip, and it must not be cancelled by it. `markRevision` is left in flight —
-            a client-side route change tears down no fetch — and its failure is swallowed on
-            purpose. `revision_count` is a number the સંચાલક reads; nothing anywhere gates on
-            it, so a dropped connection must never be the reason a યુવક cannot get back to
-            his કસોટી (§1: never a dead end).
-          */}
-          <Link
-            to={`/level/4/${activityId}`}
-            className="btn-gold btn-inline"
-            style={{ fontFamily: 'inherit' }}
-            onClick={() => { markRevision(activityId).catch(() => {}); }}
-          >
-            ફરી કસોટી આપો
-          </Link>
-        </div>
-      )}
+          A <Link> rather than a button with an await: the navigation must not wait on the
+          round trip, and it must not be cancelled by it. `markRevision` is left in flight —
+          a client-side route change tears down no fetch — and its failure is swallowed on
+          purpose. `revision_count` is a number the સંચાલક reads; nothing anywhere gates on
+          it, so a dropped connection must never be the reason a યુવક cannot get back to
+          his કસોટી (§1: never a dead end).
+        */}
+        <Link
+          to={`/level/4/${activityId}`}
+          className="btn-gold btn-inline"
+          style={{ fontFamily: 'inherit' }}
+          onClick={() => { markRevision(activityId).catch(() => {}); }}
+        >
+          ફરી કસોટી આપો
+        </Link>
+      </div>
 
       <Lightbox item={active} onClose={close} />
     </Shell>

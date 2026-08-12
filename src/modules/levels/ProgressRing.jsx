@@ -26,30 +26,45 @@ export default function ProgressRing({ score, total, label, sub }) {
 
   return (
     <div className="progress-ring">
-      <svg viewBox="0 0 128 128" className="ring-svg" aria-hidden="true">
-        <circle className="ring-track" cx="64" cy="64" r={R} />
-        <circle
-          className="ring-fill"
-          cx="64"
-          cy="64"
-          r={R}
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - done)}
-        />
-      </svg>
-
       {/*
-        The figure is announced, the ring is not: a screen reader that read both would say
-        the number twice. `aria-live` so each tick is spoken as it lands — the tick and the
-        ring moving are one event to a યુવક and must be one event to a reader too.
+        The dial — the circle and the figure standing in it — is its own box, and `sub` is
+        deliberately outside it.
+
+        The figure is centred by `position: absolute; inset: 0`, which centres it over its
+        positioning ancestor. When that ancestor was the whole component, the caption
+        counted towards the height being centred in: લેવલ ૩'s sub wraps to two lines and
+        લેવલ ૪'s to four, so the number was pushed a line or two below the middle of the
+        circle — furthest out on the level with the most to say. This box is the SVG's box
+        and nothing else, so the centre of the text is the centre of the ring on every
+        screen, whatever the caption under it says.
       */}
-      <div className="ring-body" aria-live="polite">
-        <div className="ring-score">
-          {gu(score)}
-          <span className="ring-of">/{gu(total)}</span>
+      <div className="ring-dial">
+        <svg viewBox="0 0 128 128" className="ring-svg" aria-hidden="true">
+          <circle className="ring-track" cx="64" cy="64" r={R} />
+          <circle
+            className="ring-fill"
+            cx="64"
+            cy="64"
+            r={R}
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - done)}
+          />
+        </svg>
+
+        {/*
+          The figure is announced, the ring is not: a screen reader that read both would say
+          the number twice. `aria-live` so each tick is spoken as it lands — the tick and the
+          ring moving are one event to a યુવક and must be one event to a reader too.
+        */}
+        <div className="ring-body" aria-live="polite">
+          <div className="ring-score">
+            {gu(score)}
+            <span className="ring-of">/{gu(total)}</span>
+          </div>
+          <div className="ring-label">{label}</div>
         </div>
-        <div className="ring-label">{label}</div>
       </div>
+
       {sub && <p className="ring-sub">{sub}</p>}
     </div>
   );
