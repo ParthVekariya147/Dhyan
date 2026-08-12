@@ -1,0 +1,102 @@
+/* ધૂન — the corner control (§8).
+   Co-located with the component and imported by it, the way darshan.css and learning.css
+   are: the styles load with the only thing that uses them.
+
+   Bottom-*left* on purpose. #top (index.css) sits at right:18px/bottom:18px on the દર્શન
+   feed, and two round gold buttons under the same thumb is one mis-tap away from stopping
+   the dhun when he meant to go back to the first દ્રશ્ય. */
+
+.dhun {
+  position: fixed;
+  left: 14px;
+  /* Above the iPhone home indicator, which otherwise takes the bottom of the button. */
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 55; /* under #bar (60), clear of #top (50) */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: var(--font-gu);
+}
+
+.dhun-corner { display: flex; align-items: center; gap: 6px; }
+
+/* Off is the quiet state and on is the lit one, so a glance at the corner answers
+   "is it playing?" without reading the icon — which matters, because that button is the
+   only thing on screen that reflects whether the browser actually allowed playback. */
+.dhun-btn {
+  width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
+  background: rgba(28, 22, 16, .92);
+  border: 1px solid rgba(240, 199, 120, .35);
+  color: var(--color-gold);
+  font-size: 18px; line-height: 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+  transition: background .3s ease, transform .2s ease, color .3s ease;
+}
+.dhun-btn.is-playing {
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  border-color: transparent;
+  color: #2a1d12;
+}
+.dhun-btn:active { transform: scale(.92); }
+
+.dhun-more {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: rgba(28, 22, 16, .92);
+  border: 1px solid rgba(240, 199, 120, .22);
+  color: var(--color-muted);
+  font-size: 15px; line-height: 1;
+}
+.dhun-more:active { transform: scale(.92); }
+
+.dhun-panel {
+  min-width: 200px;
+  max-width: min(78vw, 280px);
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(24, 19, 13, .96);
+  border: 1px solid rgba(240, 199, 120, .25);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .6);
+}
+
+.dhun-title { font-size: 12px; letter-spacing: .6px; color: var(--color-muted); margin-bottom: 8px; }
+
+.dhun-choice {
+  display: block; width: 100%;
+  text-align: start;
+  padding: 9px 10px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 199, 120, .2);
+  background: transparent;
+  color: #f6efe2;
+  font-family: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  /* A dhun name is the સંચાલક's text and can be long; it wraps rather than escaping. */
+  overflow-wrap: anywhere;
+}
+.dhun-choice.is-on {
+  border-color: var(--color-gold);
+  background: rgba(240, 199, 120, .1);
+  color: var(--color-gold-soft);
+}
+.dhun-wide { text-align: center; margin: 4px 0 0; }
+
+.dhun-vol {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.dhun-vol input {
+  flex: 1;
+  min-width: 0; /* a flex child with a default intrinsic width would overflow the panel */
+  accent-color: var(--color-gold);
+}
+
+.dhun button:focus-visible,
+.dhun input:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}

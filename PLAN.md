@@ -1,5 +1,19 @@
 # વરણી ધ્યાન — Varni Dhyan Web Application
 
+> ⚠️ **Backend changed after this was written.** The app now runs on **Supabase
+> (Postgres + RLS)**, not Firebase. Everything below about Firestore rules, read quotas,
+> `smkIndex`, custom claims and the §12 write strategy describes the *previous* design and
+> is kept only as the reasoning trail. What is live:
+>
+> - schema and policies — `supabase/migrations/`
+> - admin authorisation — `public.is_admin()`, not a custom claim
+> - SMK uniqueness — a `UNIQUE` constraint, not a claim document
+> - §12's read-budget gymnastics — **no longer needed**; Postgres has no per-read quota
+>
+> The four founding rules (§1), the four levels (§7), the midnight reset (§9), the
+> no-streaks rule (§10) and the admin dashboard requirements (§11) are unchanged — they
+> are product decisions, not storage ones.
+
 **Plan v3** · 2026-08-11 · supersedes v2
 
 Rewritten against the actual requirement document
@@ -88,13 +102,22 @@ Functions now also carry the mobile→email lookup above.
 Worth watching: if bandwidth approaches the cap, moving to Cloudflare Pages is a DNS
 change, not a rewrite.
 
-### 2.3 Scene count — ⛔ OPEN: 108, not 100
+### 2.3 Scene count — ⛔ STILL OPEN, and the numbers moved: 109 masters vs a spec that says 108
 
-The spec says **108** throughout. Only **100** images exist (§15 confirms: 100 ready,
-**"બાકીનાં ૮ ચિત્રો અને વર્ણન — સંચાલક — બાકી"**). The live page also says ૧૦૦.
+The spec says **108** throughout, and `TOTAL_SCENES` in `shared/domain/constants.js` is
+108. The સંચાલક's Drive folder holds **109** finalised 3840×2160 PNG images, `Varni(1).png`
+… `Varni(109).png`, and the sheet has 109 rows to match.
 
-Everything is built for 108; the remaining **8 images + descriptions are pending from
-the admin**. Progress is counted out of 108, so this blocks correct scoring.
+⛔ **109 is one more than the spec asks for, and nothing in this repository explains why.**
+It is not a rounding of "100 ready + 8 pending" — that would be 108. It could be an extra
+scene the સંચાલક added, a duplicate, or an off-by-one in the numbering of the Drive
+folder. **This needs the admin to confirm which**, and the answer decides whether
+`TOTAL_SCENES` becomes 109 or one master is withdrawn. It is deliberately not resolved
+here: guessing would silently change what every progress ring is counted out of.
+
+The વર્ણન gap that used to sit beside this is **closed**: the sheet now carries all 109, and
+`npm run darshan` reports *વર્ણન + image: 109 · image, no વર્ણન: none*. Only the 108-vs-109
+question above is still open. See §12.
 
 ---
 
@@ -103,40 +126,66 @@ the admin**. Progress is counted out of 108, so this blocks correct scoring.
 **Phase 0 (foundation) and the Level 2 દર્શન module are done**, on Vite + React 19 +
 Tailwind v4, with the original page's design ported intact.
 
-### Image pipeline — quality-first, measured
+### Images — served by Google, not by us
 
 The spec (§7) is explicit: **"ચિત્રની ક્વોલિટી ઊંચી જ રહેવી જોઈએ — ઓછી કરવાની નથી."**
 
-Encoder quality is therefore **never** chosen to hit a size target. For each image,
-format and width, `scripts/optimize-images.mjs` binary-searches the quality ladder for
-the *lowest* setting whose **SSIM ≥ 0.985** against the reference. File size is simply
-whatever that produces.
+That is still the rule, and it is now met without a local encoder at all. Every દ્રશ્ય is one
+URL pointing at `lh3.googleusercontent.com` — Google's image CDN, the same infrastructure that
+serves Drive's own previews — and the suffix on that URL is what asks for a width and an
+encoding. Measured on દ્રશ્ય ૧, whose master is a 3840×2160 PNG:
 
-| Format | Total | vs original | Quality range | SSIM min/median |
-|---|---|---|---|---|
-| **AVIF** | 7.33 MB | 59% smaller | q50–75 (median 65) | 0.9850 / 0.9860 |
-| WebP | 12.14 MB | 33% smaller | q65–95 | 0.9851 / 0.9872 |
-| JPEG (mozjpeg) | 14.85 MB | 17% smaller | q72–88 | 0.9850 / 0.9874 |
-| *original* | 17.99 MB | — | — | 1.0000 |
+| URL | What comes back |
+|---|---|
+| `=w1600` | 1600×900 **PNG**, 1606 KB — the master's own format |
+| `=w1600-rj` | 1600×900 JPEG, 249 KB |
+| **`=w1600-rj-v1`** | 1600×900 JPEG, **132 KB** — what the app uses |
+| `=w1600-rw-v1` | 1600×900 WebP, 95 KB — smaller, but needs format negotiation |
 
-**0 images below the floor · 0 capped out · 900 variants · aspect ratio preserved.**
-Full per-image table: `reports/optimization-report.md`.
+Twelve times smaller than the PNG, no visible loss, and the whole apparatus is a string.
+JPEG rather than WebP because a single `<img src>` has no format negotiation, so the one URL
+has to be one every browser can decode. `shared/domain/drive.js` documents each part and what
+it costs to drop it.
 
-⚠️ **Source limitation:** no true originals exist. The only source is the base64 JPEG
-recovered from the HTML — **1400×788, 4:4:4**. Those masters are already lossy, so every
-encode is generation loss on top of an existing JPEG, and 1400px is a hard ceiling on
-output resolution. Masters kept in `assets/originals/` and never overwritten.
+**What this replaced, and why.** The previous pipeline fetched 549 MB of masters into
+`assets/masters/`, then re-encoded all 109 into six widths × three formats, binary-searching
+each for the lowest quality still above SSIM 0.985. The engineering was sound and the result
+was not usable: the last full run reported **~13 hours remaining** and was killed after 12
+images. `content/darshan.json` therefore held 12 entries, and the app showed 12 દ્રશ્યો out of
+109 — for weeks, with nothing on screen to say why. A pipeline that cannot finish is not a
+slow pipeline; it is a broken one.
+
+Nothing image-shaped is in the repository now. No `assets/masters/`, no `public/darshan/`, no
+`sharp`, no encode cache, no publish function, no storage bucket in use. `dist/` is 1.9 MB.
+
+**The whole build is one command:**
+
+```bash
+npm run darshan     # sheet (વર્ણન + ક્રમ) + Drive folder (ids) -> content/darshan.json
+npm run validate -- --fetch    # proves all 109 links still serve real images
+```
+
+Ten seconds, and it reported `વર્ણન + image: 109 · binding via: declared 109`.
 
 ### Delivery — measured in real Chrome
 
+`npm run verify` drives Chrome against the built site. Current numbers, not historical ones:
+
 | | Original page | Now |
 |---|---|---|
-| Initial load (no scroll) | 25.2 MB, all 100 images | **0.27 MB, 6 images** |
+| Initial load (no scroll) | 25.2 MB, all 100 images | **0.54 MB, 6 images** |
+| Median image on the wire | — | **102 KB** |
+| Whole collection, if fully scrolled | 25.2 MB | **11.0 MB** (109 images) |
 | Reopen after closing | 25.2 MB again | **0 requests, 0 KB** |
 | Layout shift (CLS) | — | **0.0000** |
 
-`npm run verify` — 18 checks, all passing. Responsive `srcset` at 640/960/1400; a phone
-picks 960w, the lightbox always loads the native 1400w encode.
+22 checks, all passing. Among them: every request carries the re-encode suffix, nothing comes
+back as PNG, the feed uses no `<picture>` and no `srcset`, and the lightbox asks the CDN for
+`w2560` rather than stretching the `w1600` file the card already has.
+
+CLS stays at zero without width/height attributes because nothing here measures a remote
+file: `.frame` and `.scene-frame` reserve their box with `aspect-ratio: 16 / 9` in CSS, and
+`object-fit: contain` letterboxes anything that is not 16:9 rather than cropping it.
 
 ⚠️ **`vite preview` cannot test caching** — it ignores `public/_headers` and sends
 `Cache-Control: no-cache`. Use `scripts/serve-dist.mjs`, which mirrors production.
@@ -305,7 +354,7 @@ reports · manage the two dhun.
 | # | તબક્કો | Status |
 |---|---|---|
 | 0 | Foundation — scaffold, theme, image pipeline | ✅ **done** |
-| 1 | નોંધણી (email+password), લોગિન (મોબાઈલ *or* email), વિડિયો પ્રવેશદ્વાર | ⛔ needs Firebase keys |
+| 1 | નોંધણી (email+password), લોગિન (મોબાઈલ *or* email), વિડિયો પ્રવેશદ્વાર | ✅ backend live — Supabase migrated; the entry gate still needs the YouTube link |
 | 2 | લેવલ ૧ અને લેવલ ૨ (દર્શન) | 🔶 Level 2 done · Level 1 needs the YouTube link |
 | 3 | લેવલ ૩ અને ૪, ટિક, તાળાનો નિયમ, રોજ ખાલી થવાની વ્યવસ્થા | needs 108 વર્ણન |
 | 4 | સંગીત, આપોઆપ સ્કોલ, પ્રગતિ ચક્ર, મારો ઈતિહાસ, કેલેન્ડર | needs 2 MP3s |
@@ -323,16 +372,21 @@ shareable to WhatsApp at 50 or 108; full offline use once loaded.
 | What | Status |
 |---|---|
 | ૧૦૦ ચિત્રો અને વર્ણન | ✅ ready — optimised and in the build |
-| **બાકીનાં ૮ ચિત્રો અને વર્ણન** | ⛔ pending — blocks correct /108 scoring |
+| **બાકીનાં ચિત્રો** | ✅ **આવી ગયાં** — the Drive folder holds 109 finalised 3840×2160 PNG images, all 109 bound and serving. See §2.3: 109 is one more than the spec's 108 and the admin must confirm why |
+| ~~**બાકીનાં ૯ વર્ણન — દ્રશ્ય ૧૦૧–૧૦૯**~~ | ✅ **done** — the sheet carries all 109 વર્ણન; `npm run darshan` reports *image, no વર્ણન: none*. All 109 દ્રશ્યો are live |
 | **YouTube વિડિયોની લિંક** | ⛔ pending — blocks Level 1 and the entry gate |
-| **Firebase ખાતું અને એની ચાવીઓ** | ⛔ pending — blocks all of Phase 1 |
+| ~~**Firebase ખાતું અને એની ચાવીઓ**~~ | ✅ **obsolete** — the backend is Supabase, not Firebase. Project `tjovudfsodviwijyyvdw` (ap-south-1) is live and every migration is applied; no admin action is needed here |
 | **બે ધૂન / કીર્તનની MP3 ફાઈલો** | ⛔ pending — blocks Phase 4 |
 
 ## 13. Open questions
 
-1. **What is SMK?** The spec makes it a required text field but never defines it.
-   **Must it be unique?** If so it needs its own index collection, which changes the
-   signup write. Blocks Phase 1.
+1. ~~What is SMK?~~ ✅ **Answered.** The yuvak's unique member ID: three uppercase
+   initials (first · middle · last name) then three digits — `PGV881`, `ABC789`,
+   `ASD852`. Pattern `^[A-Z]{3}\d{3}$`, **unique across every yuvak**.
+   Uniqueness is enforced by `smkIndex/{SMK}`, written in the same batch as the profile;
+   the document id *is* the SMK and the rule permits create but never update, so exactly
+   one yuvak can hold a value. A failed claim deletes the just-created auth account so
+   nobody is stranded half-registered.
 2. **The 108 વર્ણન** — Level 3 shows વર્ણન *without* images. Are the existing 100 captions
    the same text reused, or is there separate, shorter wording for the list?
 3. **Password rules** — minimum length, and is there any recovery route for a yuvak who

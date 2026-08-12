@@ -41,8 +41,15 @@ export default function DarshanFeed({ items }) {
   return (
     <>
       <main className="feed">
+        {/*
+          Keyed by id, not by the printed number. Stable identity is the id and never the
+          position or the number (§3): the સંચાલક can renumber a દ્રશ્ય from the panel, and
+          `scenes_index_unique` only constrains the rows he has actually touched — an
+          overridden number can still collide with an untouched scene's manifest number,
+          which as a key would drop one of the two cards.
+        */}
         {items.slice(0, count).map((item) => (
-          <DarshanCard key={item.n} item={item} onOpen={open} />
+          <DarshanCard key={item.id} item={item} onOpen={open} />
         ))}
       </main>
 

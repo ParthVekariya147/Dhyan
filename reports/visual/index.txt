@@ -1,6 +1,0 @@
-066  darkest (shadow detail, banding risk)  (top = original, bottom = AVIF)
-024  brightest (highlight rolloff)  (top = original, bottom = AVIF)
-059  most detailed (fine texture, ringing risk)  (top = original, bottom = AVIF)
-065  smoothest (gradient banding risk)  (top = original, bottom = AVIF)
-003  scene 3 (face / skin tone)  (top = original, bottom = AVIF)
-086  scene 86 (face / skin tone)  (top = original, bottom = AVIF)

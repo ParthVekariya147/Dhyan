@@ -9,6 +9,27 @@
   --color-panel: #1c1610;
   --color-muted: #a2907c;
   --font-gu: "Noto Sans Gujarati", "Shruti", "Nirmala UI", system-ui, -apple-system, sans-serif;
+
+  /*
+   * The same stack with Latin in front, for pages whose wording is English.
+   *
+   * Font fallback is per GLYPH, not per element: the browser walks the list for each
+   * character and stops at the first family that has it. Putting Latin ahead therefore
+   * cannot take Gujarati away from Noto/Shruti — it only changes which family serves
+   * a–z.
+   *
+   * That matters because Noto Sans Gujarati is not installed on Windows, so --font-gu
+   * falls through to Shruti, a legacy Gujarati face that also ships Latin glyphs. Being
+   * first with Latin coverage, Shruti renders every English word in the app, and its
+   * Latin is wide and poorly fitted — which is what made the English entry gate look
+   * loosely tracked next to everything else.
+   *
+   * Applied per page rather than swapped into --font-gu, because moving it globally
+   * would also change which font draws the spaces and punctuation inside Gujarati
+   * sentences on the five pages that are still Gujarati. When those pages are converted,
+   * this becomes the default and --font-gu retires.
+   */
+  --font-latin: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Gujarati", "Shruti", "Nirmala UI", sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

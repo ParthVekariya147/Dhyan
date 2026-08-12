@@ -1,0 +1,266 @@
+/* લેવલ ૩ અને લેવલ ૪. Same dark-and-gold palette, type and motion as the દર્શન feed and
+   the journey — nothing here introduces a new visual language, and nothing here is red
+   (§1 rule 4: there is no state on these screens worth colouring as a warning). */
+
+.level-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 72px;
+}
+
+.level-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 2px 6px;
+  font-size: 14.5px;
+}
+
+/* Also declared in learning.css, which this page does not import. Repeated rather than
+   moved to a shared file: those styles belong to the journey module and this one must not
+   start depending on it. */
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-gold-soft);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 199, 120, 0.35);
+}
+.linklike:hover { color: #fff3d8; }
+.linklike:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------------------------------------------------------------- head */
+
+.level-head { padding: 20px 0 6px; text-align: center; animation: dropIn .6s cubic-bezier(.2,.7,.3,1) both; }
+
+.level-eyebrow { font-size: 13px; letter-spacing: .6px; color: var(--color-gold); }
+
+.level-head h1 {
+  margin-top: 4px;
+  font-size: clamp(22px, 5vw, 32px);
+  font-weight: 700;
+  letter-spacing: .4px;
+  background: linear-gradient(180deg, #fff3d8, var(--color-gold) 55%, #c9922f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.level-note {
+  margin: 14px auto 0;
+  max-width: 560px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: #8b7a66;
+}
+.level-carried, .level-sync { color: var(--color-muted); }
+
+/* ---------------------------------------------------------------- ring */
+
+.ring { position: relative; width: 168px; margin: 18px auto 0; }
+.ring-svg { width: 100%; height: auto; display: block; transform: rotate(-90deg); }
+
+.ring-track {
+  fill: none;
+  stroke: rgba(240, 199, 120, .13);
+  stroke-width: 8;
+}
+/* The travelled arc. Round caps so a single tick still reads as a mark rather than a
+   hairline, and a transition so the ring visibly *moves* on each tick (§10). */
+.ring-fill {
+  fill: none;
+  stroke: var(--color-gold);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .45s cubic-bezier(.2,.7,.3,1);
+  filter: drop-shadow(0 0 6px rgba(240, 199, 120, .35));
+}
+
+.ring-body {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ring-score {
+  font-size: clamp(30px, 9vw, 40px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-gold-soft);
+}
+.ring-of { font-size: .48em; color: var(--color-muted); }
+.ring-label { margin-top: 7px; font-size: 13px; color: var(--color-muted); }
+.ring-sub { margin: 12px auto 0; max-width: 460px; font-size: 13.5px; line-height: 1.8; color: var(--color-muted); }
+
+/* ---------------------------------------------------------------- the list */
+
+.tick-list { list-style: none; margin: 22px 0 0; padding: 0; }
+
+.tick-row {
+  margin-top: 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #221a12, #1a140e);
+  border: 1px solid rgba(240, 199, 120, .18);
+  transition: border-color .2s ease, background .25s ease;
+
+  /*
+    Virtualisation, done by the browser.
+
+    ~109 rows is a small DOM, but on a mid-range phone their layout and paint still cost
+    something on every scroll. `content-visibility: auto` lets the engine skip both for
+    rows outside the viewport and do them as they approach — the same saving a windowing
+    library buys, with no dependency (forbidden here), no lost find-in-page, and no
+    scroll jump when a row grows because a લેવલ ૪ answer was revealed inside it.
+
+    `contain-intrinsic-size: auto <h>` supplies a placeholder height for skipped rows so
+    the scrollbar is right, and `auto` makes the browser remember each row's *real* height
+    once measured — so scrolling back up lands where it did before. Browsers without the
+    property simply render every row, which is also correct.
+  */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}
+.tick-row.is-on {
+  border-color: rgba(240, 199, 120, .55);
+  background: linear-gradient(180deg, #2a2015, #201810);
+}
+
+/* The whole row is the label: a thumb-sized target, not a 26px box (§14). */
+.tick-main {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 15px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tick-n {
+  flex: none;
+  min-width: 46px;
+  padding: 7px 10px;
+  border: 1px solid rgba(240, 199, 120, .45);
+  border-radius: 999px;
+  background: rgba(240, 199, 120, .09);
+  color: var(--color-gold-soft);
+  font-size: 15px; font-weight: 700; line-height: 1; text-align: center;
+}
+
+.tick-body { flex: 1; min-width: 0; }
+.tick-text { display: block; font-size: 15.5px; line-height: 1.75; color: #f4ead8; }
+
+/* Holds લેવલ ૪'s row height steady before an answer is revealed, so the list does not
+   jump under the finger as the yuvak works down it. */
+.tick-blank { display: block; min-height: 22px; }
+
+.tick-main input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.tick-box {
+  flex: none;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(240, 199, 120, .55);
+  display: grid; place-items: center;
+  color: #2a1d12; font-size: 17px; font-weight: 700;
+  transition: background .2s ease, transform .2s cubic-bezier(.2,1.5,.4,1);
+}
+.tick-row.is-on .tick-box {
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  transform: scale(1.06);
+}
+
+/* Focus must be visible and never signalled by colour alone (§31). */
+.tick-main input:focus-visible ~ .tick-box {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+/* 'જવાબ જુઓ' (§7). Quiet by design — it is an ordinary, blameless choice, not a
+   confession, so it is not styled as a warning or a last resort. */
+.tick-reveal {
+  display: block;
+  margin: 0 15px 13px 74px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--color-gold-soft);
+  background: rgba(240, 199, 120, .06);
+  border: 1px solid rgba(240, 199, 120, .3);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.tick-reveal:hover { border-color: rgba(240, 199, 120, .55); }
+.tick-reveal:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; }
+
+.level-foot {
+  margin: 26px auto 0;
+  max-width: 560px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--color-gold-soft);
+}
+
+/* ---------------------------------------------------------------- lock & empty */
+
+.level-locked, .level-empty {
+  margin: 30px auto 0;
+  max-width: 480px;
+  padding: 38px 24px 32px;
+  border-radius: 18px;
+  text-align: center;
+  background: radial-gradient(420px 260px at 50% 20%, #2a1f14 0%, var(--color-panel) 72%);
+  /* Solid gold, not dashed or greyed: a locked લેવલ ૪ is an invitation, not a barrier. */
+  border: 1px solid rgba(240, 199, 120, .28);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
+  animation: dropIn .6s cubic-bezier(.2,.7,.3,1) both;
+}
+
+.locked-mark { font-size: 44px; animation: pop .7s cubic-bezier(.2,1.5,.4,1) both; }
+.level-locked h2 {
+  margin-top: 12px;
+  font-size: clamp(20px, 4.6vw, 26px);
+  font-weight: 700;
+  color: var(--color-gold-soft);
+}
+.locked-line { margin-top: 16px; font-size: 16px; line-height: 1.9; color: #f4ead8; }
+.locked-sub { margin-top: 10px; font-size: 13.5px; line-height: 1.85; color: var(--color-muted); }
+.level-empty p { font-size: 15.5px; line-height: 1.9; color: #f4ead8; }
+
+.btn-inline {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  font-size: 15.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-gold.btn-inline {
+  color: #2a1d12;
+  border: none;
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+}
+.btn-quiet.btn-inline {
+  color: var(--color-gold-soft);
+  background: rgba(240, 199, 120, .05);
+  border: 1px solid rgba(240, 199, 120, .3);
+}
+
+.spinner-page { min-height: 60vh; display: flex; align-items: center; justify-content: center; gap: 9px; }
+.spinner-page .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--color-gold); opacity: .25;
+  animation: bob 1.2s infinite;
+}
+.spinner-page .dot:nth-child(2) { animation-delay: .15s; }
+.spinner-page .dot:nth-child(3) { animation-delay: .3s; }
+
+@media (max-width: 480px) {
+  .tick-main { gap: 11px; padding: 13px 12px; }
+  .tick-n { min-width: 42px; font-size: 14px; }
+  .tick-text { font-size: 15px; }
+  .tick-reveal { margin-left: 65px; }
+}

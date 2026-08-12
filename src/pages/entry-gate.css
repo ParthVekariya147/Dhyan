@@ -1,0 +1,176 @@
+/* §5 — the entry gate.
+
+   ONE TYPE SCALE.
+   This card used to mix 12.8px, 14px, 14.5px, 15.5px and 16.5px text in a single
+   column — the note under the boxes was the smallest thing on screen while the link
+   above them was the largest — which is what made the lettering read as randomly
+   small and large. There are three sizes here now and nothing sets its own:
+
+     --gate-text    15px    the sub-heading and the note under the boxes
+     --gate-q       16px    the two questions themselves — the thing being answered,
+                            so never smaller than the prose around it
+     (buttons)      16.5px  from .btn in forms.css, shared with every other page
+
+   The 1.65 line-height is inherited from the Gujarati pages rather than tuned for the
+   English wording this page now carries: body text still renders in --font-gu, and the
+   moment any of these strings goes back to Gujarati the matras need that room. Latin at
+   1.65 is loose but correct; Gujarati at a Latin 1.4 collides. */
+.gate-wrap {
+  max-width: 560px;
+  --gate-text: 15px;
+  --gate-q: 16px;
+  --gate-line: 1.65;
+
+  /* This page's wording is English — see --font-latin in index.css for why the whole
+     app cannot simply be told to prefer Latin. */
+  font-family: var(--font-latin);
+}
+
+/* `pretty` is what stops a centred two-line greeting from dropping its last word alone
+   onto a third line. It costs nothing where unsupported — the text simply wraps as it
+   does today — so there is no fallback to write. */
+.gate-wrap .auth-sub {
+  font-size: var(--gate-text);
+  line-height: var(--gate-line);
+  text-wrap: pretty;
+}
+
+/* ---- video ---------------------------------------------------------------- */
+
+.gate-video { margin-top: 22px; }
+
+.video-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+}
+.video-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* This one is an <a>, not a <button>, and that was quietly breaking it.
+   `.btn` sets `width: 100%`, which an inline element ignores — so the pill shrank to
+   the width of its text, sat left, and its 15px vertical padding rode up over the
+   bottom edge of the video above it. `display: block` is what makes .btn's own width
+   apply; the underline and inherited link colour go with it.
+
+   .btn also brings a 24px top margin meant for the bottom of a form. Under the video
+   this is one control directly beneath another, so it is closed up to match the gap
+   inside the question group rather than floating between the two blocks.
+
+   The label is left in the document's reading order deliberately: "YouTube" is a proper
+   noun either way, so this button reads the same whichever language the page is in. */
+.gate-open {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* ---- the two questions ---------------------------------------------------- */
+
+/* Grouped and outlined, so it reads as one block belonging to the video above it.
+   Loose checkboxes under a video look like two stray controls, and on a tall phone
+   the second one could sit far enough down to be missed entirely. */
+.gate-qs {
+  margin-top: 22px;
+  padding: 16px 14px 14px;
+  border-radius: 14px;
+  background: rgba(240, 199, 120, 0.035);
+  border: 1px solid rgba(240, 199, 120, 0.16);
+}
+
+/* Weight and colour carry the hierarchy here, not size. Shrinking a label to 13px to
+   make it "secondary" is what produced the mixed lettering in the first place — and it
+   would break again the moment this label goes back to Gujarati, which loses its matras
+   at a size where Latin is still perfectly readable. */
+.gate-qs-head {
+  margin-bottom: 12px;
+  font-size: var(--gate-text);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--color-gold-soft);
+  opacity: 0.8;
+}
+
+/* Large tap targets — §14 asks for buttons pressable easily with a thumb. 56px is the
+   floor both Android and iOS publish for a reliable one-handed tap. */
+.gate-q {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 56px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: #14100b;
+  border: 1px solid rgba(240, 199, 120, 0.22);
+  cursor: pointer;
+  font-size: var(--gate-q);
+  line-height: var(--gate-line);
+  transition: border-color 0.2s ease, background 0.2s ease;
+  /* The whole row is a label, so a mistimed double-tap selects the sentence instead
+     of toggling the box — and on iOS a long-press raises the copy bubble over it. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.gate-q + .gate-q { margin-top: 10px; }
+
+.gate-q:has(input:checked) {
+  border-color: rgba(240, 199, 120, 0.6);
+  background: rgba(240, 199, 120, 0.07);
+}
+
+/* Keyboard focus has to be visible on the row, not on the 24px box alone: the box is
+   the only focusable node, but the row is what the eye tracks. */
+.gate-q:has(input:focus-visible) {
+  border-color: rgba(240, 199, 120, 0.85);
+  box-shadow: 0 0 0 3px rgba(240, 199, 120, 0.14);
+}
+
+.gate-q input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  accent-color: #d3a04a;
+  cursor: pointer;
+}
+.gate-q input:focus-visible { outline: none; }
+
+.gate-q span { flex: 1; }
+
+/* ---- the single note under the boxes -------------------------------------- */
+
+/* One line, one size, one reserved slot. Three separate notes used to appear and
+   disappear here at three sizes, and each one shifted the બટન under a thumb already
+   moving toward it. min-height holds the space whether it is filled or not. */
+.gate-note {
+  margin-top: 13px;
+  min-height: 1.65em;
+  font-size: var(--gate-text);
+  line-height: var(--gate-line);
+  color: #8b7a66;
+}
+.gate-note .is-good { color: var(--color-gold-soft); }
+.gate-note .is-bad { color: #e8b98a; }
+
+/* ---- shared ---------------------------------------------------------------- */
+
+.gate-wrap .auth-alt { font-size: var(--gate-text); }
+
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-gold-soft);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(240, 199, 120, 0.35);
+}

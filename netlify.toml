@@ -1,0 +1,45 @@
+[build]
+  # Builds both apps, in this order for two reasons that both matter:
+  #   1. the યુવક build owns dist/ and empties it, which would wipe dist/admin if it
+  #      ran second;
+  #   2. its service worker precaches by globbing dist/, so building the panel
+  #      afterwards keeps admin chunks out of the yuvak's precache manifest.
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  # No `external_node_modules`. It used to list sharp, whose compiled native binary esbuild
+  # cannot bundle, for the image-publishing function — which no longer exists: દર્શન images
+  # are served straight from Google's CDN and nothing on the server touches image bytes.
+  # The two remaining functions are plain fetch and JSON.
+
+# Short, stable paths for the client; the function files can be renamed freely.
+[[redirects]]
+  from = "/api/login-mobile"
+  to = "/.netlify/functions/login-mobile"
+  status = 200
+
+
+# સંચાલક પેનલ — its own SPA, its own fallback, and it MUST come before the yuvak
+# catch-all below.
+#
+# /admin/ itself resolves as a real file (dist/admin/index.html) because Netlify serves
+# static files before consulting redirects. Deep links do not: /admin/users matches no
+# file, so without this rule it would fall through to /* and Netlify would hand back the
+# યુવક shell for an admin URL — a yuvak app booting at an /admin path, which then
+# redirects to '/' and looks like the panel silently refusing to open.
+[[redirects]]
+  from = "/admin/*"
+  to = "/admin/index.html"
+  status = 200
+
+# SPA fallback — must come after the API and /admin rules.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Caching is declared in public/_headers, which Netlify reads directly.
+# Image filenames embed a content hash, so they can be immutable; the shell cannot.

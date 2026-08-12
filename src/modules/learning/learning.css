@@ -1,0 +1,241 @@
+/* The learning journey. Palette, type and motion follow the દર્શન page so the two
+   feel like one application; nothing here introduces a new visual language. */
+
+.learn-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px 64px;
+}
+
+.learn-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 2px 6px;
+  font-size: 14.5px;
+}
+
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-gold-soft);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 199, 120, 0.35);
+}
+.linklike:hover { color: #fff3d8; }
+
+/* ---- stage chrome ---- */
+.stage, .runner { animation: dropIn .6s cubic-bezier(.2,.7,.3,1) both; }
+
+.runner-head { padding: 26px 0 12px; text-align: center; }
+.runner-head h2 {
+  font-size: clamp(21px, 4.6vw, 31px);
+  font-weight: 700;
+  letter-spacing: .4px;
+  background: linear-gradient(180deg, #fff3d8, var(--color-gold) 55%, #c9922f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.runner-count { margin-top: 8px; color: var(--color-muted); font-size: 14px; letter-spacing: .6px; }
+
+.runner-track {
+  width: min(320px, 70%); height: 2px; margin: 14px auto 0;
+  background: rgba(240, 199, 120, .14); border-radius: 2px; overflow: hidden;
+}
+.runner-track span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #b8862f, var(--color-gold), #fff2d4);
+  transition: width .35s cubic-bezier(.2,.7,.3,1);
+}
+
+.runner-hint {
+  margin: 14px auto 0; max-width: 640px; text-align: center;
+  color: var(--color-muted); font-size: 14.5px; line-height: 1.85;
+}
+.tick-tally { margin-top: 18px; color: var(--color-gold-soft); }
+
+/* ---- one scene ---- */
+.scene {
+  margin: 22px 0 0; border-radius: 14px; overflow: hidden;
+  background: var(--color-panel);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
+}
+
+/* Sized by ratio rather than by the image's intrinsic width/height: the artwork comes from
+   Google's CDN and nothing here measures a remote file, so the box has to be reserved
+   before the bytes arrive or the stage jumps as each scene loads. `contain` means a scene
+   that is not 16:9 letterboxes rather than being cropped. */
+.scene-frame { line-height: 0; background: #000; aspect-ratio: 16 / 9; }
+.scene-frame img {
+  width: 100%; height: 100%; display: block; object-fit: contain;
+}
+
+.scene-cap {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px 17px;
+  background: linear-gradient(180deg, #221a12, #1a140e);
+}
+.scene-txt {
+  flex: 1; text-align: center; line-height: 1.75; color: #f4ead8;
+  font-size: clamp(15px, 2.4vw, 19px);
+}
+.scene-num {
+  flex: none; min-width: 46px; padding: 7px 12px;
+  border: 1px solid rgba(240, 199, 120, .45); border-radius: 999px;
+  background: rgba(240, 199, 120, .09); color: var(--color-gold-soft);
+  font-size: 14px; font-weight: 700; line-height: 1; text-align: center;
+}
+
+/* Fetches the next scene without showing it. Not `display:none` — a collapsed box
+   still loads, a removed one does not. */
+.scene-preload {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; opacity: 0; pointer-events: none;
+}
+
+/* ---- the checkbox ---- */
+.remember {
+  display: flex; align-items: center; justify-content: center; gap: 13px;
+  margin: 20px auto 0; padding: 15px 22px; max-width: 420px;
+  border: 1px solid rgba(240, 199, 120, .28); border-radius: 999px;
+  background: rgba(240, 199, 120, .05);
+  cursor: pointer; user-select: none;
+  transition: background .25s ease, border-color .25s ease;
+}
+.remember:hover { border-color: rgba(240, 199, 120, .5); }
+.remember.is-on { background: rgba(240, 199, 120, .13); border-color: rgba(240, 199, 120, .68); }
+
+/* The native input stays in the DOM and keeps its accessible name and keyboard
+   behaviour; only its painting is replaced. */
+.remember input {
+  position: absolute; opacity: 0; width: 1px; height: 1px;
+}
+.remember-box {
+  flex: none; width: 26px; height: 26px; border-radius: 7px;
+  border: 1.5px solid rgba(240, 199, 120, .55);
+  display: grid; place-items: center;
+  color: #2a1d12; font-size: 16px; font-weight: 700;
+  transition: background .2s ease, transform .2s cubic-bezier(.2,1.5,.4,1);
+}
+.remember.is-on .remember-box {
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  transform: scale(1.06);
+}
+.remember-label { font-size: 16px; color: #f4ead8; }
+
+/* Focus must be visible, and never signalled by colour alone (§31). */
+.remember input:focus-visible + .remember-box {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+/* ---- navigation ---- */
+.runner-nav {
+  display: flex; gap: 12px; justify-content: space-between; align-items: center;
+  margin: 24px auto 0; max-width: 520px;
+}
+.runner-nav-single { justify-content: center; }
+
+.btn-gold, .btn-quiet {
+  flex: 1; padding: 15px 22px; border-radius: 12px; cursor: pointer;
+  font: inherit; font-size: 16px; font-weight: 600; letter-spacing: .3px;
+  transition: transform .18s ease, box-shadow .25s ease, opacity .2s ease;
+}
+.runner-nav-single .btn-gold { flex: 0 1 auto; min-width: 240px; }
+
+.btn-gold {
+  border: none; color: #2a1d12;
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+}
+.btn-gold:hover { transform: translateY(-1px); box-shadow: 0 9px 24px rgba(0, 0, 0, .55); }
+.btn-gold:active { transform: translateY(0) scale(.99); }
+
+.btn-quiet {
+  border: 1px solid rgba(240, 199, 120, .3);
+  background: rgba(240, 199, 120, .05); color: var(--color-gold-soft);
+}
+.btn-quiet:hover { border-color: rgba(240, 199, 120, .5); }
+.btn-gold:disabled, .btn-quiet:disabled { opacity: .38; cursor: default; transform: none; }
+
+.btn-gold:focus-visible, .btn-quiet:focus-visible, .linklike:focus-visible {
+  outline: 2px solid var(--color-gold); outline-offset: 3px;
+}
+
+/* ---- video ---- */
+.video-shell {
+  position: relative; margin: 22px 0 0; width: 100%; aspect-ratio: 16 / 9;
+  border-radius: 14px; overflow: hidden; background: #000;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
+}
+.video-shell iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-shell.is-loading { background: linear-gradient(180deg, #221a12, #1a140e); }
+
+/* ---- result ---- */
+.result-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  margin: 24px auto 0; max-width: 520px;
+}
+.result-card {
+  padding: 26px 16px; border-radius: 14px; text-align: center;
+  background: var(--color-panel); border: 1px solid rgba(240, 199, 120, .16);
+}
+/* Pending is never marked in red — §1 rule 4, ફક્ત આનંદ, નિરાશા નહીં. */
+.result-card.is-good { border-color: rgba(240, 199, 120, .48); background: rgba(240, 199, 120, .08); }
+.result-num {
+  font-size: clamp(34px, 9vw, 52px); font-weight: 700; line-height: 1;
+  color: var(--color-gold-soft);
+}
+.result-card:not(.is-good) .result-num { color: #cbb694; }
+.result-label { margin-top: 10px; font-size: 14.5px; color: var(--color-muted); }
+.result-line {
+  margin: 20px auto 0; max-width: 620px; text-align: center;
+  font-size: 16px; line-height: 1.9; color: #f4ead8;
+}
+
+/* ---- memory recall: the number, and nothing else ---- */
+.recall-card {
+  margin: 26px auto 0; max-width: 520px; padding: clamp(48px, 16vw, 96px) 20px;
+  border-radius: 18px; text-align: center;
+  background: radial-gradient(520px 300px at 50% 30%, #2a1f14 0%, var(--color-panel) 70%);
+  border: 1px solid rgba(240, 199, 120, .2);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
+}
+.recall-num {
+  font-size: clamp(76px, 26vw, 150px); font-weight: 700; line-height: 1;
+  letter-spacing: 2px;
+  background: linear-gradient(180deg, #fff3d8, var(--color-gold) 55%, #c9922f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: pop .55s cubic-bezier(.2,1.5,.4,1) both;
+}
+.recall-ask { margin-top: 22px; color: var(--color-muted); font-size: 15px; letter-spacing: .5px; }
+.recall-hint { margin-top: 18px; }
+
+/* ---- notices ---- */
+.notice {
+  margin: 22px auto 0; max-width: 560px; padding: 20px 22px;
+  border-radius: 14px; text-align: center;
+  background: var(--color-panel); border: 1px solid rgba(240, 199, 120, .2);
+}
+.notice-warn { border-color: rgba(240, 199, 120, .45); background: rgba(240, 199, 120, .07); }
+.notice p { line-height: 1.8; }
+.notice-sub { margin-top: 8px; color: var(--color-muted); font-size: 14px; }
+.notice .btn-quiet { margin-top: 16px; flex: 0 1 auto; }
+
+.stage-empty { padding: 60px 20px; text-align: center; }
+.stage-empty p { color: var(--color-muted); margin-bottom: 22px; }
+
+.done-mark { font-size: 64px; text-align: center; margin: 26px 0 4px; animation: pop .7s cubic-bezier(.2,1.5,.4,1) both; }
+
+.spinner-page {
+  min-height: 60vh; display: flex; align-items: center; justify-content: center; gap: 9px;
+}
+
+@media (max-width: 480px) {
+  .runner-nav { gap: 10px; }
+  .btn-gold, .btn-quiet { padding: 14px 16px; font-size: 15px; }
+  .scene-cap { flex-direction: column; gap: 10px; padding: 14px 14px 16px; }
+}

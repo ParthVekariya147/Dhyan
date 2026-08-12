@@ -1,0 +1,71 @@
+# CI for વર્ણી ધ્યાન — both applications, every push.
+#
+# Three things are checked, in the order that fails fastest:
+#
+#   1. both apps build;
+#   2. no સંચાલક code reached the યુવક bundle, no secret reached either bundle, and the
+#      test-only દર્શન flag did not survive into a production build (§50, §64, §75);
+#   3. the image-delivery regression suite, in a real Chrome (§63, §80).
+#
+# The two VITE_SUPABASE_* values below are the same pair that ships in every visitor's
+# browser — the project URL and the publishable key. Neither is a secret (Row Level
+# Security is what protects the data, not key secrecy), but they are read from repository
+# secrets so this workflow carries no project identity of its own.
+#
+# They are set because src/lib/supabase.js builds the client at module scope and
+# shared/supabase/client.js throws when either value is missing: a bundle built without
+# them crashes on load, so the image-delivery suite would fail before it measured
+# anything. verify:separation needs neither — it only reads dist/.
+#
+# The real secret, SUPABASE_SECRET_KEY, bypasses every RLS policy. It is used only by
+# netlify/functions/* at runtime and is deliberately absent here: nothing CI runs should
+# be able to read production data.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build both applications
+        run: npm run build
+
+      - name: Verify the યુવક bundle carries no admin code
+        run: npm run verify:separation
+
+      # §64 — a production build must refuse the verifier's flag rather than shipping
+      # દર્શન to anyone with the URL. This asserts the guard in vite.config.js fires.
+      - name: Production build must reject VITE_PUBLIC_DARSHAN
+        env:
+          VITE_PUBLIC_DARSHAN: '1'
+        run: |
+          if npm run build:yuvak > /dev/null 2>&1; then
+            echo "FAIL: a production build accepted VITE_PUBLIC_DARSHAN=1"
+            exit 1
+          fi
+          echo "PASS: production build refused the test-only flag"
+
+      - name: Image-delivery regression suite
+        env:
+          # Preinstalled on the ubuntu-latest runner image.
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run verify

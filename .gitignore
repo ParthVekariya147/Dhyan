@@ -2,9 +2,13 @@ node_modules/
 dist/
 dev-dist/
 
-# 18 MB of decoded JPEGs, kept only as the source for re-encoding.
-# Archive these to Google Drive — that is what the 5 TB plan is genuinely good for.
+# Local copies of the artwork. Neither is part of the build any more: દર્શન images are
+# served straight from the સંચાલક's Google Drive folder, which is their system of record,
+# and nothing in this repository reads these directories. They are kept ignored so an
+# existing checkout does not suddenly offer to commit 549 MB of PNG.
 originals-archive/
+assets/masters/
+assets/originals/
 
 .env
 .env.local

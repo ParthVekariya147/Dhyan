@@ -1,5402 +1,1092 @@
 [
   {
+    "id": "darshan-001",
     "n": 1,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/001-640.9fb3cd46.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/001-960.4e0a8ced.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/001-1400.74cf4b31.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/001-640.c4b18b38.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/001-960.a3aa12e7.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/001-1400.eb02e70b.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/001-640.6dcf685c.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/001-960.e18a4e4e.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/001-1400.a503c05d.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/001-1400.74cf4b31.avif",
-      "webp": "/darshan/001-1400.eb02e70b.webp",
-      "jpeg": "/darshan/001-1400.a503c05d.jpg"
-    },
+    "order": 1,
     "t": "સમુદ્રના પ્રચંડ મોજાં અને ખડકની કમાન પર કોતરાયેલી નીલકંઠ વર્ણીની વનવિચરણ-મુદ્રાનું દર્શન",
-    "group": null
+    "driveId": "17dayguvK91e9oR4CWj_4pcs4SNpCuPSf",
+    "url": "https://lh3.googleusercontent.com/d/17dayguvK91e9oR4CWj_4pcs4SNpCuPSf=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/17dayguvK91e9oR4CWj_4pcs4SNpCuPSf=w2560-rj-v1",
+    "file": "Varni(1).png"
   },
   {
+    "id": "darshan-002",
     "n": 2,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/002-640.321caa86.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/002-960.af4a1a67.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/002-1400.94e5eebf.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/002-640.b39fb3ee.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/002-960.bedbe791.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/002-1400.206408da.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/002-640.318741ca.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/002-960.d51b728a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/002-1400.155073d8.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/002-1400.94e5eebf.avif",
-      "webp": "/darshan/002-1400.206408da.webp",
-      "jpeg": "/darshan/002-1400.155073d8.jpg"
-    },
-    "t": "ઊછળતાં સાગર-મોજાં સામે નિર્ભય ઊભેલા, હાથમાં કમંડલ ને માળા ધારણ કરેલા વર્ણીરાજનું પૃષ્ઠ-દર્શન",
-    "group": null
+    "order": 2,
+    "t": "સાગરકિનારે પથ્થર પર ઊભા રહી, ઊછળતાં પ્રચંડ મોજાં વચ્ચે નિર્ભય ઊભેલા વર્ણીનું દર્શન",
+    "driveId": "1DvhV1Dzaht8JwQTYzJaRi7RtTQXBiomN",
+    "url": "https://lh3.googleusercontent.com/d/1DvhV1Dzaht8JwQTYzJaRi7RtTQXBiomN=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1DvhV1Dzaht8JwQTYzJaRi7RtTQXBiomN=w2560-rj-v1",
+    "file": "Varni(2).png"
   },
   {
+    "id": "darshan-003",
     "n": 3,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/003-640.f741432a.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/003-960.72f68b83.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/003-1400.d7ee6d22.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/003-640.1ed69ea3.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/003-960.6b9919f3.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/003-1400.bde0fb0e.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/003-640.dd212912.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/003-960.25dbc462.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/003-1400.426fb7c7.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/003-1400.d7ee6d22.avif",
-      "webp": "/darshan/003-1400.bde0fb0e.webp",
-      "jpeg": "/darshan/003-1400.426fb7c7.jpg"
-    },
-    "t": "સમુદ્રજળના અભિષેક વચ્ચે નેત્ર મીંચી, પ્રસન્ન મુખમુદ્રામાં ઊભેલા વર્ણીનું નિકટ-દર્શન",
-    "group": null
+    "order": 3,
+    "t": "ઊછળતાં સાગર-મોજાં સામે નિર્ભય ઊભેલા, હાથમાં કમંડલ ને માળા ધારણ કરેલા વર્ણીરાજનું પૃષ્ઠ-દર્શન",
+    "driveId": "1vYgWEeGcQqfHLyGWDRAwHWbDTocgdnJZ",
+    "url": "https://lh3.googleusercontent.com/d/1vYgWEeGcQqfHLyGWDRAwHWbDTocgdnJZ=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1vYgWEeGcQqfHLyGWDRAwHWbDTocgdnJZ=w2560-rj-v1",
+    "file": "Varni(3).png"
   },
   {
+    "id": "darshan-004",
     "n": 4,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/004-640.696bb154.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/004-960.52be4215.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/004-1400.b34b2f1f.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/004-640.8a510aeb.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/004-960.ca11b7b1.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/004-1400.131a3d1f.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/004-640.37295da6.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/004-960.f80ad361.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/004-1400.3c24acfb.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/004-1400.b34b2f1f.avif",
-      "webp": "/darshan/004-1400.131a3d1f.webp",
-      "jpeg": "/darshan/004-1400.3c24acfb.jpg"
-    },
-    "t": "જળાભિષેકથી ભીંજાયેલા વર્ણીરાજનું સન્મુખ દર્શન",
-    "group": null
+    "order": 4,
+    "t": "સમુદ્રજળના અભિષેક વચ્ચે નેત્ર મીંચી, પ્રસન્ન મુખમુદ્રામાં ઊભેલા વર્ણીનું નિકટ-દર્શન",
+    "driveId": "1VxqaLnD1R1azKbHyGl0qio_GmoZSDG4H",
+    "url": "https://lh3.googleusercontent.com/d/1VxqaLnD1R1azKbHyGl0qio_GmoZSDG4H=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1VxqaLnD1R1azKbHyGl0qio_GmoZSDG4H=w2560-rj-v1",
+    "file": "Varni(4).png"
   },
   {
+    "id": "darshan-005",
     "n": 5,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/005-640.5f0372dc.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/005-960.2d5c0729.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/005-1400.35ca3227.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/005-640.72ab1f56.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/005-960.241de266.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/005-1400.052018ce.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/005-640.23bc82cd.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/005-960.6d7a5125.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/005-1400.aab77736.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/005-1400.35ca3227.avif",
-      "webp": "/darshan/005-1400.052018ce.webp",
-      "jpeg": "/darshan/005-1400.aab77736.jpg"
-    },
-    "t": "શ્રીરંગક્ષેત્રમાં વટવૃક્ષ નીચે શિલા પર પદ્માસને ધ્યાનમગ્ન બેઠેલા નીલકંઠ વર્ણીનું પ્રભાત-દર્શન",
-    "group": null
+    "order": 5,
+    "t": "જળાભિષેકથી ભીંજાયેલા વર્ણીરાજનું સન્મુખ દર્શન",
+    "driveId": "1TP5aAXothpWsvQavpcr-TPuEQG3HrAVV",
+    "url": "https://lh3.googleusercontent.com/d/1TP5aAXothpWsvQavpcr-TPuEQG3HrAVV=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1TP5aAXothpWsvQavpcr-TPuEQG3HrAVV=w2560-rj-v1",
+    "file": "Varni(5).png"
   },
   {
+    "id": "darshan-006",
     "n": 6,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/006-640.50c32477.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/006-960.2183ea3c.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/006-1400.49c3699d.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/006-640.0a35c3df.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/006-960.2611f2a2.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/006-1400.e7299126.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/006-640.3618ec80.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/006-960.133d3074.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/006-1400.3d9a2e09.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/006-1400.49c3699d.avif",
-      "webp": "/darshan/006-1400.e7299126.webp",
-      "jpeg": "/darshan/006-1400.3d9a2e09.jpg"
-    },
-    "t": "શ્રીરંગક્ષેત્રના પુષ્પોદ્યાનમાં પ્રભાતકિરણો વચ્ચે કમંડલ સાથે પ્રસન્નવદને ચાલતા વર્ણીરાજ",
-    "group": null
+    "order": 6,
+    "t": "શ્રીરંગક્ષેત્રમાં વટવૃક્ષ નીચે શિલા પર પદ્માસને ધ્યાનમગ્ન બેઠેલા નીલકંઠ વર્ણીનું પ્રભાત-દર્શન",
+    "driveId": "1wQzUcbbrepE2xx6s5s4ETN7wsa-rL-3u",
+    "url": "https://lh3.googleusercontent.com/d/1wQzUcbbrepE2xx6s5s4ETN7wsa-rL-3u=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1wQzUcbbrepE2xx6s5s4ETN7wsa-rL-3u=w2560-rj-v1",
+    "file": "Varni(6).png"
   },
   {
+    "id": "darshan-007",
     "n": 7,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/007-640.98e9a29d.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/007-960.5312ecce.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/007-1400.67b6cb7c.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/007-640.db81c7f2.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/007-960.8b487517.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/007-1400.7a02648e.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/007-640.6fa58dd7.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/007-960.b968532a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/007-1400.2cebe977.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/007-1400.67b6cb7c.avif",
-      "webp": "/darshan/007-1400.7a02648e.webp",
-      "jpeg": "/darshan/007-1400.2cebe977.jpg"
-    },
-    "t": "ફૂલોની કેડી વચ્ચે કમંડલ લઈ ઉઘાડા પગે ચાલતા વર્ણીના ચરણકમળનું નિકટ-દર્શન",
-    "group": null
+    "order": 7,
+    "t": "શ્રીરંગક્ષેત્રના પુષ્પોદ્યાનમાં પ્રભાતકિરણો વચ્ચે કમંડલ સાથે પ્રસન્નવદને ચાલતા વર્ણીરાજ",
+    "driveId": "1uvoro7EkBJSFfbBj8R_SXp1Go6c0vs94",
+    "url": "https://lh3.googleusercontent.com/d/1uvoro7EkBJSFfbBj8R_SXp1Go6c0vs94=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1uvoro7EkBJSFfbBj8R_SXp1Go6c0vs94=w2560-rj-v1",
+    "file": "Varni(7).png"
   },
   {
+    "id": "darshan-008",
     "n": 8,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/008-640.a2f4bdeb.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/008-960.40ea70fa.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/008-1400.427d5940.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/008-640.fb02c738.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/008-960.c1f1c2b5.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/008-1400.8e97085e.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/008-640.ef51f692.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/008-960.f90388eb.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/008-1400.49577bcb.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/008-1400.427d5940.avif",
-      "webp": "/darshan/008-1400.8e97085e.webp",
-      "jpeg": "/darshan/008-1400.49577bcb.jpg"
-    },
-    "t": "બંને બાજુ ખીલેલા પુષ્પોની વચ્ચેની કેડીએ કૂવા તરફ જતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 8,
+    "t": "શ્રીરંગક્ષેત્રના પુષ્પ-ઉદ્યાનમાં પ્રભાત-તેજે શોભતા મનોહર મુખારવિંદનું દર્શન",
+    "driveId": "1cki_BwZam7JW35CJXqwekvvp-WU44bdm",
+    "url": "https://lh3.googleusercontent.com/d/1cki_BwZam7JW35CJXqwekvvp-WU44bdm=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1cki_BwZam7JW35CJXqwekvvp-WU44bdm=w2560-rj-v1",
+    "file": "Varni(8).png"
   },
   {
+    "id": "darshan-009",
     "n": 9,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/009-640.f912eec2.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/009-960.e8946b15.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/009-1400.9d532f26.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/009-640.1f93bff0.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/009-960.8c51314e.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/009-1400.99ccb473.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/009-640.6ff6c93b.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/009-960.11cb7c1e.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/009-1400.81fad74a.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/009-1400.9d532f26.avif",
-      "webp": "/darshan/009-1400.99ccb473.webp",
-      "jpeg": "/darshan/009-1400.81fad74a.jpg"
-    },
-    "t": "કૂવાના રાંઢવે ગરેડી પરથી જાતે જળ સીંચતા બાળયોગી વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 9,
+    "t": "બંને બાજુ ખીલેલા પુષ્પોની વચ્ચેની કેડીએ કૂવા તરફ જતા વર્ણીરાજનું દર્શન",
+    "driveId": "1pxG5h2y62ukJG_l2mIRNW7zEfImyn5Qd",
+    "url": "https://lh3.googleusercontent.com/d/1pxG5h2y62ukJG_l2mIRNW7zEfImyn5Qd=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1pxG5h2y62ukJG_l2mIRNW7zEfImyn5Qd=w2560-rj-v1",
+    "file": "Varni(9).png"
   },
   {
+    "id": "darshan-010",
     "n": 10,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/010-640.6e9e8d4b.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/010-960.c81a014b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/010-1400.cbd25ee4.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/010-640.9b3b4b9e.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/010-960.218c0714.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/010-1400.8d005325.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/010-640.c1515630.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/010-960.c503f7a4.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/010-1400.e9718b24.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/010-1400.cbd25ee4.avif",
-      "webp": "/darshan/010-1400.8d005325.webp",
-      "jpeg": "/darshan/010-1400.e9718b24.jpg"
-    },
-    "t": "પ્રભાતે દાતણ કરી નિત્યક્રમ આરંભતા વર્ણીરાજનું નિકટ-દર્શન",
-    "group": null
+    "order": 10,
+    "t": "કૂવાના રાંઢવે ગરેડી પરથી જાતે જળ સીંચતા બાળયોગી વર્ણીરાજનું દર્શન",
+    "driveId": "1AnOf5K9Ab0kjmOs2gd-arx9CAqYxdK9a",
+    "url": "https://lh3.googleusercontent.com/d/1AnOf5K9Ab0kjmOs2gd-arx9CAqYxdK9a=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1AnOf5K9Ab0kjmOs2gd-arx9CAqYxdK9a=w2560-rj-v1",
+    "file": "Varni(10).png"
   },
   {
+    "id": "darshan-011",
     "n": 11,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/011-640.e1eba3a7.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/011-960.77c8d733.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/011-1400.3fcf9504.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/011-640.b5e7da5a.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/011-960.5250d72c.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/011-1400.e165ee0d.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/011-640.6c2666e1.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/011-960.d2906ee4.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/011-1400.bb7ea505.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/011-1400.3fcf9504.avif",
-      "webp": "/darshan/011-1400.e165ee0d.webp",
-      "jpeg": "/darshan/011-1400.bb7ea505.jpg"
-    },
-    "t": "મુખશુદ્ધિ કરી જળના કોગળા કરતા વર્ણીરાજના હોઠ અતિ નિકટ-દર્શન",
-    "group": null
+    "order": 11,
+    "t": "પ્રભાતે દાતણ કરી નિત્યક્રમ આરંભતા વર્ણીરાજનું નિકટ-દર્શન",
+    "driveId": "1_CmmWf-yXp1tQ-D_rqnlhTb5o-uPXulT",
+    "url": "https://lh3.googleusercontent.com/d/1_CmmWf-yXp1tQ-D_rqnlhTb5o-uPXulT=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1_CmmWf-yXp1tQ-D_rqnlhTb5o-uPXulT=w2560-rj-v1",
+    "file": "Varni(11).png"
   },
   {
+    "id": "darshan-012",
     "n": 12,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/012-640.2c468095.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/012-960.1ff1a787.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/012-1400.8b69704b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/012-640.c5b80c0c.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/012-960.b6bdfacc.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/012-1400.8ee9ce63.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/012-640.709fee2f.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/012-960.e86bef84.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/012-1400.3a7c8a91.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/012-1400.8b69704b.avif",
-      "webp": "/darshan/012-1400.8ee9ce63.webp",
-      "jpeg": "/darshan/012-1400.3a7c8a91.jpg"
-    },
-    "t": "કમંડલમાંથી શિર પર જળધારા રેડી સ્નાન કરતા, નેત્ર મીંચેલા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 12,
+    "t": "મુખશુદ્ધિ કરી જળના કોગળા કરતા વર્ણીરાજના હોઠ અતિ નિકટ-દર્શન",
+    "driveId": "1-6TpeERcv2EI4eK_qkzCmhOXYr1B62jj",
+    "url": "https://lh3.googleusercontent.com/d/1-6TpeERcv2EI4eK_qkzCmhOXYr1B62jj=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1-6TpeERcv2EI4eK_qkzCmhOXYr1B62jj=w2560-rj-v1",
+    "file": "Varni(12).png"
   },
   {
+    "id": "darshan-013",
     "n": 13,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/013-640.a2dcf9fe.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/013-960.1cedbf4d.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/013-1400.af2b26b5.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/013-640.982ac50f.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/013-960.a7ac858c.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/013-1400.17e50aab.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/013-640.39141261.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/013-960.591b1c0c.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/013-1400.d0fd172e.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/013-1400.af2b26b5.avif",
-      "webp": "/darshan/013-1400.17e50aab.webp",
-      "jpeg": "/darshan/013-1400.d0fd172e.jpg"
-    },
-    "t": "સ્નાનજળે ભીંજાયેલા વક્ષઃસ્થળનાં શુભ ચિહ્નો તથા યજ્ઞોપવીતનું નિકટ-દર્શન",
-    "group": null
+    "order": 13,
+    "t": "જમણા હાથે કમંડલમાંથી શિર પર જળધારા રેડી સ્નાન કરતા, નેત્ર મીંચેલા વર્ણીરાજનું દર્શન",
+    "driveId": "1rvBnd8ru-mP-skzkePiS3yP-I9ce8ejE",
+    "url": "https://lh3.googleusercontent.com/d/1rvBnd8ru-mP-skzkePiS3yP-I9ce8ejE=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1rvBnd8ru-mP-skzkePiS3yP-I9ce8ejE=w2560-rj-v1",
+    "file": "Varni(13).png"
   },
   {
+    "id": "darshan-014",
     "n": 14,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/014-640.51051166.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/014-960.fed06d4e.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/014-1400.ee18d1f6.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/014-640.1e522757.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/014-960.b53b972d.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/014-1400.2f5bab07.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/014-640.d131bf3e.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/014-960.0912fc17.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/014-1400.79b18c11.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/014-1400.ee18d1f6.avif",
-      "webp": "/darshan/014-1400.2f5bab07.webp",
-      "jpeg": "/darshan/014-1400.79b18c11.jpg"
-    },
-    "t": "નમીને કેશ પર કમંડલનું જળ રેડી કેશપ્રક્ષાલન કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 14,
+    "t": "ડાબા હાથે કમંડલમાંથી શિર પર જળધારા રેડી સ્નાન કરતાવર્ણીરાજનું દર્શન",
+    "driveId": "1b-AG6Sobb4-3BGJuDEp6CHweIIPprKP4",
+    "url": "https://lh3.googleusercontent.com/d/1b-AG6Sobb4-3BGJuDEp6CHweIIPprKP4=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1b-AG6Sobb4-3BGJuDEp6CHweIIPprKP4=w2560-rj-v1",
+    "file": "Varni(14).png"
   },
   {
+    "id": "darshan-015",
     "n": 15,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/015-640.4a990dcd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/015-960.6be2611e.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/015-1400.0af5e81f.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/015-640.8cd8e15f.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/015-960.a227cf9c.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/015-1400.e2fb6403.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/015-640.6b8aeb59.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/015-960.6a320351.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/015-1400.35b74204.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/015-1400.0af5e81f.avif",
-      "webp": "/darshan/015-1400.e2fb6403.webp",
-      "jpeg": "/darshan/015-1400.35b74204.jpg"
-    },
-    "t": "શિલા પર બેસી લાંબા ભીના કેશ નિચોવતા વર્ણીરાજનું પ્રભાત-દર્શન",
-    "group": null
+    "order": 15,
+    "t": "સ્નાનજળે ભીંજાયેલી તપથી કૃશ થયેલી કોમળ કાયાનું દર્શન",
+    "driveId": "1Inj0FsNT9LWQ5hbbqqZsOaw_s7mQgTj1",
+    "url": "https://lh3.googleusercontent.com/d/1Inj0FsNT9LWQ5hbbqqZsOaw_s7mQgTj1=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Inj0FsNT9LWQ5hbbqqZsOaw_s7mQgTj1=w2560-rj-v1",
+    "file": "Varni(15).png"
   },
   {
+    "id": "darshan-016",
     "n": 16,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/016-640.c48d3447.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/016-960.ef24952d.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/016-1400.eac90a82.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/016-640.4c0c44c0.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/016-960.7d7d2619.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/016-1400.c00494b0.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/016-640.6891ccdd.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/016-960.23271064.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/016-1400.ff84d97a.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/016-1400.eac90a82.avif",
-      "webp": "/darshan/016-1400.c00494b0.webp",
-      "jpeg": "/darshan/016-1400.ff84d97a.jpg"
-    },
-    "t": "પુષ્પવાટિકામાં ઊભા રહી બંને હાથે કેશનો અંબોડો બાંધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 16,
+    "t": "સ્નાનજળેથી ભીંજાયેલા ઉદર પરની ત્રિવળી અને જનોઈનું દર્શન",
+    "driveId": "1UB0vG0aZtp9KahRyztASERp6e4vbKWzD",
+    "url": "https://lh3.googleusercontent.com/d/1UB0vG0aZtp9KahRyztASERp6e4vbKWzD=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1UB0vG0aZtp9KahRyztASERp6e4vbKWzD=w2560-rj-v1",
+    "file": "Varni(16).png"
   },
   {
+    "id": "darshan-017",
     "n": 17,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/017-640.d9d831b9.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/017-960.19881edc.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/017-1400.39d393b2.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/017-640.79884719.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/017-960.13dbc999.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/017-1400.ebc826df.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/017-640.1260c97c.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/017-960.88aacdc1.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/017-1400.ead35af1.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/017-1400.39d393b2.avif",
-      "webp": "/darshan/017-1400.ebc826df.webp",
-      "jpeg": "/darshan/017-1400.ead35af1.jpg"
-    },
-    "t": "પુષ્પોથી છવાયેલી શિલા પર ઊગતા સૂર્ય સન્મુખ પદ્માસને ધ્યાનમગ્ન બેઠેલા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 17,
+    "t": "નમીને કેશ પર કમંડલનું જળ રેડી કેશપ્રક્ષાલન કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1QrLaJCO-T3IRtUHFiIaTtfMSVcNd8s6J",
+    "url": "https://lh3.googleusercontent.com/d/1QrLaJCO-T3IRtUHFiIaTtfMSVcNd8s6J=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1QrLaJCO-T3IRtUHFiIaTtfMSVcNd8s6J=w2560-rj-v1",
+    "file": "Varni(17).png"
   },
   {
+    "id": "darshan-018",
     "n": 18,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/018-640.466972cd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/018-960.77208366.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/018-1400.73574fb9.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/018-640.00831788.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/018-960.de36b945.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/018-1400.0ac0ef7d.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/018-640.0053cc8f.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/018-960.0618ac2d.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/018-1400.ce237e71.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/018-1400.73574fb9.avif",
-      "webp": "/darshan/018-1400.0ac0ef7d.webp",
-      "jpeg": "/darshan/018-1400.ce237e71.jpg"
-    },
-    "t": "કમંડલના જળે શાલિગ્રામજીનો અભિષેક કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 18,
+    "t": "શિલા પર બેસી લાંબા ભીના કેશ નિચોવતા વર્ણીરાજનું પ્રભાત-દર્શન",
+    "driveId": "1YI_erWOVH8tB72CowJ1BuHH7RiBEl9Un",
+    "url": "https://lh3.googleusercontent.com/d/1YI_erWOVH8tB72CowJ1BuHH7RiBEl9Un=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1YI_erWOVH8tB72CowJ1BuHH7RiBEl9Un=w2560-rj-v1",
+    "file": "Varni(18).png"
   },
   {
+    "id": "darshan-019",
     "n": 19,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/019-640.05e7f056.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/019-960.9ba2ff81.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/019-1400.aa7ed852.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/019-640.67769293.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/019-960.c5efcc94.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/019-1400.cdfb09a4.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/019-640.142dc88d.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/019-960.2e97ec1c.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/019-1400.eaf190ac.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/019-1400.aa7ed852.avif",
-      "webp": "/darshan/019-1400.cdfb09a4.webp",
-      "jpeg": "/darshan/019-1400.eaf190ac.jpg"
-    },
-    "t": "પ્રેમથી અર્પણ કરેલી ફળોની ટોપલી સ્વહસ્તે સ્વીકારતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 19,
+    "t": "પુષ્પવાટિકામાં ઊભા રહી બંને હાથે કેશનો અંબોડો બાંધતા વર્ણીરાજનું દર્શન",
+    "driveId": "17rDZnEnm7OQItvcU1VeRx-dV0QLNH7z1",
+    "url": "https://lh3.googleusercontent.com/d/17rDZnEnm7OQItvcU1VeRx-dV0QLNH7z1=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/17rDZnEnm7OQItvcU1VeRx-dV0QLNH7z1=w2560-rj-v1",
+    "file": "Varni(19).png"
   },
   {
+    "id": "darshan-020",
     "n": 20,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/020-640.810dcf2c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/020-960.d1cc94c1.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/020-1400.f89aab84.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/020-640.1ed0920b.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/020-960.bc67d5f4.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/020-1400.0dee7aa4.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/020-640.034bc2a8.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/020-960.05b93cfe.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/020-1400.ebd6b47b.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/020-1400.f89aab84.avif",
-      "webp": "/darshan/020-1400.0dee7aa4.webp",
-      "jpeg": "/darshan/020-1400.ebd6b47b.jpg"
-    },
-    "t": "પુષ્પવાટિકામાં બેસી હસ્તલિખિત પોથીનું વાચન કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 20,
+    "t": "પુષ્પોથી છવાયેલી શિલા પર ઊગતા સૂર્ય સન્મુખ પદ્માસને ધ્યાનમગ્ન બેઠેલા વર્ણીરાજનું દર્શન",
+    "driveId": "1CCI7knY_Qf0xcdNxg7xvdr3KbKmW77iC",
+    "url": "https://lh3.googleusercontent.com/d/1CCI7knY_Qf0xcdNxg7xvdr3KbKmW77iC=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1CCI7knY_Qf0xcdNxg7xvdr3KbKmW77iC=w2560-rj-v1",
+    "file": "Varni(20).png"
   },
   {
+    "id": "darshan-021",
     "n": 21,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/021-640.28294bc5.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/021-960.9d8eadd7.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/021-1400.b53fdf83.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/021-640.f55b4d29.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/021-960.30efc682.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/021-1400.90fcbc1a.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/021-640.5c06c78e.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/021-960.2cc8cdfe.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/021-1400.09f18000.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/021-1400.b53fdf83.avif",
-      "webp": "/darshan/021-1400.90fcbc1a.webp",
-      "jpeg": "/darshan/021-1400.09f18000.jpg"
-    },
-    "t": "પુલહાશ્રમમાં હિમાચ્છાદિત વનની વચ્ચે બંને હાથ ઊંચા કરી, નેત્ર મીંચી તપ કરતા વર્ણીરાજનું મુખદર્શન",
-    "group": null
+    "order": 21,
+    "t": "કમંડલના જળે શાલિગ્રામજીનો અભિષેક કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "10vn5bjtYacXJzGPYtWEWhXmpriCA-yT-",
+    "url": "https://lh3.googleusercontent.com/d/10vn5bjtYacXJzGPYtWEWhXmpriCA-yT-=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/10vn5bjtYacXJzGPYtWEWhXmpriCA-yT-=w2560-rj-v1",
+    "file": "Varni(21).png"
   },
   {
+    "id": "darshan-022",
     "n": 22,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/022-640.0c228ecd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/022-960.90aa77b3.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/022-1400.98b3771b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/022-640.9331ae60.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/022-960.b94e698d.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/022-1400.f35a5acd.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/022-640.145d9170.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/022-960.d0c20058.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/022-1400.15400865.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/022-1400.98b3771b.avif",
-      "webp": "/darshan/022-1400.f35a5acd.webp",
-      "jpeg": "/darshan/022-1400.15400865.jpg"
-    },
-    "t": "ઊર્ધ્વબાહુ તપ સમયે નદીકિનારે તપથી કૃશ થયેલી કાયા અને વક્ષઃસ્થળનાં શુભ ચિહ્નોનું નિકટ-દર્શન",
-    "group": null
+    "order": 22,
+    "t": "પ્રેમથી અર્પણ કરેલી ફળોની ટોપલી સ્વહસ્તે સ્વીકારતા વર્ણીરાજનું દર્શન",
+    "driveId": "19mGFvPQVcL0rH6JzMyXudcL4LCfrXRL7",
+    "url": "https://lh3.googleusercontent.com/d/19mGFvPQVcL0rH6JzMyXudcL4LCfrXRL7=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/19mGFvPQVcL0rH6JzMyXudcL4LCfrXRL7=w2560-rj-v1",
+    "file": "Varni(22).png"
   },
   {
+    "id": "darshan-023",
     "n": 23,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/023-640.93abeadd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/023-960.292d7463.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/023-1400.e110d930.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/023-640.69043beb.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/023-960.f01febf7.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/023-1400.05ae1fcc.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/023-640.964d1686.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/023-960.ec15da33.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/023-1400.980b9623.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/023-1400.e110d930.avif",
-      "webp": "/darshan/023-1400.05ae1fcc.webp",
-      "jpeg": "/darshan/023-1400.980b9623.jpg"
-    },
-    "t": "પુલહાશ્રમમાં એક પગે ઊભા રહી ઉગ્ર તપ કરતા વર્ણીરાજનું ધર્મદેવ-ભક્તિમાતા સાથે તપોમૂર્તિ દર્શન",
-    "group": null
+    "order": 23,
+    "t": "પુષ્પવાટિકામાં બેસી હસ્તલિખિત પોથીનું વાચન કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1eRmz6Ua37PSNmN2mXZlg_B7LU1rwuUHD",
+    "url": "https://lh3.googleusercontent.com/d/1eRmz6Ua37PSNmN2mXZlg_B7LU1rwuUHD=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1eRmz6Ua37PSNmN2mXZlg_B7LU1rwuUHD=w2560-rj-v1",
+    "file": "Varni(23).png"
   },
   {
+    "id": "darshan-024",
     "n": 24,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/024-640.0f04d99d.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/024-960.325d7f3b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/024-1400.ec0147dd.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/024-640.790a8b32.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/024-960.2afc980d.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/024-1400.4667b6ba.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/024-640.b6f6c84f.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/024-960.2e016169.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/024-1400.ae9edf02.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/024-1400.ec0147dd.avif",
-      "webp": "/darshan/024-1400.4667b6ba.webp",
-      "jpeg": "/darshan/024-1400.ae9edf02.jpg"
-    },
-    "t": "ચંપાનાં શ્વેત પુષ્પોની વચ્ચે તિલક-ચાંદલા સહિત તેજસ્વી મુખારવિંદનું સન્મુખ નિકટ-દર્શન",
-    "group": null
+    "order": 24,
+    "t": "પુલહાશ્રમમાં હિમાલયની ગોદે, નદીના ખડક પર વૃક્ષાસનમાં તપ કરતા વર્ણીનું દર્શન",
+    "driveId": "1w9z6-n5-IVOhHOXRfnQ3vSWEaTfonrmo",
+    "url": "https://lh3.googleusercontent.com/d/1w9z6-n5-IVOhHOXRfnQ3vSWEaTfonrmo=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1w9z6-n5-IVOhHOXRfnQ3vSWEaTfonrmo=w2560-rj-v1",
+    "file": "Varni(24).png"
   },
   {
+    "id": "darshan-025",
     "n": 25,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/025-640.19b93d95.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/025-960.10415417.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/025-1400.a2b0bad8.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/025-640.23a78fb5.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/025-960.586004eb.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/025-1400.1ddeb9d2.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/025-640.c4f5d2f1.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/025-960.bb6ce1ad.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/025-1400.0e59c26c.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/025-1400.a2b0bad8.avif",
-      "webp": "/darshan/025-1400.1ddeb9d2.webp",
-      "jpeg": "/darshan/025-1400.0e59c26c.jpg"
-    },
-    "t": "ખીલેલા ચંપાવૃક્ષ નીચે પ્રસન્ન હાસ્ય વેરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 25,
+    "t": "પુલહાશ્રમમાં હિમાચ્છાદિત વનની વચ્ચે બંને હાથ ઊંચા કરી, નેત્ર મીંચી તપ કરતા વર્ણીરાજનું મુખદર્શન",
+    "driveId": "1i0MROH8_s05TrbedCKo9bcFPyMZJp0c2",
+    "url": "https://lh3.googleusercontent.com/d/1i0MROH8_s05TrbedCKo9bcFPyMZJp0c2=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1i0MROH8_s05TrbedCKo9bcFPyMZJp0c2=w2560-rj-v1",
+    "file": "Varni(25).png"
   },
   {
+    "id": "darshan-026",
     "n": 26,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/026-640.a491f9ef.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/026-960.1719b70f.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/026-1400.3943a73b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/026-640.a23207cb.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/026-960.2499d6ea.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/026-1400.9af2bca8.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/026-640.a4e1ecb6.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/026-960.ecd06d24.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/026-1400.18cbc1a1.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/026-1400.3943a73b.avif",
-      "webp": "/darshan/026-1400.9af2bca8.webp",
-      "jpeg": "/darshan/026-1400.18cbc1a1.jpg"
-    },
-    "t": "લીલાં પર્ણો વચ્ચેથી અણિયાળાં નેત્રો અને ભાલે તિલક-ચાંદલાનું નિકટ-દર્શન",
-    "group": null
+    "order": 26,
+    "t": "ઊર્ધ્વબાહુ તપ સમયે નદીકિનારે તપથી કૃશ થયેલી કાયા અને વક્ષઃસ્થળનાં શુભ ચિહ્નોનું નિકટ-દર્શન",
+    "driveId": "1nfmXK1FUhcebYM__Ugci5SfNkZr1uMby",
+    "url": "https://lh3.googleusercontent.com/d/1nfmXK1FUhcebYM__Ugci5SfNkZr1uMby=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1nfmXK1FUhcebYM__Ugci5SfNkZr1uMby=w2560-rj-v1",
+    "file": "Varni(26).png"
   },
   {
+    "id": "darshan-027",
     "n": 27,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/027-640.52d4687f.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/027-960.6db25582.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/027-1400.ecc8a9f5.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/027-640.bfa6d42f.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/027-960.053b15bc.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/027-1400.72ccb2a5.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/027-640.10d68782.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/027-960.3858a480.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/027-1400.cf2dec7e.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/027-1400.ecc8a9f5.avif",
-      "webp": "/darshan/027-1400.72ccb2a5.webp",
-      "jpeg": "/darshan/027-1400.cf2dec7e.jpg"
-    },
-    "t": "ચંપાની ડાળીએથી પુષ્પ ચૂંટતા અને તેને નિહાળતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 27,
+    "t": "પુલહાશ્રમમાં એક પગે ઊભા રહી ઉગ્ર તપ કરતા વર્ણીરાજનું ધર્મદેવ-ભક્તિમાતા સાથે તપોમૂર્તિ દર્શન",
+    "driveId": "1G8y7p3pbVhWfmMgGpmRjcrH1_LY2GA-D",
+    "url": "https://lh3.googleusercontent.com/d/1G8y7p3pbVhWfmMgGpmRjcrH1_LY2GA-D=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1G8y7p3pbVhWfmMgGpmRjcrH1_LY2GA-D=w2560-rj-v1",
+    "file": "Varni(27).png"
   },
   {
+    "id": "darshan-028",
     "n": 28,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/028-640.a8f6badc.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/028-960.11527203.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/028-1400.a54a3c32.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/028-640.13c1525b.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/028-960.2366d3c4.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/028-1400.a5cdc635.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/028-640.c7d42b3f.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/028-960.f483887a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/028-1400.34cd7ed0.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/028-1400.a54a3c32.avif",
-      "webp": "/darshan/028-1400.a5cdc635.webp",
-      "jpeg": "/darshan/028-1400.34cd7ed0.jpg"
-    },
-    "t": "રંગબેરંગી પુષ્પવાટિકામાં ઊર્ધ્વદૃષ્ટિ કરી ઊભેલા પ્રસન્નમુખ વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 28,
+    "t": "ચંપાનાં શ્વેત પુષ્પોની વચ્ચે તિલક-ચાંદલા સહિત તેજસ્વી મુખારવિંદનું સન્મુખ નિકટ-દર્શન",
+    "driveId": "16koQnmyRGqV7L8PI0DwHxyCryvpL9BK2",
+    "url": "https://lh3.googleusercontent.com/d/16koQnmyRGqV7L8PI0DwHxyCryvpL9BK2=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/16koQnmyRGqV7L8PI0DwHxyCryvpL9BK2=w2560-rj-v1",
+    "file": "Varni(28).png"
   },
   {
+    "id": "darshan-029",
     "n": 29,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/029-640.195382de.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/029-960.57f7d54b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/029-1400.2b8933b1.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/029-640.efd57cc6.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/029-960.5be8b0f8.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/029-1400.b78df342.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/029-640.8d412996.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/029-960.2b4f848a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/029-1400.c908fc2b.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/029-1400.2b8933b1.avif",
-      "webp": "/darshan/029-1400.b78df342.webp",
-      "jpeg": "/darshan/029-1400.c908fc2b.jpg"
-    },
-    "t": "ગુલાબનું પુષ્પ હાથમાં લઈ, નેત્ર મીંચી તેની સુગંધ માણતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 29,
+    "t": "ખીલેલા ચંપાવૃક્ષ નીચે પ્રસન્ન હાસ્ય વેરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1bRaHagpYKX0r3r0dyHITmPPc2Di5yA65",
+    "url": "https://lh3.googleusercontent.com/d/1bRaHagpYKX0r3r0dyHITmPPc2Di5yA65=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1bRaHagpYKX0r3r0dyHITmPPc2Di5yA65=w2560-rj-v1",
+    "file": "Varni(29).png"
   },
   {
+    "id": "darshan-030",
     "n": 30,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/030-640.cdd11166.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/030-960.8a5d6fdb.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/030-1400.0519ea04.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/030-640.900b7147.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/030-960.d0978d1d.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/030-1400.a270a9d6.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/030-640.362a2252.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/030-960.60fb1949.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/030-1400.c15edc30.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/030-1400.0519ea04.avif",
-      "webp": "/darshan/030-1400.a270a9d6.webp",
-      "jpeg": "/darshan/030-1400.c15edc30.jpg"
-    },
-    "t": "ગુલાબની પાંખડીઓ વચ્ચે ઝાકળબિંદુમાં પ્રતિબિંબિત થતા વર્ણીરાજના દિવ્ય સ્વરૂપનું દર્શન",
-    "group": null
+    "order": 30,
+    "t": "લીલાં પર્ણો વચ્ચેથી અણિયાળાં નેત્રો અને ભાલે તિલક-ચાંદલાનું નિકટ-દર્શન",
+    "driveId": "1Acv9sZL7X9F2gfmv3BU9thmgnkjWJBdU",
+    "url": "https://lh3.googleusercontent.com/d/1Acv9sZL7X9F2gfmv3BU9thmgnkjWJBdU=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Acv9sZL7X9F2gfmv3BU9thmgnkjWJBdU=w2560-rj-v1",
+    "file": "Varni(30).png"
   },
   {
+    "id": "darshan-031",
     "n": 31,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/031-640.a0937f2d.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/031-960.968982e8.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/031-1400.11982cd6.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/031-640.043fc454.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/031-960.e3aa4040.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/031-1400.f894b1b0.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/031-640.320f805b.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/031-960.c01f116b.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/031-1400.4d0e1556.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/031-1400.11982cd6.avif",
-      "webp": "/darshan/031-1400.f894b1b0.webp",
-      "jpeg": "/darshan/031-1400.4d0e1556.jpg"
-    },
-    "t": "સૂર્યમુખી પુષ્પો પર નમીને જોતા વર્ણીરાજ અને પ્રત્યેક પુષ્પમાં પ્રગટ થતું તેમનું જ સ્વરૂપ",
-    "group": null
+    "order": 31,
+    "t": "ચંપાની ડાળીએથી પુષ્પ ચૂંટતા અને તેને નિહાળતા વર્ણીરાજનું દર્શન",
+    "driveId": "1cIEEXcyicYlM-BEHOUjCSg3CHJDTFnc4",
+    "url": "https://lh3.googleusercontent.com/d/1cIEEXcyicYlM-BEHOUjCSg3CHJDTFnc4=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1cIEEXcyicYlM-BEHOUjCSg3CHJDTFnc4=w2560-rj-v1",
+    "file": "Varni(31).png"
   },
   {
+    "id": "darshan-032",
     "n": 32,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/032-640.676aceff.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/032-960.e5afef25.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/032-1400.8f601ca6.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/032-640.9d0ef638.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/032-960.a40c9214.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/032-1400.6ae4722d.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/032-640.8637fd87.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/032-960.b5206277.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/032-1400.0ee744a4.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/032-1400.8f601ca6.avif",
-      "webp": "/darshan/032-1400.6ae4722d.webp",
-      "jpeg": "/darshan/032-1400.0ee744a4.jpg"
-    },
-    "t": "સૂર્યમુખીના ફૂલ પર દિવ્ય પ્રભામંડળ સહિત સિંહાસને બિરાજેલા અગણિત મુક્તો સહિત અક્ષરધામ દર્શન",
-    "group": null
+    "order": 32,
+    "t": "રંગબેરંગી પુષ્પવાટિકામાં ઊર્ધ્વદૃષ્ટિ કરી ઊભેલા પ્રસન્નમુખ વર્ણીરાજનું દર્શન",
+    "driveId": "1x28OYa8BQoRmB8AOVxQZEKpA-e-snFuO",
+    "url": "https://lh3.googleusercontent.com/d/1x28OYa8BQoRmB8AOVxQZEKpA-e-snFuO=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1x28OYa8BQoRmB8AOVxQZEKpA-e-snFuO=w2560-rj-v1",
+    "file": "Varni(32).png"
   },
   {
+    "id": "darshan-033",
     "n": 33,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/033-640.f2563134.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/033-960.669cc6a1.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/033-1400.25eeb432.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/033-640.806fc45a.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/033-960.6eab3714.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/033-1400.93cd21d5.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/033-640.e3d7c96e.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/033-960.8dedd184.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/033-1400.64aa9054.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/033-1400.25eeb432.avif",
-      "webp": "/darshan/033-1400.93cd21d5.webp",
-      "jpeg": "/darshan/033-1400.64aa9054.jpg"
-    },
-    "t": "તેજોમય પ્રભામંડળ સાથે સુવર્ણ સિંહાસને પુષ્પહાર ધારણ કરી બિરાજેલા વર્ણીરાજનું, હાથ જોડી ઊભેલા મુક્તો સહિતનું અક્ષરધામ દર્શન",
-    "group": null
+    "order": 33,
+    "t": "ગુલાબનું પુષ્પ હાથમાં લઈ, નેત્ર મીંચી તેની સુગંધ માણતા વર્ણીરાજનું દર્શન",
+    "driveId": "1UNZP2dvD6dkk26oRJImsEL72260MsdtU",
+    "url": "https://lh3.googleusercontent.com/d/1UNZP2dvD6dkk26oRJImsEL72260MsdtU=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1UNZP2dvD6dkk26oRJImsEL72260MsdtU=w2560-rj-v1",
+    "file": "Varni(33).png"
   },
   {
+    "id": "darshan-034",
     "n": 34,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/034-640.fe4291e2.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/034-960.a2651375.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/034-1400.444e8ba7.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/034-640.c18046e7.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/034-960.6c62c993.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/034-1400.3c500abb.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/034-640.92604905.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/034-960.4ce93bbe.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/034-1400.c3baedbd.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/034-1400.444e8ba7.avif",
-      "webp": "/darshan/034-1400.3c500abb.webp",
-      "jpeg": "/darshan/034-1400.c3baedbd.jpg"
-    },
-    "t": "નીલકંઠવર્ણીએ નદીકિનારે શિલા પર મૂકેલાં કમંડલ, દંડ અને જપમાળા",
-    "group": null
+    "order": 34,
+    "t": "ગુલાબની પાંખડીઓ વચ્ચે ઝાકળબિંદુમાં પ્રતિબિંબિત થતા વર્ણીરાજના દિવ્ય સ્વરૂપનું દર્શન",
+    "driveId": "1WkW17hNa-ld7fS2mH5XYSHg010_znaf2",
+    "url": "https://lh3.googleusercontent.com/d/1WkW17hNa-ld7fS2mH5XYSHg010_znaf2=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1WkW17hNa-ld7fS2mH5XYSHg010_znaf2=w2560-rj-v1",
+    "file": "Varni(34).png"
   },
   {
+    "id": "darshan-035",
     "n": 35,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/035-640.f22754e0.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/035-960.3c4f8f27.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/035-1400.e62e62bc.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/035-640.988dacf9.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/035-960.98d54047.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/035-1400.93c18f01.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/035-640.2a155ee8.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/035-960.a01f1f03.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/035-1400.447fac41.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/035-1400.e62e62bc.avif",
-      "webp": "/darshan/035-1400.93c18f01.webp",
-      "jpeg": "/darshan/035-1400.447fac41.jpg"
-    },
-    "t": "નદીકિનારે સંતોને યોગાસન કરાવતા અને પ્રેમથી માર્ગદર્શન આપતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 35,
+    "t": "સૂર્યમુખી પુષ્પો પર નમીને જોતા વર્ણીરાજ અને પ્રત્યેક પુષ્પમાં પ્રગટ થતું તેમનું જ સ્વરૂપ",
+    "driveId": "1pu1UKtUbWLSPSGh8ihnCBWlYuOYFkKK2",
+    "url": "https://lh3.googleusercontent.com/d/1pu1UKtUbWLSPSGh8ihnCBWlYuOYFkKK2=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1pu1UKtUbWLSPSGh8ihnCBWlYuOYFkKK2=w2560-rj-v1",
+    "file": "Varni(35).png"
   },
   {
+    "id": "darshan-036",
     "n": 36,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/036-640.d7145f30.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/036-960.69d5deaf.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/036-1400.58daa950.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/036-640.7d4fd55d.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/036-960.91c2a9a2.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/036-1400.54e49328.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/036-640.488db861.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/036-960.58364cbb.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/036-1400.ffe85c14.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/036-1400.58daa950.avif",
-      "webp": "/darshan/036-1400.54e49328.webp",
-      "jpeg": "/darshan/036-1400.ffe85c14.jpg"
-    },
-    "t": "નદીકિનારે પ્રભાત-તેજમાં મંદ સ્મિત વેરતા વર્ણીરાજના મુખારવિંદનું નિકટ-દર્શન",
-    "group": null
+    "order": 36,
+    "t": "ખીલેલા સૂર્યમુખીના મધ્યબિંદુને સ્પર્શી અક્ષરધામનું દિવ્ય દર્શન કરાવતા નીલકંઠવર્ણી",
+    "driveId": "1Uibj3bE7AbJVGvPu0UJu_-GvFs_1VBtM",
+    "url": "https://lh3.googleusercontent.com/d/1Uibj3bE7AbJVGvPu0UJu_-GvFs_1VBtM=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Uibj3bE7AbJVGvPu0UJu_-GvFs_1VBtM=w2560-rj-v1",
+    "file": "Varni(36).png"
   },
   {
+    "id": "darshan-037",
     "n": 37,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/037-640.e28c90ca.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/037-960.908dcd8a.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/037-1400.99f12ee2.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/037-640.04a75e71.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/037-960.12b599c6.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/037-1400.9525ab00.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/037-640.2855e2d6.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/037-960.d978aae2.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/037-1400.c8b1232c.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/037-1400.99f12ee2.avif",
-      "webp": "/darshan/037-1400.9525ab00.webp",
-      "jpeg": "/darshan/037-1400.c8b1232c.jpg"
-    },
-    "t": "અનુલોમ-વિલોમ પ્રાણાયામ કરતા વર્ણી",
-    "group": null
+    "order": 37,
+    "t": "સૂર્યમુખીના ફૂલ પર દિવ્ય પ્રભામંડળ સહિત સિંહાસને બિરાજેલા અગણિત મુક્તો સહિત અક્ષરધામ દર્શન",
+    "driveId": "10oRo_B9QPGTh54Ebz84JsCpeRjJYqN7-",
+    "url": "https://lh3.googleusercontent.com/d/10oRo_B9QPGTh54Ebz84JsCpeRjJYqN7-=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/10oRo_B9QPGTh54Ebz84JsCpeRjJYqN7-=w2560-rj-v1",
+    "file": "Varni(37).png"
   },
   {
+    "id": "darshan-038",
     "n": 38,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/038-640.f259bd35.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/038-960.68fe8ee5.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/038-1400.561d9850.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/038-640.ee524d80.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/038-960.13ade883.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/038-1400.9160ecb1.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/038-640.863fa187.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/038-960.fbc42a38.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/038-1400.137f97bf.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/038-1400.561d9850.avif",
-      "webp": "/darshan/038-1400.9160ecb1.webp",
-      "jpeg": "/darshan/038-1400.137f97bf.jpg"
-    },
-    "t": "મૃગચર્મ પર વિપરીત વીરભદ્રાસનની મુદ્રામાં યોગસાધના કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 38,
+    "t": "તેજોમય પ્રભામંડળ સાથે સુવર્ણ સિંહાસને પુષ્પહાર ધારણ કરી બિરાજેલા વર્ણીરાજનું, હાથ જોડી ઊભેલા મુક્તો સહિતનું અક્ષરધામ દર્શન",
+    "driveId": "1CMmj3-ztcHzH9mp1FvZTOYHQJoULlyuN",
+    "url": "https://lh3.googleusercontent.com/d/1CMmj3-ztcHzH9mp1FvZTOYHQJoULlyuN=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1CMmj3-ztcHzH9mp1FvZTOYHQJoULlyuN=w2560-rj-v1",
+    "file": "Varni(38).png"
   },
   {
+    "id": "darshan-039",
     "n": 39,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/039-640.b0b1ebe1.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/039-960.4b301a78.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/039-1400.b864aaa2.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/039-640.36220c73.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/039-960.271e7a15.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/039-1400.86976f7a.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/039-640.96574513.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/039-960.4b8640d2.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/039-1400.89f14b32.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/039-1400.b864aaa2.avif",
-      "webp": "/darshan/039-1400.86976f7a.webp",
-      "jpeg": "/darshan/039-1400.89f14b32.jpg"
-    },
-    "t": "પ્રભાત-તેજમાં કંઠી, જનોઈ અને વક્ષઃસ્થળનાં અંગચિહ્નોનું અતિ નિકટ-દર્શન",
-    "group": null
+    "order": 39,
+    "t": "નીલકંઠવર્ણીના અતિ અણિયાળાં તેજસ્વી નેત્રોનું નિકટ દર્શન",
+    "driveId": "1m95_6VgvBq7noEVo-CDEDJtSwP3asY4l",
+    "url": "https://lh3.googleusercontent.com/d/1m95_6VgvBq7noEVo-CDEDJtSwP3asY4l=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1m95_6VgvBq7noEVo-CDEDJtSwP3asY4l=w2560-rj-v1",
+    "file": "Varni(39).png"
   },
   {
+    "id": "darshan-040",
     "n": 40,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/040-640.a051c820.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/040-960.2a82437b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/040-1400.92574d41.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/040-640.be33b04c.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/040-960.37df9cf7.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/040-1400.078e2d43.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/040-640.8ab4a9de.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/040-960.0b3e03c7.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/040-1400.87f60bea.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/040-1400.92574d41.avif",
-      "webp": "/darshan/040-1400.078e2d43.webp",
-      "jpeg": "/darshan/040-1400.87f60bea.jpg"
-    },
-    "t": "નટરાજાસનમાં પ્રસન્ન વર્ણીરાજ",
-    "group": null
+    "order": 40,
+    "t": "પુષ્પનો મુગટ અને હાર પહેરી મંદ-મંદ હાસ્ય કરતા નીલકંઠવર્ણી",
+    "driveId": "13SeP7V1gKv2PdP74fijtE81Gtj1mrd55",
+    "url": "https://lh3.googleusercontent.com/d/13SeP7V1gKv2PdP74fijtE81Gtj1mrd55=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/13SeP7V1gKv2PdP74fijtE81Gtj1mrd55=w2560-rj-v1",
+    "file": "Varni(40).png"
   },
   {
+    "id": "darshan-041",
     "n": 41,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/041-640.92d338e9.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/041-960.9bb6ba24.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/041-1400.69bb1ca7.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/041-640.490f7293.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/041-960.a0361e18.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/041-1400.94d096b8.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/041-640.f10dba89.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/041-960.cf079586.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/041-1400.9d4c956a.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/041-1400.69bb1ca7.avif",
-      "webp": "/darshan/041-1400.94d096b8.webp",
-      "jpeg": "/darshan/041-1400.9d4c956a.jpg"
-    },
-    "t": "મૃગચર્મ પર એકપાદ રાજકપોતાસનમાં વર્ણીરાજ",
-    "group": null
+    "order": 41,
+    "t": "વર્ણીના અલૌકિક દર્શન કરીને આનંદ પામતા અક્ષરધામના મુકતો",
+    "driveId": "1L8rHRbEVgxTLWqjS8fT3W4sYdOQd3Vhz",
+    "url": "https://lh3.googleusercontent.com/d/1L8rHRbEVgxTLWqjS8fT3W4sYdOQd3Vhz=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1L8rHRbEVgxTLWqjS8fT3W4sYdOQd3Vhz=w2560-rj-v1",
+    "file": "Varni(41).png"
   },
   {
+    "id": "darshan-042",
     "n": 42,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/042-640.84933dcd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/042-960.50760dac.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/042-1400.061fc3ca.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/042-640.d99e3b37.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/042-960.4c0f5b3e.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/042-1400.93b1ce10.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/042-640.c4c708c8.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/042-960.fbd40b1e.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/042-1400.1190c142.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/042-1400.061fc3ca.avif",
-      "webp": "/darshan/042-1400.93b1ce10.webp",
-      "jpeg": "/darshan/042-1400.1190c142.jpg"
-    },
-    "t": "અંજનેયાસનમાં વર્ણીરાજ",
-    "group": null
+    "order": 42,
+    "t": "નીલકંઠવર્ણીએ નદીકિનારે શિલા પર મૂકેલાં કમંડલ, દંડ અને જપમાળા",
+    "driveId": "1zCWT2CI5bevf4Y5plHN-IARO6JXHTxlS",
+    "url": "https://lh3.googleusercontent.com/d/1zCWT2CI5bevf4Y5plHN-IARO6JXHTxlS=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1zCWT2CI5bevf4Y5plHN-IARO6JXHTxlS=w2560-rj-v1",
+    "file": "Varni(42).png"
   },
   {
+    "id": "darshan-043",
     "n": 43,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/043-640.3f66cd7e.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/043-960.52c85039.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/043-1400.8e35b4fd.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/043-640.34080d21.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/043-960.ba76fe9d.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/043-1400.c9cc8999.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/043-640.6b28acb7.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/043-960.42a1a1ec.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/043-1400.699011b6.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/043-1400.8e35b4fd.avif",
-      "webp": "/darshan/043-1400.c9cc8999.webp",
-      "jpeg": "/darshan/043-1400.699011b6.jpg"
-    },
-    "t": "હાથના બળે શરીર ઊંચકી એકપાદ ગાલવાસનની કઠિન મુદ્રા સાધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 43,
+    "t": "નદીકિનારે સંતોને યોગાસન કરાવતા અને પ્રેમથી માર્ગદર્શન આપતા વર્ણીરાજનું દર્શન",
+    "driveId": "1sx0I0BTk-0AHS-pre3NxY3Q0lf63TOMG",
+    "url": "https://lh3.googleusercontent.com/d/1sx0I0BTk-0AHS-pre3NxY3Q0lf63TOMG=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1sx0I0BTk-0AHS-pre3NxY3Q0lf63TOMG=w2560-rj-v1",
+    "file": "Varni(43).png"
   },
   {
+    "id": "darshan-044",
     "n": 44,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/044-640.5681cccf.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/044-960.44647502.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/044-1400.47a6fc50.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/044-640.8bfbab55.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/044-960.c8ecf51f.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/044-1400.c5b41ec0.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/044-640.844610b1.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/044-960.4cc8980e.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/044-1400.8f486578.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/044-1400.47a6fc50.avif",
-      "webp": "/darshan/044-1400.c5b41ec0.webp",
-      "jpeg": "/darshan/044-1400.8f486578.jpg"
-    },
-    "t": "એક હાથના ટેકે શરીર સંતુલિત કરી વસિષ્ઠાસનમાં સ્થિર થયેલા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 44,
+    "t": "વૃદ્ધ સંતને પ્રેમથી પકડી આસન કરાવતા કરુણામૂર્તિ વર્ણીનું દર્શન",
+    "driveId": "1lBdRO858DWkAZw_OgbMJBjeMM49k7TX9",
+    "url": "https://lh3.googleusercontent.com/d/1lBdRO858DWkAZw_OgbMJBjeMM49k7TX9=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1lBdRO858DWkAZw_OgbMJBjeMM49k7TX9=w2560-rj-v1",
+    "file": "Varni(44).png"
   },
   {
+    "id": "darshan-045",
     "n": 45,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/045-640.9ab2f335.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/045-960.16e7a40b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/045-1400.e6344d74.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/045-640.9d611328.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/045-960.4de4c182.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/045-1400.25d8f66e.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/045-640.924e33f7.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/045-960.59911b8f.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/045-1400.d5b3edb4.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/045-1400.e6344d74.avif",
-      "webp": "/darshan/045-1400.25d8f66e.webp",
-      "jpeg": "/darshan/045-1400.d5b3edb4.jpg"
-    },
-    "t": "પાછળ નમી બંને હાથે ચરણ પકડી એકપાદ રાજકપોતાસનની પૂર્ણ મુદ્રામાં સ્થિર વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 45,
+    "t": "સંતોને પશ્ચિમોત્તાનાસન કરાવતા યોગાચાર્ય વર્ણીનું દર્શન",
+    "driveId": "1xMLCC4vwogtYp3J5Gy17wGw6UgXJSvum",
+    "url": "https://lh3.googleusercontent.com/d/1xMLCC4vwogtYp3J5Gy17wGw6UgXJSvum=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1xMLCC4vwogtYp3J5Gy17wGw6UgXJSvum=w2560-rj-v1",
+    "file": "Varni(45).png"
   },
   {
+    "id": "darshan-046",
     "n": 46,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/046-640.d05849d8.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/046-960.d39548b5.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/046-1400.1a0fcd34.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/046-640.366b76eb.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/046-960.a7359861.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/046-1400.f72fcc08.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/046-640.0f82ff9c.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/046-960.9350d12a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/046-1400.16c197c3.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/046-1400.1a0fcd34.avif",
-      "webp": "/darshan/046-1400.f72fcc08.webp",
-      "jpeg": "/darshan/046-1400.16c197c3.jpg"
-    },
-    "t": "એક પગે ઊભા રહી નટરાજાસન સાધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 46,
+    "t": "નદીકિનારે પ્રભાત-તેજમાં મંદ સ્મિત વેરતા વર્ણીરાજના મુખારવિંદનું નિકટ-દર્શન",
+    "driveId": "1APIN8Di27pnmcvzALSa_lD5b8JJHK5sL",
+    "url": "https://lh3.googleusercontent.com/d/1APIN8Di27pnmcvzALSa_lD5b8JJHK5sL=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1APIN8Di27pnmcvzALSa_lD5b8JJHK5sL=w2560-rj-v1",
+    "file": "Varni(46).png"
   },
   {
+    "id": "darshan-047",
     "n": 47,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/047-640.50242006.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/047-960.5f4e924d.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/047-1400.528aacc7.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/047-640.530f685f.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/047-960.05f0206c.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/047-1400.c8415719.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/047-640.d1ffb9f4.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/047-960.d8344f10.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/047-1400.a0ccef72.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/047-1400.528aacc7.avif",
-      "webp": "/darshan/047-1400.c8415719.webp",
-      "jpeg": "/darshan/047-1400.a0ccef72.jpg"
-    },
-    "t": "કપિંજલાસનમાં વર્ણીરાજ",
-    "group": null
+    "order": 47,
+    "t": "અનુલોમ-વિલોમ પ્રાણાયામ કરતા વર્ણી",
+    "driveId": "1uBqJGKyWemZICGQn6KG400P7nblDWA7D",
+    "url": "https://lh3.googleusercontent.com/d/1uBqJGKyWemZICGQn6KG400P7nblDWA7D=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1uBqJGKyWemZICGQn6KG400P7nblDWA7D=w2560-rj-v1",
+    "file": "Varni(47).png"
   },
   {
+    "id": "darshan-048",
     "n": 48,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/048-640.037b2bb5.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/048-960.07494c6a.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/048-1400.7e0cfc1f.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/048-640.156932a9.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/048-960.8a424c62.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/048-1400.9222498e.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/048-640.57c5e106.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/048-960.34c8dc5d.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/048-1400.85597ea4.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/048-1400.7e0cfc1f.avif",
-      "webp": "/darshan/048-1400.9222498e.webp",
-      "jpeg": "/darshan/048-1400.85597ea4.jpg"
-    },
-    "t": "એક પગે ઊભા રહી મસ્તક ઉપર હાથ જોડી વૃક્ષાસનમાં સ્થિર થયેલા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 48,
+    "t": "મૃગચર્મ પર વિપરીત વીરભદ્રાસનની મુદ્રામાં યોગસાધના કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1Fioi8bbxsTOTyinzeSMBitgcPMAdDkiA",
+    "url": "https://lh3.googleusercontent.com/d/1Fioi8bbxsTOTyinzeSMBitgcPMAdDkiA=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Fioi8bbxsTOTyinzeSMBitgcPMAdDkiA=w2560-rj-v1",
+    "file": "Varni(48).png"
   },
   {
+    "id": "darshan-049",
     "n": 49,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/049-640.39960438.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/049-960.6d060035.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/049-1400.cf6baa1d.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/049-640.6d722d34.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/049-960.6479dea2.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/049-1400.438f16dd.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/049-640.f77b8eb4.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/049-960.2508ee72.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/049-1400.208acc65.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/049-1400.cf6baa1d.avif",
-      "webp": "/darshan/049-1400.438f16dd.webp",
-      "jpeg": "/darshan/049-1400.208acc65.jpg"
-    },
-    "t": "હાથ પર ઊંધા ઊભા રહી પદ્માસન વાળી ઊર્ધ્વ પદ્માસન સાધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 49,
+    "t": "પ્રભાત-તેજમાં કંઠી, જનોઈ અને વક્ષઃસ્થળનાં અંગચિહ્નોનું અતિ નિકટ-દર્શન",
+    "driveId": "1Jzh3QwJTU1HJHD1SvnA5v2m8EePWg166",
+    "url": "https://lh3.googleusercontent.com/d/1Jzh3QwJTU1HJHD1SvnA5v2m8EePWg166=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Jzh3QwJTU1HJHD1SvnA5v2m8EePWg166=w2560-rj-v1",
+    "file": "Varni(49).png"
   },
   {
+    "id": "darshan-050",
     "n": 50,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/050-640.a66c7656.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/050-960.3e08f400.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/050-1400.6b024116.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/050-640.65f61f94.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/050-960.94aff3e0.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/050-1400.07ed4eb6.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/050-640.3116c563.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/050-960.b5dcda03.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/050-1400.193e53de.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/050-1400.6b024116.avif",
-      "webp": "/darshan/050-1400.07ed4eb6.webp",
-      "jpeg": "/darshan/050-1400.193e53de.jpg"
-    },
-    "t": "પાછળ પૂર્ણ કમાન રચી ચક્રાસનની મુદ્રામાં યોગ કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 50,
+    "t": "નટરાજાસનમાં પ્રસન્ન વર્ણીરાજ",
+    "driveId": "1tEMzEJfpr2gSl1u32KRmyZz7Bm-eFxcS",
+    "url": "https://lh3.googleusercontent.com/d/1tEMzEJfpr2gSl1u32KRmyZz7Bm-eFxcS=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1tEMzEJfpr2gSl1u32KRmyZz7Bm-eFxcS=w2560-rj-v1",
+    "file": "Varni(50).png"
   },
   {
+    "id": "darshan-051",
     "n": 51,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/051-640.65357e8c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/051-960.4393ec00.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/051-1400.4af614ef.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/051-640.a41ecb16.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/051-960.1e9468db.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/051-1400.d21fc01e.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/051-640.4a4c41b5.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/051-960.bde9f8be.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/051-1400.d3170159.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/051-1400.4af614ef.avif",
-      "webp": "/darshan/051-1400.d21fc01e.webp",
-      "jpeg": "/darshan/051-1400.d3170159.jpg"
-    },
-    "t": "મૃગચર્મ પર છાતી ઊંચકી, ઊર્ધ્વમુખે ભુજંગાસન સાધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 51,
+    "t": "મૃગચર્મ પર એકપાદ રાજકપોતાસનમાં વર્ણીરાજ",
+    "driveId": "1ZLRa9PpQl7519jUXui_IH0jvP-1IBR9D",
+    "url": "https://lh3.googleusercontent.com/d/1ZLRa9PpQl7519jUXui_IH0jvP-1IBR9D=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1ZLRa9PpQl7519jUXui_IH0jvP-1IBR9D=w2560-rj-v1",
+    "file": "Varni(51).png"
   },
   {
+    "id": "darshan-052",
     "n": 52,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/052-640.f2d603fd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/052-960.76f558a9.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/052-1400.de81b4fd.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/052-640.630b126a.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/052-960.4ef1c7c9.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/052-1400.e27f715d.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/052-640.5dbdd7dc.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/052-960.71ebac04.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/052-1400.4ed5d9b6.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/052-1400.de81b4fd.avif",
-      "webp": "/darshan/052-1400.e27f715d.webp",
-      "jpeg": "/darshan/052-1400.4ed5d9b6.jpg"
-    },
-    "t": "એક જ હાથના ટેકે આખું શરીર ઊંચકી એકહસ્ત મયૂરાસનની અદ્ભુત મુદ્રા સાધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 52,
+    "t": "અંજનેયાસનમાં વર્ણીરાજ",
+    "driveId": "1Jz21y2TXOxxEqswX9w70I5Y3RyZRlhhN",
+    "url": "https://lh3.googleusercontent.com/d/1Jz21y2TXOxxEqswX9w70I5Y3RyZRlhhN=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Jz21y2TXOxxEqswX9w70I5Y3RyZRlhhN=w2560-rj-v1",
+    "file": "Varni(52).png"
   },
   {
+    "id": "darshan-053",
     "n": 53,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/053-640.cd336a8c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/053-960.2ef3edb8.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/053-1400.bd03ae6c.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/053-640.aa81bdcb.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/053-960.eee4d700.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/053-1400.4c0a7359.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/053-640.e6e93047.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/053-960.e834d833.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/053-1400.fe882bcb.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/053-1400.bd03ae6c.avif",
-      "webp": "/darshan/053-1400.4c0a7359.webp",
-      "jpeg": "/darshan/053-1400.fe882bcb.jpg"
-    },
-    "t": "બંને હાથ પર ઊંધા ઊભા રહી અધોમુખ વૃક્ષાસન સાધતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 53,
+    "t": "નદીતટે નટરાજાસનમાં સ્થિર થયેલા યોગમૂર્તિ વર્ણીનું દર્શન",
+    "driveId": "1-D0vIF5r2YMGjiNovYYd5vhQt1bHLKzw",
+    "url": "https://lh3.googleusercontent.com/d/1-D0vIF5r2YMGjiNovYYd5vhQt1bHLKzw=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1-D0vIF5r2YMGjiNovYYd5vhQt1bHLKzw=w2560-rj-v1",
+    "file": "Varni(53).png"
   },
   {
+    "id": "darshan-054",
     "n": 54,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/054-640.0c5c3186.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/054-960.5a703711.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/054-1400.d0ba1fc0.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/054-640.ddf1415a.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/054-960.fcd33bca.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/054-1400.320f9fae.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/054-640.703af2c4.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/054-960.520373a6.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/054-1400.d5ae6962.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/054-1400.d0ba1fc0.avif",
-      "webp": "/darshan/054-1400.320f9fae.webp",
-      "jpeg": "/darshan/054-1400.d5ae6962.jpg"
-    },
-    "t": "ધુમ્મસભર્યા વનમાં ધોધ સામે વૃક્ષના થડ પરથી કમંડલ સાથે નિર્ભય ચાલતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 54,
+    "t": "હાથના બળે શરીર ઊંચકી એકપાદ ગાલવાસનની કઠિન મુદ્રા સાધતા વર્ણીરાજનું દર્શન",
+    "driveId": "1winllmTonxQbrSgx5kI8zNKwPLou_QfT",
+    "url": "https://lh3.googleusercontent.com/d/1winllmTonxQbrSgx5kI8zNKwPLou_QfT=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1winllmTonxQbrSgx5kI8zNKwPLou_QfT=w2560-rj-v1",
+    "file": "Varni(54).png"
   },
   {
+    "id": "darshan-055",
     "n": 55,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/055-640.f42d90fa.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/055-960.a53829cd.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/055-1400.b86f56b6.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/055-640.b9f2117e.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/055-960.38538809.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/055-1400.42b96f10.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/055-640.ac2460b7.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/055-960.01f00972.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/055-1400.81aa24d1.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/055-1400.b86f56b6.avif",
-      "webp": "/darshan/055-1400.42b96f10.webp",
-      "jpeg": "/darshan/055-1400.81aa24d1.jpg"
-    },
-    "t": "ધોધ સન્મુખ મંદ સ્મિતયુક્ત મુખારવિંદનું નિકટ-દર્શન",
-    "group": null
+    "order": 55,
+    "t": "એક હાથના ટેકે શરીર સંતુલિત કરી વસિષ્ઠાસનમાં સ્થિર થયેલા વર્ણીરાજનું દર્શન",
+    "driveId": "1_iIQZNdexMRUqS0VF1OUySgU3tmwtSo9",
+    "url": "https://lh3.googleusercontent.com/d/1_iIQZNdexMRUqS0VF1OUySgU3tmwtSo9=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1_iIQZNdexMRUqS0VF1OUySgU3tmwtSo9=w2560-rj-v1",
+    "file": "Varni(55).png"
   },
   {
+    "id": "darshan-056",
     "n": 56,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/056-640.c2650082.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/056-960.b3a80c29.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/056-1400.fbd8e6d5.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/056-640.55fdcd54.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/056-960.1043ca5a.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/056-1400.7d22697c.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/056-640.a67b6572.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/056-960.03092326.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/056-1400.d7a201d9.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/056-1400.fbd8e6d5.avif",
-      "webp": "/darshan/056-1400.7d22697c.webp",
-      "jpeg": "/darshan/056-1400.d7a201d9.jpg"
-    },
-    "t": "કેડે વસ્ત્ર ને હાથમાં દંડ તથા કમંડલ ધારણ કરેલા વર્ણીરાજના ત્યાગમય વેશનું નિકટ-દર્શન",
-    "group": null
+    "order": 56,
+    "t": "પાછળ નમી બંને હાથે ચરણ પકડી એકપાદ રાજકપોતાસનની પૂર્ણ મુદ્રામાં સ્થિર વર્ણીરાજનું દર્શન",
+    "driveId": "1hxm-SpBNQfVq8mHog78Sd1z6x4cvFfHg",
+    "url": "https://lh3.googleusercontent.com/d/1hxm-SpBNQfVq8mHog78Sd1z6x4cvFfHg=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1hxm-SpBNQfVq8mHog78Sd1z6x4cvFfHg=w2560-rj-v1",
+    "file": "Varni(56).png"
   },
   {
+    "id": "darshan-057",
     "n": 57,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/057-640.1e19eb40.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/057-960.f6b51663.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/057-1400.ab74e74d.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/057-640.fce07295.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/057-960.813771ee.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/057-1400.ef274680.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/057-640.d60a5e6a.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/057-960.80b73ade.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/057-1400.a286e47f.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/057-1400.ab74e74d.avif",
-      "webp": "/darshan/057-1400.ef274680.webp",
-      "jpeg": "/darshan/057-1400.a286e47f.jpg"
-    },
-    "t": "ધોધ સામે હસ્તકમળમાં જપમાળા ધારણ કરી નામસ્મરણ કરતા વર્ણીરાજનું નિકટ-દર્શન",
-    "group": null
+    "order": 57,
+    "t": "એક પગે ઊભા રહી નટરાજાસન સાધતા વર્ણીરાજનું દર્શન",
+    "driveId": "1vNlL0yycQJ8MVd_QbY_tYnfrufK987m1",
+    "url": "https://lh3.googleusercontent.com/d/1vNlL0yycQJ8MVd_QbY_tYnfrufK987m1=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1vNlL0yycQJ8MVd_QbY_tYnfrufK987m1=w2560-rj-v1",
+    "file": "Varni(57).png"
   },
   {
+    "id": "darshan-058",
     "n": 58,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/058-640.1e43f2db.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/058-960.00bc180d.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/058-1400.d79236d8.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/058-640.2bccd409.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/058-960.159c87c6.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/058-1400.bd9e82fd.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/058-640.cd0edd5a.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/058-960.d809f12e.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/058-1400.8fc4cb3d.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/058-1400.d79236d8.avif",
-      "webp": "/darshan/058-1400.bd9e82fd.webp",
-      "jpeg": "/darshan/058-1400.8fc4cb3d.jpg"
-    },
-    "t": "કંઠમાં તુલસીની બેવડી કંઠી અને શાલિગ્રામની પોટલી ધારણ કરેલા વર્ણીરાજનું નિકટ-દર્શન",
-    "group": null
+    "order": 58,
+    "t": "કપિંજલાસનમાં વર્ણીરાજ",
+    "driveId": "1hHxKKOplpQ5iWzMgKZd6YGxDDe2LpePK",
+    "url": "https://lh3.googleusercontent.com/d/1hHxKKOplpQ5iWzMgKZd6YGxDDe2LpePK=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1hHxKKOplpQ5iWzMgKZd6YGxDDe2LpePK=w2560-rj-v1",
+    "file": "Varni(58).png"
   },
   {
+    "id": "darshan-059",
     "n": 59,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/059-640.465cac73.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/059-960.251e4194.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/059-1400.c787551e.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/059-640.8e267047.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/059-960.25c150cc.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/059-1400.a469f32f.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/059-640.6a9a3a92.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/059-960.12e90670.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/059-1400.f9d72e19.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/059-1400.c787551e.avif",
-      "webp": "/darshan/059-1400.a469f32f.webp",
-      "jpeg": "/darshan/059-1400.f9d72e19.jpg"
-    },
-    "t": "સૂર્યાસ્ત અને મેઘધનુષ્યની વચ્ચે સંધ્યાએ બાળક સાથે વાર્તાલાપ કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 59,
+    "t": "એક પગે ઊભા રહી મસ્તક ઉપર હાથ જોડી વૃક્ષાસનમાં સ્થિર થયેલા વર્ણીરાજનું દર્શન",
+    "driveId": "15N1E1Sk93CCw4FpTiNKs3p5Jtd7v7_9v",
+    "url": "https://lh3.googleusercontent.com/d/15N1E1Sk93CCw4FpTiNKs3p5Jtd7v7_9v=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/15N1E1Sk93CCw4FpTiNKs3p5Jtd7v7_9v=w2560-rj-v1",
+    "file": "Varni(59).png"
   },
   {
+    "id": "darshan-060",
     "n": 60,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/060-640.55e5ce25.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/060-960.1ff22d6a.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/060-1400.6d896d19.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/060-640.99fa2e87.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/060-960.8e6b6297.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/060-1400.e1954aae.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/060-640.7068b175.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/060-960.6262f910.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/060-1400.e948b61d.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/060-1400.6d896d19.avif",
-      "webp": "/darshan/060-1400.e1954aae.webp",
-      "jpeg": "/darshan/060-1400.e948b61d.jpg"
-    },
-    "t": "ભક્ત જેરામદાસના મસ્તક પર આશીર્વાદનો હસ્ત મૂકતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 60,
+    "t": "હાથ પર ઊંધા ઊભા રહી પદ્માસન વાળી ઊર્ધ્વ પદ્માસન સાધતા વર્ણીરાજનું દર્શન",
+    "driveId": "1XRMKfY01R3ETCIwYtS_SLngru2emHTAq",
+    "url": "https://lh3.googleusercontent.com/d/1XRMKfY01R3ETCIwYtS_SLngru2emHTAq=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1XRMKfY01R3ETCIwYtS_SLngru2emHTAq=w2560-rj-v1",
+    "file": "Varni(60).png"
   },
   {
+    "id": "darshan-061",
     "n": 61,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/061-640.e5a3593c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/061-960.1665f19b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/061-1400.6986468a.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/061-640.bbe789ff.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/061-960.3cb62c46.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/061-1400.75592734.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/061-640.d805d1af.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/061-960.e24d33db.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/061-1400.4d827dd7.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/061-1400.6986468a.avif",
-      "webp": "/darshan/061-1400.75592734.webp",
-      "jpeg": "/darshan/061-1400.4d827dd7.jpg"
-    },
-    "t": "કૃષ્ણ તંબોળી સાથે બેસી હસ્તલિખિત પોથીનું વાચન-શ્રવણ કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 61,
+    "t": "વક્ષઃસ્થળ પરનાં અર્ધચંદ્ર-કમળ આદિ શુભ ચિહ્નો સહિત તપથી કૃશ થયેલી કોમળ કાયાનું દર્શન",
+    "driveId": "1LjrojCYzjBPRi9mmCORLlMCVdM809FS0",
+    "url": "https://lh3.googleusercontent.com/d/1LjrojCYzjBPRi9mmCORLlMCVdM809FS0=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1LjrojCYzjBPRi9mmCORLlMCVdM809FS0=w2560-rj-v1",
+    "file": "Varni(61).png"
   },
   {
+    "id": "darshan-062",
     "n": 62,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/062-640.06eaee39.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/062-960.4b4e99cb.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/062-1400.c3820788.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/062-640.d6dec3a6.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/062-960.3a63917f.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/062-1400.8a50f4ed.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/062-640.c9789b0e.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/062-960.6f48d050.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/062-1400.3ff7661c.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/062-1400.c3820788.avif",
-      "webp": "/darshan/062-1400.8a50f4ed.webp",
-      "jpeg": "/darshan/062-1400.3ff7661c.jpg"
-    },
-    "t": "કૃષ્ણ તંબોળી અને જેરામદાસ સાથે ગામની કેડીએ ચાલતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 62,
+    "t": "પાછળ પૂર્ણ કમાન રચી ચક્રાસનની મુદ્રામાં યોગ કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1F-iu2KnIaRIWfYGHlNRPQ-UBQ1nnTnSp",
+    "url": "https://lh3.googleusercontent.com/d/1F-iu2KnIaRIWfYGHlNRPQ-UBQ1nnTnSp=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1F-iu2KnIaRIWfYGHlNRPQ-UBQ1nnTnSp=w2560-rj-v1",
+    "file": "Varni(62).png"
   },
   {
+    "id": "darshan-063",
     "n": 63,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/063-640.00f5980e.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/063-960.ae9b0146.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/063-1400.109d667f.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/063-640.458aaaf2.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/063-960.a2dcbd68.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/063-1400.9e4bdbfb.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/063-640.b2335a84.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/063-960.3a581fee.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/063-1400.35008ba3.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/063-1400.109d667f.avif",
-      "webp": "/darshan/063-1400.9e4bdbfb.webp",
-      "jpeg": "/darshan/063-1400.35008ba3.jpg"
-    },
-    "t": "કમળોથી ભરેલા સરોવરમાં ઊતરી કમળનાળ (કમળકાકડી) લેતા વર્ણીરાજનું જળ-દર્શન",
-    "group": null
+    "order": 63,
+    "t": "ઉદર પર શોભતી ત્રિવલી, તિલ-ચિહ્નો અને જનોઈનું નિકટ દર્શન",
+    "driveId": "1pKwy6eZuXd9tNOQlu6Am7ejbjIBFiNii",
+    "url": "https://lh3.googleusercontent.com/d/1pKwy6eZuXd9tNOQlu6Am7ejbjIBFiNii=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1pKwy6eZuXd9tNOQlu6Am7ejbjIBFiNii=w2560-rj-v1",
+    "file": "Varni(63).png"
   },
   {
+    "id": "darshan-064",
     "n": 64,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/064-640.7e4bf310.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/064-960.4fc3206a.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/064-1400.a2ce222d.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/064-640.41f4eca5.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/064-960.d4af79e2.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/064-1400.fd749a1c.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/064-640.49e2d7f6.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/064-960.8eb87056.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/064-1400.cbe37517.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/064-1400.a2ce222d.avif",
-      "webp": "/darshan/064-1400.fd749a1c.webp",
-      "jpeg": "/darshan/064-1400.cbe37517.jpg"
-    },
-    "t": "કમળોથી છવાયેલા સરોવરકિનારે ભક્તોના સહારે વાંસના તરાપા પર ચઢતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 64,
+    "t": "મૃગચર્મ પર છાતી ઊંચકી, ઊર્ધ્વમુખે ભુજંગાસન સાધતા વર્ણીરાજનું દર્શન",
+    "driveId": "1-dvT4PI3TL2b6FWPC0WkJZa_Zm8YqVzw",
+    "url": "https://lh3.googleusercontent.com/d/1-dvT4PI3TL2b6FWPC0WkJZa_Zm8YqVzw=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1-dvT4PI3TL2b6FWPC0WkJZa_Zm8YqVzw=w2560-rj-v1",
+    "file": "Varni(64).png"
   },
   {
+    "id": "darshan-065",
     "n": 65,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/065-640.83ed0fbe.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/065-960.25f5e4ea.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/065-1400.a3d37b4b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/065-640.f1147123.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/065-960.b11b796f.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/065-1400.96dde571.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/065-640.6f40d9ae.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/065-960.6f6b40a2.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/065-1400.ccc884e2.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/065-1400.a3d37b4b.avif",
-      "webp": "/darshan/065-1400.96dde571.webp",
-      "jpeg": "/darshan/065-1400.ccc884e2.jpg"
-    },
-    "t": "સંધ્યાટાણે વાંસના તરાપા પર બિરાજેલા વર્ણીરાજ અને બંને છેડે હલેસાં મારતા ભક્તોનું દર્શન",
-    "group": null
+    "order": 65,
+    "t": "એક જ હાથના ટેકે આખું શરીર ઊંચકી એકહસ્ત મયૂરાસનની અદ્ભુત મુદ્રા સાધતા વર્ણીરાજનું દર્શન",
+    "driveId": "1OBqOYFSraY8iJpQWkP7k9ScsW3oz4Vyp",
+    "url": "https://lh3.googleusercontent.com/d/1OBqOYFSraY8iJpQWkP7k9ScsW3oz4Vyp=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1OBqOYFSraY8iJpQWkP7k9ScsW3oz4Vyp=w2560-rj-v1",
+    "file": "Varni(65).png"
   },
   {
+    "id": "darshan-066",
     "n": 66,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/066-640.3f24143e.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/066-960.ab008e88.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/066-1400.1fe62a51.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/066-640.bd266e36.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/066-960.e8a6bc5f.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/066-1400.17e98187.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/066-640.09a98a2f.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/066-960.f6ba0f97.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/066-1400.8c180e9c.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/066-1400.1fe62a51.avif",
-      "webp": "/darshan/066-1400.17e98187.webp",
-      "jpeg": "/darshan/066-1400.8c180e9c.jpg"
-    },
-    "t": "રાત્રે તરાપા પર બેઠેલા ધ્યાનસ્થ વર્ણીરાજનું ચંદ્રપ્રકાશે પૃષ્ઠ-દર્શન",
-    "group": null
+    "order": 66,
+    "t": "બંને હાથ પર ઊંધા ઊભા રહી અધોમુખ વૃક્ષાસન સાધતા વર્ણીરાજનું દર્શન",
+    "driveId": "1_DDsk1eS5AFzcWttBe7kgrUxrmEbxzjy",
+    "url": "https://lh3.googleusercontent.com/d/1_DDsk1eS5AFzcWttBe7kgrUxrmEbxzjy=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1_DDsk1eS5AFzcWttBe7kgrUxrmEbxzjy=w2560-rj-v1",
+    "file": "Varni(66).png"
   },
   {
+    "id": "darshan-067",
     "n": 67,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/067-640.565955e7.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/067-960.d4d2059f.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/067-1400.edecf516.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/067-640.550d242d.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/067-960.d9560d27.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/067-1400.7be64199.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/067-640.0b573e27.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/067-960.bd3f5a7f.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/067-1400.f18b9f01.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/067-1400.edecf516.avif",
-      "webp": "/darshan/067-1400.7be64199.webp",
-      "jpeg": "/darshan/067-1400.f18b9f01.jpg"
-    },
-    "t": "તરાપા પર પદ્માસને બિરાજેલા વર્ણીરાજના કોમળ ચરણકમળ અને ખાપાના ચિન્હનું નિકટ-દર્શન",
-    "group": null
+    "order": 67,
+    "t": "ધુમ્મસભર્યા વનમાં ધોધ સામે વૃક્ષના થડ પરથી કમંડલ સાથે નિર્ભય ચાલતા વર્ણીરાજનું દર્શન",
+    "driveId": "1dq_3DblomHedMUdBbbbh1Ob-5yoCjaxy",
+    "url": "https://lh3.googleusercontent.com/d/1dq_3DblomHedMUdBbbbh1Ob-5yoCjaxy=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1dq_3DblomHedMUdBbbbh1Ob-5yoCjaxy=w2560-rj-v1",
+    "file": "Varni(67).png"
   },
   {
+    "id": "darshan-068",
     "n": 68,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/068-640.887ba027.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/068-960.d012f539.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/068-1400.acd5f020.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/068-640.c4f04797.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/068-960.e55de1ae.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/068-1400.1f240b06.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/068-640.d9b2df4b.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/068-960.de010c1f.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/068-1400.b3511306.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/068-1400.acd5f020.avif",
-      "webp": "/darshan/068-1400.1f240b06.webp",
-      "jpeg": "/darshan/068-1400.b3511306.jpg"
-    },
-    "t": "પૂર્ણિમાના ચંદ્રપ્રકાશમાં જળ પર તરતા તરાપા પર પ્રસન્ન બિરાજેલા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 68,
+    "t": "કેડે વસ્ત્ર ને હાથમાં દંડ તથા કમંડલ ધારણ કરેલા વર્ણીરાજના ત્યાગમય વેશનું નિકટ-દર્શન",
+    "driveId": "1pXOAjizo2S5QFnq4IwsJZDYBRVbpY_Jc",
+    "url": "https://lh3.googleusercontent.com/d/1pXOAjizo2S5QFnq4IwsJZDYBRVbpY_Jc=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1pXOAjizo2S5QFnq4IwsJZDYBRVbpY_Jc=w2560-rj-v1",
+    "file": "Varni(68).png"
   },
   {
+    "id": "darshan-069",
     "n": 69,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/069-640.1183edd0.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/069-960.7da38deb.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/069-1400.87af6f7a.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/069-640.8a686149.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/069-960.f2a71013.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/069-1400.2bccbf89.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/069-640.5a82dc98.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/069-960.1d13e3ba.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/069-1400.153fb4cc.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/069-1400.87af6f7a.avif",
-      "webp": "/darshan/069-1400.2bccbf89.webp",
-      "jpeg": "/darshan/069-1400.153fb4cc.jpg"
-    },
-    "t": "સામે કિનારે પહોંચતાં બંને ભક્તોનો હાથ ઝાલી તરાપા પરથી ઊતરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 69,
+    "t": "ધોધ સામે હસ્તકમળમાં જપમાળા ધારણ કરી નામસ્મરણ કરતા વર્ણીરાજનું નિકટ-દર્શન",
+    "driveId": "1r3mNO-EKk8zfMXyNooBQrASbfRKZLRiE",
+    "url": "https://lh3.googleusercontent.com/d/1r3mNO-EKk8zfMXyNooBQrASbfRKZLRiE=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1r3mNO-EKk8zfMXyNooBQrASbfRKZLRiE=w2560-rj-v1",
+    "file": "Varni(69).png"
   },
   {
+    "id": "darshan-070",
     "n": 70,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/070-640.d401f84e.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/070-960.deea9b54.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/070-1400.6608a1b3.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/070-640.3f62d1f2.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/070-960.78132aee.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/070-1400.b72459d0.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/070-640.959b9782.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/070-960.2dd932b7.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/070-1400.87c0c6b3.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/070-1400.6608a1b3.avif",
-      "webp": "/darshan/070-1400.b72459d0.webp",
-      "jpeg": "/darshan/070-1400.87c0c6b3.jpg"
-    },
-    "t": "રાત્રિના ધુમ્મસભર્યા ઘોર વનમાં આગળ વર્ણીરાજ અને પાછળ ચાલતા બે ભક્તોનું દર્શન",
-    "group": null
+    "order": 70,
+    "t": "કંઠમાં તુલસીની બેવડી કંઠી અને શાલિગ્રામની પોટલી ધારણ કરેલા વર્ણીરાજનું નિકટ-દર્શન",
+    "driveId": "1SgDisRhHB-H3FhBQzjPhtG5hFFG1cCY1",
+    "url": "https://lh3.googleusercontent.com/d/1SgDisRhHB-H3FhBQzjPhtG5hFFG1cCY1=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1SgDisRhHB-H3FhBQzjPhtG5hFFG1cCY1=w2560-rj-v1",
+    "file": "Varni(70).png"
   },
   {
+    "id": "darshan-071",
     "n": 71,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/071-640.5d69460f.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/071-960.74f5d025.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/071-1400.0a074857.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/071-640.a0be7aae.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/071-960.b1874603.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/071-1400.8a2834a2.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/071-640.2303fa36.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/071-960.eee4eca9.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/071-1400.1466699e.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/071-1400.0a074857.avif",
-      "webp": "/darshan/071-1400.8a2834a2.webp",
-      "jpeg": "/darshan/071-1400.1466699e.jpg"
-    },
-    "t": "ચાંદની રાતે વનમાં મળેલા વિકરાળ રીંછના મસ્તક પર વાત્સલ્યભર્યો હાથ ફેરવતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 71,
+    "t": "ભક્ત જેરામદાસના મસ્તક પર આશીર્વાદનો હસ્ત મૂકતા વર્ણીરાજનું દર્શન",
+    "driveId": "1IwCyiqdoKVlb2bjfROL5Ub5XfhMBMPl0",
+    "url": "https://lh3.googleusercontent.com/d/1IwCyiqdoKVlb2bjfROL5Ub5XfhMBMPl0=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1IwCyiqdoKVlb2bjfROL5Ub5XfhMBMPl0=w2560-rj-v1",
+    "file": "Varni(71).png"
   },
   {
+    "id": "darshan-072",
     "n": 72,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/072-640.2f47da9b.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/072-960.3df4ff77.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/072-1400.4b13988b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/072-640.94a4e042.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/072-960.1606719d.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/072-1400.2bb57803.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/072-640.6c30df4c.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/072-960.42fee336.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/072-1400.e9fc27ba.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/072-1400.4b13988b.avif",
-      "webp": "/darshan/072-1400.2bb57803.webp",
-      "jpeg": "/darshan/072-1400.e9fc27ba.jpg"
-    },
-    "t": "વિકરાળ રીંછને વશ કરીને જવાનું કહેતા નીલકંઠવર્ણીના વશીકરણ-પ્રભાવનું દર્શન",
-    "group": null
+    "order": 72,
+    "t": "કૃષ્ણ તંબોળીસાથે બેસી હસ્તલિખિત પોથીનું વાચન-શ્રવણ કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1xy0VVbyZxwyla6v72dCP65inUZs1xAE5",
+    "url": "https://lh3.googleusercontent.com/d/1xy0VVbyZxwyla6v72dCP65inUZs1xAE5=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1xy0VVbyZxwyla6v72dCP65inUZs1xAE5=w2560-rj-v1",
+    "file": "Varni(72).png"
   },
   {
+    "id": "darshan-073",
     "n": 73,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/073-640.5c03bad8.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/073-960.09183a75.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/073-1400.ab49008d.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/073-640.9135ad08.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/073-960.a6720e80.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/073-1400.80f2ffd8.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/073-640.8f90dadb.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/073-960.f09a170b.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/073-1400.cfe302f2.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/073-1400.ab49008d.avif",
-      "webp": "/darshan/073-1400.80f2ffd8.webp",
-      "jpeg": "/darshan/073-1400.cfe302f2.jpg"
-    },
-    "t": "ધુમ્મસભરી રાત્રિએ નદી પર તરાપા દ્વારા આગળ પ્રયાણ કરતા વર્ણીરાજ અને ભક્તોનું દર્શન",
-    "group": null
+    "order": 73,
+    "t": "કૃષ્ણ તંબોળી અને જેરામદાસ સાથે ગામની કેડીએ ચાલતા વર્ણીરાજનું દર્શન",
+    "driveId": "1_m9iXNaAYZeGiDNsPII0X-ALtB8aHb3q",
+    "url": "https://lh3.googleusercontent.com/d/1_m9iXNaAYZeGiDNsPII0X-ALtB8aHb3q=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1_m9iXNaAYZeGiDNsPII0X-ALtB8aHb3q=w2560-rj-v1",
+    "file": "Varni(73).png"
   },
   {
+    "id": "darshan-074",
     "n": 74,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/074-640.1327deb9.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/074-960.7a2a18fc.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/074-1400.60dd496b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/074-640.5007dfa1.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/074-960.b3b18eec.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/074-1400.ae143708.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/074-640.6ceb316a.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/074-960.39533d50.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/074-1400.791f375e.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/074-1400.60dd496b.avif",
-      "webp": "/darshan/074-1400.ae143708.webp",
-      "jpeg": "/darshan/074-1400.791f375e.jpg"
-    },
-    "t": "કમંડલ સાથે પૃથ્વીથી ઉપર આકાશમાર્ગે ઊડતા વર્ણીરાજની અલૌકિક લીલાનું દર્શન",
-    "group": null
+    "order": 74,
+    "t": "કમળોથી ભરેલા સરોવરમાં ઊતરી કમળનાળ (કમળકાકડી) લેતા વર્ણીરાજનું જળ-દર્શન",
+    "driveId": "1QgUAjmxG79lfWEhIrDgAD8qK53OIpJel",
+    "url": "https://lh3.googleusercontent.com/d/1QgUAjmxG79lfWEhIrDgAD8qK53OIpJel=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1QgUAjmxG79lfWEhIrDgAD8qK53OIpJel=w2560-rj-v1",
+    "file": "Varni(74).png"
   },
   {
+    "id": "darshan-075",
     "n": 75,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/075-640.a5b6fe43.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/075-960.57d3aeaa.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/075-1400.e371117a.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/075-640.d0c6daac.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/075-960.8dc69e59.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/075-1400.1d9e5ede.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/075-640.e3dfe9f5.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/075-960.52ee87a4.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/075-1400.efd68eb9.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/075-1400.e371117a.avif",
-      "webp": "/darshan/075-1400.1d9e5ede.webp",
-      "jpeg": "/darshan/075-1400.efd68eb9.jpg"
-    },
-    "t": "ધોધ અને હરિયાળા વન વચ્ચે એક હાથે માળા ને બીજા હાથે કમંડલ ધારણ કરી ઊભેલા વર્ણીરાજનું પૂર્ણ સ્વરૂપ-દર્શન",
-    "group": null
+    "order": 75,
+    "t": "કમળોથી છવાયેલા સરોવરકિનારે ભક્તોના સહારે વાંસના તરાપા પર ચઢતા વર્ણીરાજનું દર્શન",
+    "driveId": "1dkHwp4W2-EQUPHJ8zoO9bqPFG3q24eTG",
+    "url": "https://lh3.googleusercontent.com/d/1dkHwp4W2-EQUPHJ8zoO9bqPFG3q24eTG=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1dkHwp4W2-EQUPHJ8zoO9bqPFG3q24eTG=w2560-rj-v1",
+    "file": "Varni(75).png"
   },
   {
+    "id": "darshan-076",
     "n": 76,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/076-640.e88fa6b2.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/076-960.1060576d.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/076-1400.0cab7d09.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/076-640.79bce1d8.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/076-960.ba36e6ac.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/076-1400.814685b9.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/076-640.866eef68.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/076-960.abf3a010.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/076-1400.5d919f0d.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/076-1400.0cab7d09.avif",
-      "webp": "/darshan/076-1400.814685b9.webp",
-      "jpeg": "/darshan/076-1400.5d919f0d.jpg"
-    },
-    "t": "પુલહાશ્રમ જતાં માર્ગમાં ઘોર વનમાં વટવૃક્ષ નીચે તપસ્વી સાધુઓ સાથે સત્સંગ કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 76,
+    "t": "સંધ્યાટાણે વાંસના તરાપા પર બિરાજેલા વર્ણીરાજ અને બંને છેડે હલેસાં મારતા ભક્તોનું દર્શન",
+    "driveId": "1c8xuVqIqVWJXtKFrwrtwnjvRicK1CVO4",
+    "url": "https://lh3.googleusercontent.com/d/1c8xuVqIqVWJXtKFrwrtwnjvRicK1CVO4=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1c8xuVqIqVWJXtKFrwrtwnjvRicK1CVO4=w2560-rj-v1",
+    "file": "Varni(76).png"
   },
   {
+    "id": "darshan-077",
     "n": 77,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/077-640.29b118d2.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/077-960.6035b868.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/077-1400.a36fe59c.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/077-640.40828d0c.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/077-960.28c150b7.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/077-1400.ec225132.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/077-640.6d2abdd3.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/077-960.690c6f7c.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/077-1400.1f1782ce.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/077-1400.a36fe59c.avif",
-      "webp": "/darshan/077-1400.ec225132.webp",
-      "jpeg": "/darshan/077-1400.1f1782ce.jpg"
-    },
-    "t": "ઘોર વનમાં વૃક્ષ નીચે નિદ્રાધીન વર્ણીરાજની પાસે શાંતચિતે બેઠેલું હિંસક પ્રાણી",
-    "group": null
+    "order": 77,
+    "t": "રાત્રે તરાપા પર બેઠેલા ધ્યાનસ્થ વર્ણીરાજનું ચંદ્રપ્રકાશે પૃષ્ઠ-દર્શન",
+    "driveId": "1DNgpen5Axzs0kkmvtEIJN7OMq90K1LyG",
+    "url": "https://lh3.googleusercontent.com/d/1DNgpen5Axzs0kkmvtEIJN7OMq90K1LyG=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1DNgpen5Axzs0kkmvtEIJN7OMq90K1LyG=w2560-rj-v1",
+    "file": "Varni(77).png"
   },
   {
+    "id": "darshan-078",
     "n": 78,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/078-640.e783f07f.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/078-960.0b3541a7.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/078-1400.97e901df.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/078-640.5acbe6d1.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/078-960.2465411a.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/078-1400.b217d9f5.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/078-640.75686665.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/078-960.50e79584.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/078-1400.3272a52c.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/078-1400.97e901df.avif",
-      "webp": "/darshan/078-1400.b217d9f5.webp",
-      "jpeg": "/darshan/078-1400.3272a52c.jpg"
-    },
-    "t": "ઘોર વનમાં નીલકંઠવર્ણીને નમસ્કાર કરતા મોટા તપસ્વી-તેજોમય સિદ્ધયોગીઓ",
-    "group": null
+    "order": 78,
+    "t": "તરાપા પર પદ્માસને બિરાજેલા વર્ણીરાજના કોમળ ચરણકમળ અને ખાપાના ચિન્હનું નિકટ-દર્શન",
+    "driveId": "1lg7c_3Xfwhy8OfXmSNBvduuNa9XNqBQt",
+    "url": "https://lh3.googleusercontent.com/d/1lg7c_3Xfwhy8OfXmSNBvduuNa9XNqBQt=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1lg7c_3Xfwhy8OfXmSNBvduuNa9XNqBQt=w2560-rj-v1",
+    "file": "Varni(78).png"
   },
   {
+    "id": "darshan-079",
     "n": 79,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/079-640.c6c478e9.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/079-960.3343c51a.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/079-1400.e2b8ed4c.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/079-640.d754b11d.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/079-960.8799fae7.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/079-1400.9b0d81c7.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/079-640.5fb32c79.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/079-960.d114a65a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/079-1400.3c0b9208.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/079-1400.e2b8ed4c.avif",
-      "webp": "/darshan/079-1400.9b0d81c7.webp",
-      "jpeg": "/darshan/079-1400.3c0b9208.jpg"
-    },
-    "t": "પંઢરપુરમાં વિઠોબાજી મંદિરનાં પગથિયાં ચઢતા વર્ણીરાજને ભક્તજનો હાથ જોડી વધાવે છે",
-    "group": null
+    "order": 79,
+    "t": "પૂર્ણિમાના ચંદ્રપ્રકાશમાં જળ પર તરતા તરાપા પર પ્રસન્ન બિરાજેલા વર્ણીરાજનું દર્શન",
+    "driveId": "1SeVdlkrnnoNSPx-YLLc7aN1DYOGlaxaA",
+    "url": "https://lh3.googleusercontent.com/d/1SeVdlkrnnoNSPx-YLLc7aN1DYOGlaxaA=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1SeVdlkrnnoNSPx-YLLc7aN1DYOGlaxaA=w2560-rj-v1",
+    "file": "Varni(79).png"
   },
   {
+    "id": "darshan-080",
     "n": 80,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/080-640.7840f493.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/080-960.fd939548.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/080-1400.6739ed1f.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/080-640.02a397a3.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/080-960.d51a65de.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/080-1400.a42d3f3b.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/080-640.9a2d14e3.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/080-960.e351b45d.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/080-1400.7e9946e9.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/080-1400.6739ed1f.avif",
-      "webp": "/darshan/080-1400.a42d3f3b.webp",
-      "jpeg": "/darshan/080-1400.7e9946e9.jpg"
-    },
-    "t": "પંઢરપુરના વિઠોબાજી મંદિરમાં ગર્ભગૃહે હાથ જોડી પ્રભુનાં દર્શન કરતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 80,
+    "t": "સામે કિનારે પહોંચતાં બંને ભક્તોનો હાથ ઝાલી તરાપા પરથી ઊતરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1zxi_oo_Tvo4T7qUJMhH9_fgLRCJuvXXF",
+    "url": "https://lh3.googleusercontent.com/d/1zxi_oo_Tvo4T7qUJMhH9_fgLRCJuvXXF=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1zxi_oo_Tvo4T7qUJMhH9_fgLRCJuvXXF=w2560-rj-v1",
+    "file": "Varni(80).png"
   },
   {
+    "id": "darshan-081",
     "n": 81,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/081-640.dd91f8fe.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/081-960.0ac22779.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/081-1400.f0557170.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/081-640.bedee8bc.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/081-960.d6ef6827.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/081-1400.7c41ef1f.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/081-640.e7af456e.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/081-960.e494cdd1.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/081-1400.ff5aeb61.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/081-1400.f0557170.avif",
-      "webp": "/darshan/081-1400.7c41ef1f.webp",
-      "jpeg": "/darshan/081-1400.ff5aeb61.jpg"
-    },
-    "t": "પંઢરપુરમાં ચંદ્રભાગા નદીના કિનારે વૃક્ષ નીચે શિલા પર બિરાજી સંતો-બ્રાહ્મણોને ઉપદેશ આપતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 81,
+    "t": "ચાંદની રાતે વનમાં મળેલા વિકરાળ રીંછના મસ્તક પર વાત્સલ્યભર્યો હાથ ફેરવતા વર્ણીરાજનું દર્શન",
+    "driveId": "1Sq8snjcYxdLyf3XCzh43oPBkDhoYkRjL",
+    "url": "https://lh3.googleusercontent.com/d/1Sq8snjcYxdLyf3XCzh43oPBkDhoYkRjL=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Sq8snjcYxdLyf3XCzh43oPBkDhoYkRjL=w2560-rj-v1",
+    "file": "Varni(81).png"
   },
   {
+    "id": "darshan-082",
     "n": 82,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/082-640.8f7db797.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/082-960.e5b823bc.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/082-1400.9ebbe412.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/082-640.f4431a86.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/082-960.c4700e86.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/082-1400.4af78c16.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/082-640.837cd5df.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/082-960.1f646ea2.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/082-1400.72b02e19.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/082-1400.9ebbe412.avif",
-      "webp": "/darshan/082-1400.4af78c16.webp",
-      "jpeg": "/darshan/082-1400.72b02e19.jpg"
-    },
-    "t": "ચંદ્રભાગા તટે એક હાથે દંડ ને જપમાળા તથા બીજા હાથે ચિન્મુદ્રા ધારણ કરેલા વર્ણીરાજનું નિકટ-દર્શન",
-    "group": null
+    "order": 82,
+    "t": "ધુમ્મસભરી રાત્રિએ નદી પર તરાપા દ્વારા આગળ પ્રયાણ કરતા વર્ણીરાજ અને ભક્તોનું દર્શન",
+    "driveId": "1GRONkjXxbI2SdkbsQMe4q0mxiM8RlwiI",
+    "url": "https://lh3.googleusercontent.com/d/1GRONkjXxbI2SdkbsQMe4q0mxiM8RlwiI=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1GRONkjXxbI2SdkbsQMe4q0mxiM8RlwiI=w2560-rj-v1",
+    "file": "Varni(82).png"
   },
   {
+    "id": "darshan-083",
     "n": 83,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/083-640.e10a9b82.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/083-960.aba6f19b.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/083-1400.5bee3a11.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/083-640.7cdef75f.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/083-960.af520931.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/083-1400.ffd1334c.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/083-640.e77fd4a7.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/083-960.8d9e54b2.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/083-1400.f220f5b1.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/083-1400.5bee3a11.avif",
-      "webp": "/darshan/083-1400.ffd1334c.webp",
-      "jpeg": "/darshan/083-1400.f220f5b1.jpg"
-    },
-    "t": "ચંદ્રભાગા તટે નમ્રભાવે બેઠેલા શિષ્યના કંઠમાં તુલસીની કંઠી પહેરાવતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 83,
+    "t": "કમંડલ સાથે પૃથ્વીથી ઉપર આકાશમાર્ગે ઊડતા વર્ણીરાજની અલૌકિક લીલાનું દર્શન",
+    "driveId": "1bT7W5EFIxb22q9Zn2twGowyfyktnX0A6",
+    "url": "https://lh3.googleusercontent.com/d/1bT7W5EFIxb22q9Zn2twGowyfyktnX0A6=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1bT7W5EFIxb22q9Zn2twGowyfyktnX0A6=w2560-rj-v1",
+    "file": "Varni(83).png"
   },
   {
+    "id": "darshan-084",
     "n": 84,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/084-640.05a86950.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/084-960.11186dcc.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/084-1400.78f77de6.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/084-640.4a8893f1.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/084-960.5e2b7650.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/084-1400.074a1414.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/084-640.9b1fa403.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/084-960.2816c2c6.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/084-1400.471a19d3.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/084-1400.78f77de6.avif",
-      "webp": "/darshan/084-1400.074a1414.webp",
-      "jpeg": "/darshan/084-1400.471a19d3.jpg"
-    },
-    "t": "પ્રભાતે ચંદ્રભાગા નદીમાં ઊભા રહી અંજલિ ભરી સૂર્યને અર્ઘ્ય આપતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 84,
+    "t": "આકાશમાર્ગેથી પૃથ્વી ઉપર પધારતા તેજોમય વર્ણીનું દર્શન",
+    "driveId": "15977il3ko5Iv6-DQmPxe1uN9y4LNDBhc",
+    "url": "https://lh3.googleusercontent.com/d/15977il3ko5Iv6-DQmPxe1uN9y4LNDBhc=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/15977il3ko5Iv6-DQmPxe1uN9y4LNDBhc=w2560-rj-v1",
+    "file": "Varni(84).png"
   },
   {
+    "id": "darshan-085",
     "n": 85,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/085-640.d1095750.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/085-960.0e3e0015.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/085-1400.bff5653c.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/085-640.27f3a580.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/085-960.fb1d0910.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/085-1400.ac864ba0.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/085-640.5015c8c7.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/085-960.7d6fa611.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/085-1400.bf5bce76.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/085-1400.bff5653c.avif",
-      "webp": "/darshan/085-1400.ac864ba0.webp",
-      "jpeg": "/darshan/085-1400.bf5bce76.jpg"
-    },
-    "t": "પંઢરપુરના મંદિરમાં વિઠોબાજીની મૂર્તિને પ્રેમથી ભેટતા વર્ણીરાજનું ભાવવિભોર દર્શન",
-    "group": null
+    "order": 85,
+    "t": "કમંડલ સાથે પૃથ્વીથી ઉપર આકાશમાર્ગે ઊડતા વર્ણીરાજની અલૌકિક લીલાનું દર્શન",
+    "driveId": "17yET-tkmxmJw_JdsmWMhvloLWOri6dwh",
+    "url": "https://lh3.googleusercontent.com/d/17yET-tkmxmJw_JdsmWMhvloLWOri6dwh=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/17yET-tkmxmJw_JdsmWMhvloLWOri6dwh=w2560-rj-v1",
+    "file": "Varni(85).png"
   },
   {
+    "id": "darshan-086",
     "n": 86,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/086-640.daeb3dbd.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/086-960.e4fc0bb1.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/086-1400.e1345500.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/086-640.1b721bd5.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/086-960.23ada256.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/086-1400.d890e577.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/086-640.3a078cb2.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/086-960.ccc9831c.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/086-1400.b65b4d5c.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/086-1400.e1345500.avif",
-      "webp": "/darshan/086-1400.d890e577.webp",
-      "jpeg": "/darshan/086-1400.b65b4d5c.jpg"
-    },
-    "t": "ધુમ્મસભર્યા પ્રભાતે કમળોથી ભરેલા સરોવરમાં ધીમે પગલે ઊતરતા વર્ણીરાજનું પૃષ્ઠ-દર્શન",
-    "group": null
+    "order": 86,
+    "t": "ધોધ અને હરિયાળા વન વચ્ચે એક હાથે માળા ને બીજા હાથે કમંડલ ધારણ કરી ઊભેલા વર્ણીરાજનું પૂર્ણ સ્વરૂપ-દર્શન",
+    "driveId": "1OCsuRY4lScHRg2oh1gmgl0JUyWnI5bzk",
+    "url": "https://lh3.googleusercontent.com/d/1OCsuRY4lScHRg2oh1gmgl0JUyWnI5bzk=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1OCsuRY4lScHRg2oh1gmgl0JUyWnI5bzk=w2560-rj-v1",
+    "file": "Varni(86).png"
   },
   {
+    "id": "darshan-087",
     "n": 87,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/087-640.f09ecb25.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/087-960.19a9a296.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/087-1400.dc860e50.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/087-640.b97a67ab.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/087-960.be65d93b.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/087-1400.75417a28.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/087-640.1231813d.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/087-960.5e2bd42a.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/087-1400.c703b88f.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/087-1400.dc860e50.avif",
-      "webp": "/darshan/087-1400.75417a28.webp",
-      "jpeg": "/darshan/087-1400.c703b88f.jpg"
-    },
-    "t": "કમળોની વચ્ચે જળ પર ચત્તા સૂઈ, બંને હાથ ફેલાવી શાંતિથી તરતા વર્ણીરાજનું ઉપરથી દર્શન",
-    "group": null
+    "order": 87,
+    "t": "પુલહાશ્રમ જતાં માર્ગમાં ઘોર વનમાં વટવૃક્ષ નીચે તપસ્વી સાધુઓ સાથે સત્સંગ કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1N9CrwI655toVUxMm1-5OiHejOy900ZvI",
+    "url": "https://lh3.googleusercontent.com/d/1N9CrwI655toVUxMm1-5OiHejOy900ZvI=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1N9CrwI655toVUxMm1-5OiHejOy900ZvI=w2560-rj-v1",
+    "file": "Varni(87).png"
   },
   {
+    "id": "darshan-088",
     "n": 88,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/088-640.f9784c4d.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/088-960.299c5286.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/088-1400.1795ddd7.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/088-640.44280e2b.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/088-960.2d1fd3ca.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/088-1400.dff91a4a.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/088-640.e6bea906.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/088-960.a7b5ef99.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/088-1400.25fd70f8.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/088-1400.1795ddd7.avif",
-      "webp": "/darshan/088-1400.dff91a4a.webp",
-      "jpeg": "/darshan/088-1400.25fd70f8.jpg"
-    },
-    "t": "તરતા વર્ણીરાજના ચરણતળિયાં પરનાં ઊર્ધ્વરેખા, પદ્મ, ધ્વજ, વજ્ર આદિ સોળ શુભ ચિહ્નોનું દર્શન",
-    "group": null
+    "order": 88,
+    "t": "ઘોર વનમાં વૃક્ષ નીચે નિદ્રાધીન વર્ણીરાજની પાસે શાંતચિતે બેઠેલું હિંસક પ્રાણી",
+    "driveId": "1sPWLpGzpccjYLXucuPDdkUy6Iq-j8dkg",
+    "url": "https://lh3.googleusercontent.com/d/1sPWLpGzpccjYLXucuPDdkUy6Iq-j8dkg=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1sPWLpGzpccjYLXucuPDdkUy6Iq-j8dkg=w2560-rj-v1",
+    "file": "Varni(88).png"
   },
   {
+    "id": "darshan-089",
     "n": 89,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/089-640.91e3110c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/089-960.4b1ed6d9.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/089-1400.85858d43.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/089-640.5c9e0aa8.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/089-960.be43c0b3.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/089-1400.fa794efc.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/089-640.0a11b8c4.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/089-960.8e6534f0.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/089-1400.f0e617fe.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/089-1400.85858d43.avif",
-      "webp": "/darshan/089-1400.fa794efc.webp",
-      "jpeg": "/darshan/089-1400.f0e617fe.jpg"
-    },
-    "t": "જગન્નાથપુરીની રથયાત્રામાં પધારવા માટે આમંત્રણ આપતા રાજા દિવ્યસિંહદેવ",
-    "group": null
+    "order": 89,
+    "t": "ઘોર વનમાં વડની વડવાઈએ ઝોળીમાં સુતેલા યોગીઓને દિવ્ય તેજ પ્રગટાવી દર્શન આપતા નીલકંઠવર્ણી",
+    "driveId": "19fi4SjW87RBdIJyzKsYtmM6qEZhzyDH2",
+    "url": "https://lh3.googleusercontent.com/d/19fi4SjW87RBdIJyzKsYtmM6qEZhzyDH2=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/19fi4SjW87RBdIJyzKsYtmM6qEZhzyDH2=w2560-rj-v1",
+    "file": "Varni(89).png"
   },
   {
+    "id": "darshan-090",
     "n": 90,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/090-640.3557e1a6.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/090-960.e7d020d6.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/090-1400.e7dddf99.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/090-640.3672250c.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/090-960.2df48dba.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/090-1400.4061726f.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/090-640.24f8d026.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/090-960.c2e63ce6.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/090-1400.407dfecc.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/090-1400.e7dddf99.avif",
-      "webp": "/darshan/090-1400.4061726f.webp",
-      "jpeg": "/darshan/090-1400.407dfecc.jpg"
-    },
-    "t": "જગન્નાથપુરીની રથયાત્રામાં ભગવાન જગન્નાથજી સન્મુખ રથ પર હાથ જોડી બિરાજેલા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 90,
+    "t": "પંઢરપુરમાં વિઠોબાજી મંદિરનાં પગથિયાં ચઢતા વર્ણીરાજને ભક્તજનો હાથ જોડી વધાવે છે",
+    "driveId": "1HeXxMUpUW8alL-_snB3odPkT-fVj6Gfo",
+    "url": "https://lh3.googleusercontent.com/d/1HeXxMUpUW8alL-_snB3odPkT-fVj6Gfo=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1HeXxMUpUW8alL-_snB3odPkT-fVj6Gfo=w2560-rj-v1",
+    "file": "Varni(90).png"
   },
   {
+    "id": "darshan-091",
     "n": 91,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/091-640.5224080c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/091-960.37ab8bf7.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/091-1400.0c1e1c73.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/091-640.e82e0ebf.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/091-960.5fb05898.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/091-1400.1f53cffd.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/091-640.20ca06fe.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/091-960.54bbaa40.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/091-1400.8d208770.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/091-1400.0c1e1c73.avif",
-      "webp": "/darshan/091-1400.1f53cffd.webp",
-      "jpeg": "/darshan/091-1400.8d208770.jpg"
-    },
-    "t": "જગન્નાથપુરીની રથયાત્રામાં પ્રસન્ન સ્મિત વેરતા વર્ણીરાજના મુખારવિંદનું નિકટ-દર્શન",
-    "group": null
+    "order": 91,
+    "t": "પંઢરપુરના વિઠોબાજી મંદિરમાં ગર્ભગૃહે હાથ જોડી પ્રભુનાં દર્શન કરતા વર્ણીરાજનું દર્શન",
+    "driveId": "1PrIkp_QHVpsxMvpvKuS2tYRfDnr2QEyU",
+    "url": "https://lh3.googleusercontent.com/d/1PrIkp_QHVpsxMvpvKuS2tYRfDnr2QEyU=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1PrIkp_QHVpsxMvpvKuS2tYRfDnr2QEyU=w2560-rj-v1",
+    "file": "Varni(91).png"
   },
   {
+    "id": "darshan-092",
     "n": 92,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/092-640.a81f12a7.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/092-960.71b2dc3c.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/092-1400.fdd1f81b.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/092-640.c091116d.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/092-960.110affe3.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/092-1400.ab6f80db.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/092-640.4b1b000a.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/092-960.6ee1f17b.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/092-1400.9e7110dc.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/092-1400.fdd1f81b.avif",
-      "webp": "/darshan/092-1400.ab6f80db.webp",
-      "jpeg": "/darshan/092-1400.9e7110dc.jpg"
-    },
-    "t": "રથયાત્રામાં રથ પર ઊભા રહી ભક્તજનોને દર્શન આપતા વર્ણીરાજનું દીપમાળા વચ્ચેનું દર્શન",
-    "group": null
+    "order": 92,
+    "t": "પંઢરપુરમાં ચંદ્રભાગા નદીના કિનારે વૃક્ષ નીચે શિલા પર બિરાજી સંતો-બ્રાહ્મણોને ઉપદેશ આપતા વર્ણીરાજનું દર્શન",
+    "driveId": "1L-kFHabSxDHTH4LhKnH2vqfbu1CQxynI",
+    "url": "https://lh3.googleusercontent.com/d/1L-kFHabSxDHTH4LhKnH2vqfbu1CQxynI=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1L-kFHabSxDHTH4LhKnH2vqfbu1CQxynI=w2560-rj-v1",
+    "file": "Varni(92).png"
   },
   {
+    "id": "darshan-093",
     "n": 93,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/093-640.2377fa6c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/093-960.ad00d0bd.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/093-1400.96930205.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/093-640.709a36a0.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/093-960.12f078ba.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/093-1400.6ec13872.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/093-640.16805980.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/093-960.214c0c86.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/093-1400.2b6bb689.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/093-1400.96930205.avif",
-      "webp": "/darshan/093-1400.6ec13872.webp",
-      "jpeg": "/darshan/093-1400.2b6bb689.jpg"
-    },
-    "t": "રથ પર દીપમાળા અને પુષ્પવૃષ્ટિ વચ્ચે વિરાજતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 93,
+    "t": "ચંદ્રભાગા તટે એક હાથે દંડ ને જપમાળા તથા બીજા હાથે ચિન્મુદ્રા ધારણ કરેલા વર્ણીરાજનું નિકટ-દર્શન",
+    "driveId": "1kVgUwinFRmYQvmfcXuh0_xJifgCkDoE_",
+    "url": "https://lh3.googleusercontent.com/d/1kVgUwinFRmYQvmfcXuh0_xJifgCkDoE_=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1kVgUwinFRmYQvmfcXuh0_xJifgCkDoE_=w2560-rj-v1",
+    "file": "Varni(93).png"
   },
   {
+    "id": "darshan-094",
     "n": 94,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/094-640.d1c1a89c.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/094-960.036fe62c.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/094-1400.385e0bb3.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/094-640.ace2beef.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/094-960.bfe86a38.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/094-1400.7de90baa.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/094-640.434698d8.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/094-960.6e050183.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/094-1400.d23a2c68.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/094-1400.385e0bb3.avif",
-      "webp": "/darshan/094-1400.7de90baa.webp",
-      "jpeg": "/darshan/094-1400.d23a2c68.jpg"
-    },
-    "t": "રથ પરથી ભક્તજનોને હસ્ત ઊંચો કરી આશીર્વાદ આપતા વર્ણીરાજનું દર્શન",
-    "group": null
+    "order": 94,
+    "t": "ચંદ્રભાગા તટે નમ્રભાવે બેઠેલા શિષ્યના કંઠમાં તુલસીની કંઠી પહેરાવતા વર્ણીરાજનું દર્શન",
+    "driveId": "1tFT5faAxUJRmk-e4wL_ovW6GR4tS2930",
+    "url": "https://lh3.googleusercontent.com/d/1tFT5faAxUJRmk-e4wL_ovW6GR4tS2930=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1tFT5faAxUJRmk-e4wL_ovW6GR4tS2930=w2560-rj-v1",
+    "file": "Varni(94).png"
   },
   {
+    "id": "darshan-095",
     "n": 95,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/095-640.311d1a8a.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/095-960.c4ee720d.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/095-1400.e16230bc.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/095-640.a2dc198d.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/095-960.4d09e911.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/095-1400.0a787a57.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/095-640.e60124ff.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/095-960.da572cc5.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/095-1400.8b9927f8.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/095-1400.e16230bc.avif",
-      "webp": "/darshan/095-1400.0a787a57.webp",
-      "jpeg": "/darshan/095-1400.8b9927f8.jpg"
-    },
-    "t": "જગન્નાથપુરીની રથયાત્રામાં ત્રણ રથ અને લાખો દીપ સાથે ઊમટેલા ભક્તસમુદાયનું દર્શન",
-    "group": null
+    "order": 95,
+    "t": "પ્રભાતે ચંદ્રભાગા નદીમાં ઊભા રહી અંજલિ ભરી સૂર્યને અર્ઘ્ય આપતા વર્ણીરાજનું દર્શન",
+    "driveId": "1m9SwEw0_PkdvFbG9xQ4mYx6nSjQNC6C3",
+    "url": "https://lh3.googleusercontent.com/d/1m9SwEw0_PkdvFbG9xQ4mYx6nSjQNC6C3=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1m9SwEw0_PkdvFbG9xQ4mYx6nSjQNC6C3=w2560-rj-v1",
+    "file": "Varni(95).png"
   },
   {
+    "id": "darshan-096",
     "n": 96,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/096-640.bed1d70d.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/096-960.7c024140.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/096-1400.daac95e4.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/096-640.a30db79a.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/096-960.fcc10bf5.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/096-1400.3d017aeb.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/096-640.dd14c357.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/096-960.6c76d50b.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/096-1400.7b7dc388.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/096-1400.daac95e4.avif",
-      "webp": "/darshan/096-1400.3d017aeb.webp",
-      "jpeg": "/darshan/096-1400.7b7dc388.jpg"
-    },
-    "t": "સાગરકિનારે કમંડલ ને માળા લઈ એકલા ચાલી નીકળતા વર્ણીરાજનું પૃષ્ઠ-દર્શન",
-    "group": null
+    "order": 96,
+    "t": "પંઢરપુરના મંદિરમાં વિઠોબાજીની મૂર્તિને પ્રેમથી ભેટતા વર્ણીરાજનું ભાવવિભોર દર્શન",
+    "driveId": "1dHVMZM07NjrCJWSguLwSMnJ1YdMdK2Ar",
+    "url": "https://lh3.googleusercontent.com/d/1dHVMZM07NjrCJWSguLwSMnJ1YdMdK2Ar=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1dHVMZM07NjrCJWSguLwSMnJ1YdMdK2Ar=w2560-rj-v1",
+    "file": "Varni(96).png"
   },
   {
+    "id": "darshan-097",
     "n": 97,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/097-640.256d1a2e.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/097-960.9f571ab1.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/097-1400.7c32a664.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/097-640.3dd65985.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/097-960.206d6df5.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/097-1400.ee3e3ca4.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/097-640.0cc1e71f.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/097-960.bbb3e545.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/097-1400.45ff1c53.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/097-1400.7c32a664.avif",
-      "webp": "/darshan/097-1400.ee3e3ca4.webp",
-      "jpeg": "/darshan/097-1400.45ff1c53.jpg"
-    },
-    "t": "સાગરના મોજાં વચ્ચે રેતી પર પડતાં વર્ણીરાજનાં ચરણનું નિકટ-દર્શન",
-    "group": null
+    "order": 97,
+    "t": "ધુમ્મસભર્યા પ્રભાતે કમળોથી ભરેલા સરોવરમાં ધીમે પગલે ઊતરતા વર્ણીરાજનું પૃષ્ઠ-દર્શન",
+    "driveId": "1PiQevMYuOo4nlLiD6IvVTduPgtoiUQ-M",
+    "url": "https://lh3.googleusercontent.com/d/1PiQevMYuOo4nlLiD6IvVTduPgtoiUQ-M=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1PiQevMYuOo4nlLiD6IvVTduPgtoiUQ-M=w2560-rj-v1",
+    "file": "Varni(97).png"
   },
   {
+    "id": "darshan-098",
     "n": 98,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/098-640.2bf78a60.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/098-960.9f368fb5.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/098-1400.0ddab205.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/098-640.6ff8df16.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/098-960.d4ba5b75.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/098-1400.3a89bb50.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/098-640.754c31f6.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/098-960.9420fb59.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/098-1400.81287eae.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/098-1400.0ddab205.avif",
-      "webp": "/darshan/098-1400.3a89bb50.webp",
-      "jpeg": "/darshan/098-1400.81287eae.jpg"
-    },
-    "t": "સ્વચ્છ સાગરજળમાં ધીમે પગલે વિચરતા વર્ણીરાજનું જળ-ઉપર-નીચેનું દર્શન",
-    "group": null
+    "order": 98,
+    "t": "કમળોની વચ્ચે જળ પર ચત્તા સૂઈ, બંને હાથ ફેલાવી શાંતિથી તરતા વર્ણીરાજનું ઉપરથી દર્શન",
+    "driveId": "1Gqr8Z-GNcjYv4M4OIFHJnlf7xCqBgOLI",
+    "url": "https://lh3.googleusercontent.com/d/1Gqr8Z-GNcjYv4M4OIFHJnlf7xCqBgOLI=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Gqr8Z-GNcjYv4M4OIFHJnlf7xCqBgOLI=w2560-rj-v1",
+    "file": "Varni(98).png"
   },
   {
+    "id": "darshan-099",
     "n": 99,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/099-640.cdec10d1.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/099-960.bcdbba08.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/099-1400.5ecd2b27.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/099-640.88092f72.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/099-960.6930e10f.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/099-1400.330f7cdf.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/099-640.bd133942.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/099-960.59fc7fa9.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/099-1400.8bdf17f5.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/099-1400.5ecd2b27.avif",
-      "webp": "/darshan/099-1400.330f7cdf.webp",
-      "jpeg": "/darshan/099-1400.8bdf17f5.jpg"
-    },
-    "t": "સાગરના મોજાંનો જળછંટકાવ ઝીલી નેત્ર મીંચી પ્રસન્ન સ્મિત વેરતા વર્ણીરાજનું નિકટ-દર્શન",
-    "group": null
+    "order": 99,
+    "t": "તરતા વર્ણીરાજના ચરણતળિયાં પરનાં ઊર્ધ્વરેખા, પદ્મ, ધ્વજ, વજ્ર આદિ સોળ શુભ ચિહ્નોનું દર્શન",
+    "driveId": "1WOrgmL2zQGLLN5EFv6lyNnhruwoemwS2",
+    "url": "https://lh3.googleusercontent.com/d/1WOrgmL2zQGLLN5EFv6lyNnhruwoemwS2=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1WOrgmL2zQGLLN5EFv6lyNnhruwoemwS2=w2560-rj-v1",
+    "file": "Varni(99).png"
   },
   {
+    "id": "darshan-100",
     "n": 100,
-    "w": 1400,
-    "h": 788,
-    "avif": [
-      {
-        "w": 640,
-        "url": "/darshan/100-640.5f963294.avif"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/100-960.f3ac1e68.avif"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/100-1400.29ce4f81.avif"
-      }
-    ],
-    "webp": [
-      {
-        "w": 640,
-        "url": "/darshan/100-640.c2c62585.webp"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/100-960.db18a66b.webp"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/100-1400.018a4e61.webp"
-      }
-    ],
-    "jpeg": [
-      {
-        "w": 640,
-        "url": "/darshan/100-640.f108cdba.jpg"
-      },
-      {
-        "w": 960,
-        "url": "/darshan/100-960.1d2202c0.jpg"
-      },
-      {
-        "w": 1400,
-        "url": "/darshan/100-1400.2407bc34.jpg"
-      }
-    ],
-    "full": {
-      "avif": "/darshan/100-1400.29ce4f81.avif",
-      "webp": "/darshan/100-1400.018a4e61.webp",
-      "jpeg": "/darshan/100-1400.2407bc34.jpg"
-    },
+    "order": 100,
+    "t": "જગન્નાથપુરીની રથયાત્રામાં પધારવા માટે આમંત્રણ આપતા રાજા દિવ્યસિંહદેવ",
+    "driveId": "1WEOZT7wDhrmBnW5ZuD9uKRzsQQYquGLV",
+    "url": "https://lh3.googleusercontent.com/d/1WEOZT7wDhrmBnW5ZuD9uKRzsQQYquGLV=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1WEOZT7wDhrmBnW5ZuD9uKRzsQQYquGLV=w2560-rj-v1",
+    "file": "Varni(100).png"
+  },
+  {
+    "id": "darshan-101",
+    "n": 101,
+    "order": 101,
+    "t": "જગન્નાથપુરીની રથયાત્રામાં ભગવાન જગન્નાથજી સન્મુખ રથ પર હાથ જોડી બિરાજેલા વર્ણીરાજનું દર્શન",
+    "driveId": "1CgkNSp920CwHeFK7xU2iPbPboN4Xpniz",
+    "url": "https://lh3.googleusercontent.com/d/1CgkNSp920CwHeFK7xU2iPbPboN4Xpniz=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1CgkNSp920CwHeFK7xU2iPbPboN4Xpniz=w2560-rj-v1",
+    "file": "Varni(101).png"
+  },
+  {
+    "id": "darshan-102",
+    "n": 102,
+    "order": 102,
+    "t": "જગન્નાથપુરીની રથયાત્રામાં પ્રસન્ન સ્મિત વેરતા વર્ણીરાજના મુખારવિંદનું નિકટ-દર્શન",
+    "driveId": "1DWbFm5jsQF1HxOIuNyGnYVyLI3ThK5Bv",
+    "url": "https://lh3.googleusercontent.com/d/1DWbFm5jsQF1HxOIuNyGnYVyLI3ThK5Bv=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1DWbFm5jsQF1HxOIuNyGnYVyLI3ThK5Bv=w2560-rj-v1",
+    "file": "Varni(102).png"
+  },
+  {
+    "id": "darshan-103",
+    "n": 103,
+    "order": 103,
+    "t": "રથ પર દીપમાળા અને પુષ્પવૃષ્ટિ વચ્ચે વિરાજતા વર્ણીરાજનું દર્શન",
+    "driveId": "1Mk3GqCRkpl98euDZ-tuvZYg_O_VycwZo",
+    "url": "https://lh3.googleusercontent.com/d/1Mk3GqCRkpl98euDZ-tuvZYg_O_VycwZo=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1Mk3GqCRkpl98euDZ-tuvZYg_O_VycwZo=w2560-rj-v1",
+    "file": "Varni(103).png"
+  },
+  {
+    "id": "darshan-104",
+    "n": 104,
+    "order": 104,
+    "t": "રથ પરથી ભક્તજનોને હસ્ત ઊંચો કરી આશીર્વાદ આપતા વર્ણીરાજનું દર્શન",
+    "driveId": "1RAbLDqudVlOMXdpmoN_p1ScY__fCAJ5W",
+    "url": "https://lh3.googleusercontent.com/d/1RAbLDqudVlOMXdpmoN_p1ScY__fCAJ5W=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1RAbLDqudVlOMXdpmoN_p1ScY__fCAJ5W=w2560-rj-v1",
+    "file": "Varni(104).png"
+  },
+  {
+    "id": "darshan-105",
+    "n": 105,
+    "order": 105,
+    "t": "નાળિયેરીના વનથી ઘેરાયેલા નિર્મળ સાગરકિનારે વિચરણ કરતા વર્ણીનું દર્શન",
+    "driveId": "1L2VAQSM8XiK8BiDDCJHTNyefzOvYirDC",
+    "url": "https://lh3.googleusercontent.com/d/1L2VAQSM8XiK8BiDDCJHTNyefzOvYirDC=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1L2VAQSM8XiK8BiDDCJHTNyefzOvYirDC=w2560-rj-v1",
+    "file": "Varni(105).png"
+  },
+  {
+    "id": "darshan-106",
+    "n": 106,
+    "order": 106,
+    "t": "સાગરકિનારે કમંડલ ને માળા લઈ એકલા ચાલી નીકળતા વર્ણીરાજનું પૃષ્ઠ-દર્શન",
+    "driveId": "1kHtWMJZeDGmtNGBXc1grl3nQMjRejY4W",
+    "url": "https://lh3.googleusercontent.com/d/1kHtWMJZeDGmtNGBXc1grl3nQMjRejY4W=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1kHtWMJZeDGmtNGBXc1grl3nQMjRejY4W=w2560-rj-v1",
+    "file": "Varni(106).png"
+  },
+  {
+    "id": "darshan-107",
+    "n": 107,
+    "order": 107,
+    "t": "સ્વચ્છ સાગરજળમાં ધીમે પગલે વિચરતા વર્ણીરાજનું જળ-ઉપર-નીચેનું દર્શન",
+    "driveId": "10121-clexvzxe_LCq9SgfdvyOm3bJykj",
+    "url": "https://lh3.googleusercontent.com/d/10121-clexvzxe_LCq9SgfdvyOm3bJykj=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/10121-clexvzxe_LCq9SgfdvyOm3bJykj=w2560-rj-v1",
+    "file": "Varni(107).png"
+  },
+  {
+    "id": "darshan-108",
+    "n": 108,
+    "order": 108,
+    "t": "સાગરના મોજાંનો જળછંટકાવ ઝીલી નેત્ર મીંચી પ્રસન્ન સ્મિત વેરતા વર્ણીરાજનું નિકટ-દર્શન",
+    "driveId": "1abA27XVPFrJTDMzLONof1q5FO_7TgVM1",
+    "url": "https://lh3.googleusercontent.com/d/1abA27XVPFrJTDMzLONof1q5FO_7TgVM1=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1abA27XVPFrJTDMzLONof1q5FO_7TgVM1=w2560-rj-v1",
+    "file": "Varni(108).png"
+  },
+  {
+    "id": "darshan-109",
+    "n": 109,
+    "order": 109,
     "t": "સાગરનાં પ્રચંડ મોજાં વચ્ચે તેજોમય વર્ણી-દર્શન",
-    "group": null
+    "driveId": "1I1gkAISXvDAs8-e114N70EMIRMmXgWIa",
+    "url": "https://lh3.googleusercontent.com/d/1I1gkAISXvDAs8-e114N70EMIRMmXgWIa=w1600-rj-v1",
+    "fullUrl": "https://lh3.googleusercontent.com/d/1I1gkAISXvDAs8-e114N70EMIRMmXgWIa=w2560-rj-v1",
+    "file": "Varni(109).png"
   }
 ]
