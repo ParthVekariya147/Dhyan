@@ -48,12 +48,16 @@
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
+/* Moved with .page-intro-lead, which page-intro.css says matches this deliberately — see the
+   reasoning there. A note on these screens is not an aside a યુવક may skip: it is what opens
+   a locked level, what a finished કસોટી now means, what happens at midnight. In #8b7a66 it
+   was the same brown as a caption under a caption. */
 .level-note {
   margin: 14px auto 0;
   max-width: 560px;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.85;
-  color: #8b7a66;
+  color: #f4ead8;
 }
 .level-carried, .level-sync { color: var(--color-muted); }
 
@@ -196,12 +200,20 @@
    Painted at opacity 0 rather than only existing when ticked, so there is something to fade
    from. index.css turns the transition off under prefers-reduced-motion; the class still
    flips, so the word simply appears. */
+/* Set exactly as a દર્શન's વર્ણન is set — `.cap .txt` in darshan.css: the same clamped size,
+   the same line-height, the same cream, and centred in the band. That is deliberate rather
+   than a coincidence of taste: this row is where a યુવક is asked to bring that દર્શન to mind,
+   so the one line he sees when he says he has should look like the line he is remembering.
+   Bold, which the caption is not, because here it stands alone on the row rather than under
+   a picture and needs the weight to hold the space. */
 .tick-body::after {
   content: var(--tick-word, "");
   display: block;
-  font-size: 15.5px;
-  line-height: 1.75;
-  color: var(--color-gold-soft);
+  text-align: center;
+  font-size: clamp(15px, 2.4vw, 19px);
+  line-height: 1.7;
+  font-weight: 700;
+  color: #f4ead8;
   opacity: 0;
   transform: translateY(2px);
   transition: opacity .22s ease, transform .22s ease;
@@ -339,7 +351,9 @@
 @media (max-width: 480px) {
   .tick-main { gap: 11px; padding: 13px 12px; }
   .tick-n { min-width: 42px; font-size: 14px; }
-  .tick-text, .tick-body::after { font-size: 15px; }
+  /* The word is not listed here: its clamp already bottoms out at 15px, and naming a size
+     again would only be a second answer to the same question. */
+  .tick-text { font-size: 15px; }
   .level-next { margin: 20px auto 32px; padding-top: 18px; }
   .level-next-line { font-size: 15px; }
 }

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+/* લેવલ ૧'s description, in the one language this page is written in. `inEnglish()` swaps in
+   the English half of the spec (shared/domain/journey.js keeps both for this page only), and
+   PageIntro's `lang` switches its own labels to match — so the page stays in one voice. */
+import { JOURNEY_PAGE, inEnglish, usePageSpec } from '../lib/journey';
+import PageIntro from '../components/PageIntro';
 import '../styles/forms.css';
 import './entry-gate.css';
 
@@ -52,6 +57,8 @@ function gateError(e) {
 
 export default function EntryGate({ videoId, replay = false }) {
   const { profile, saveGateAnswers, logout } = useAuth();
+  // લેવલ ૧'s description, from the same place every other level reads its own (§36).
+  const spec = usePageSpec(JOURNEY_PAGE.LEVEL1);
   const nav = useNavigate();
 
   const [liked, setLiked] = useState(false);
@@ -150,6 +157,17 @@ export default function EntryGate({ videoId, replay = false }) {
             ? 'You can watch this video again whenever you like'
             : 'Please watch this video before you begin your dhyan'}
         </p>
+
+        {/*
+          The same instruction block લેવલ ૨, ૩ and ૪ carry. લેવલ ૧ had a description written
+          for it — with an English half, written for this page specifically — and no way to
+          read it; the entry existed and nothing put it on screen.
+
+          `compact` on the replay pass: a યુવક who has already answered both questions and
+          come back only to watch again does not need the page explained a second time, and
+          the line above it already says what this visit is.
+        */}
+        <PageIntro spec={inEnglish(spec)} lang="en" compact={replay} />
 
         {videoId ? (
           <div className="gate-video">

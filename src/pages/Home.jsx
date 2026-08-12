@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useLevels } from '../lib/useSettings';
 import { useLevel4Gate } from '../lib/level4';
-import { specForLevel, useJourney } from '../lib/journey';
+import { JOURNEY_PAGE, specForLevel, useJourney, usePageSpec } from '../lib/journey';
 import { gu } from '../lib/constants';
+import PageIntro from '../components/PageIntro';
 import '../styles/forms.css';
 import './home.css';
 
@@ -123,6 +124,10 @@ export default function Home() {
   */
   const { journey } = useJourney();
 
+  // મુખપૃષ્ઠ's own description — the same source every level page reads its own from, so the
+  // home page and the panel can never describe the સાધના differently (§36).
+  const spec = usePageSpec(JOURNEY_PAGE.HOME);
+
   return (
     <div className="home-wrap">
       <header className="site-header">
@@ -132,6 +137,17 @@ export default function Home() {
       </header>
 
       <div className="home-inner">
+        {/*
+          The same "આ પેજમાં મારે શું કરવાનું છે?" every other page carries, on the page a
+          યુવક lands on first.
+
+          It was the one page with a description written for it in shared/domain/journey.js
+          and no way to read it: the entry existed, the panel could edit it, and nothing put
+          it on screen. So the screen that has to explain the whole સાધના explained nothing,
+          while લેવલ ૨, ૩ and ૪ each explained themselves.
+        */}
+        <PageIntro spec={spec} />
+
         <div className="ring-card">
           {/*
             The real fraction, at last — તબક્કો ૩ brought it.
@@ -233,7 +249,7 @@ export default function Home() {
         </div>
 
         <div className="home-actions">
-          <div className="level-btn is-off small">મારો ઈતિહાસ<span className="level-soon">હવે પછી</span></div>
+          {/* <div className="level-btn is-off small">મારો ઈતિહાસ<span className="level-soon">હવે પછી</span></div> */}
           {/*
             The સંચાલક પેનલ is a separate application served from /admin, so this is a plain
             <a> and not a <Link>: react-router owns this app's routes, and the panel is not

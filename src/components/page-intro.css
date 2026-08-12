@@ -14,13 +14,26 @@
   text-align: center;
 }
 
-/* Matches .level-note deliberately: on લેવલ ૩ and લેવલ ૪ this line replaced a .level-note,
-   and it must read as the same voice in the same place rather than as a new element. */
+/* Set like a દર્શન's વર્ણન — `.cap .txt` in darshan.css — and no longer like a footnote.
+
+   It was 13px in #8b7a66, the app's dimmest brown, which is the colour used for things a
+   યુવક may ignore: a caption under a caption, a note about what is not counted. But this
+   paragraph is the one that tells him there is no ચિત્ર on this screen and what he is
+   supposed to do instead — on લેવલ ૩ and લેવલ ૪ it is, as PageIntro.jsx puts it, half the
+   level. Printed in the give-up colour, the most important sentence on the page was the
+   faintest thing on it, and on a phone in daylight it was close to unreadable.
+
+   So it takes the વર્ણન's cream and a size from the same scale. The line-height stays at
+   1.85 rather than the caption's 1.7: this is several sentences of Gujarati that wrap, not
+   one centred line, and matras need the room over a paragraph.
+
+   .level-note moved with it (levels.css) — the two were deliberately identical, and a
+   comment there says so. */
 .page-intro-lead {
   margin: 0;
-  font-size: 13px;
+  font-size: clamp(15px, 2.3vw, 17px);
   line-height: 1.85;
-  color: #8b7a66;
+  color: #f4ead8;
 }
 
 /* ---------------------------------------------------------------- the details */
@@ -72,11 +85,14 @@
   opacity: .85;
 }
 
+/* The prose inside the panel is the same voice as the lead above it, so it takes the same
+   cream. Only the small gold headings stay gold — they are labels, and if everything in the
+   panel were one colour there would be nothing left to tell a heading from its answer. */
 .page-intro-line {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.8;
-  color: #8b7a66;
+  font-size: 14px;
+  line-height: 1.85;
+  color: #f4ead8;
 }
 
 .page-intro-body ul {
@@ -88,9 +104,9 @@
 .page-intro-body li {
   position: relative;
   padding-inline-start: 16px;
-  font-size: 13px;
-  line-height: 1.8;
-  color: #8b7a66;
+  font-size: 14px;
+  line-height: 1.85;
+  color: #f4ead8;
 }
 
 .page-intro-body li::before {

@@ -4,7 +4,9 @@ import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supaba
 import {
   APP_SETTINGS_DOC,
   LEVELS_SETTINGS_DOC,
+  LEVEL4_GATE_KEY,
   TICK_WORD_KEY,
+  resolveLevel4Gate,
   resolveLevels,
   resolveTickWord,
 } from '../../shared/domain/settings.js';
@@ -86,13 +88,54 @@ export function useSettings() {
  * returned so a caller that minds can wait, and Home does not, because a level appearing
  * and then leaving is a smaller wrong than a home page that is blank on every visit.
  *
- * What is *not* here: લેવલ ૪'s lock. It is not settings — it is earned per-યુવક and read
- * from `profiles.level4_unlocked` (§7).
+ * What is *not* here: whether લેવલ ૪ is open **to this યુવક**. That is earned, not
+ * configured — see useLevel4GateSetting() below for the number he has to reach, and
+ * `level4_gate_open()` in the database for whether he has reached it.
  */
 export function useLevels() {
   const { settings, loading } = useSettingsRow(LEVELS_SETTINGS_DOC);
   const levels = useMemo(() => resolveLevels(settings?.levels), [settings]);
   return { levels, loading };
+}
+
+/**
+ * settings.levels.level4Gate — the number of દ્રશ્યો in one day that opens લેવલ ૪ (0014).
+ *
+ * The same row `useLevels()` reads, and the same resolver both apps use, so the panel and
+ * the યુવક app cannot disagree about what the સંચાલક typed.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What this replaced, and why it matters more than it looks
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `LEVEL4_UNLOCK_THRESHOLD` — a literal ૮૦ in shared/domain/constants.js — used to be the
+ * only answer anywhere in this app. Since 0014 the number is the સંચાલક's, and a project
+ * running at ૬૦ had one piece of the યુવક app still testing against ૮૦: src/lib/progress.js,
+ * which decides *when to send the day and re-read the profile*. Between ૬૦ and ૭૯ a યુવક had
+ * genuinely opened લેવલ ૪ and nothing on the phone knew it, so the tile stayed shut until the
+ * next natural flush or a reload. The gate was right and the app was a minute behind it.
+ *
+ * That is the whole reason this hook exists: it is not another way to ask the same question,
+ * it is the *only* way, so nothing is left testing the old literal.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * `require: false`
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The gate switched off is not "threshold ૦" — it is "no threshold at all". Callers should
+ * read `require` rather than comparing against the number, which is still returned (the
+ * સંચાલક's last value, kept so switching the gate back on restores what he typed).
+ *
+ * @returns {{ gate: { require: boolean, threshold: number }, loading: boolean }}
+ *   Never null and never partial, on the very first paint: resolveLevel4Gate() falls back to
+ *   the shared default. A caller that renders the number should still wait on `loading`, or
+ *   it will print ૮૦ for the width of one round trip and then correct itself to ૬૦ — the one
+ *   thing worse than a late promise is a wrong one.
+ */
+export function useLevel4GateSetting() {
+  const { settings, loading } = useSettingsRow(LEVELS_SETTINGS_DOC);
+  const gate = useMemo(() => resolveLevel4Gate(settings?.[LEVEL4_GATE_KEY]), [settings]);
+  return { gate, loading };
 }
 
 /**

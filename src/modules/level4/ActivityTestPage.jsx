@@ -467,8 +467,8 @@ export default function ActivityTestPage() {
         */}
         {activity.status === L4_ACTIVITY_STATUS.COMPLETED && (
           <p className="level-note l4-banner">
-            આ કસોટી પૂરી થઈ ગઈ છે અને કાયમ પૂરી જ રહેશે. ફરી કરવી હોય તો ખુશીથી કરો — એમાં
-            કશું ગુમાવવાનું નથી.
+            આ કસોટી તમે પૂરી કરી લીધી છે. ફરી આપવી હોય તો જેટલી વાર જોઈએ તેટલી વાર આપી શકાય —
+            કોઈ મર્યાદા નથી. પૂરી થયેલી ગણતરી કાયમ તમારી જ રહેશે, ફરી આપો તો પણ.
           </p>
         )}
       </header>

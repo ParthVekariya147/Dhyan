@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { useAuth } from './auth';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supabase/client.js';
-// The threshold has exactly one definition (shared/domain/constants.js) and one mirror,
-// in supabase/migrations/0008's level4_unlock_threshold(). src/lib/constants.js is a
-// re-export of the shared file, which is the import path the rest of src/ uses.
-import { LEVEL4_UNLOCK_THRESHOLD } from './constants';
+/*
+  The threshold is the સંચાલક's, read from settings['levels'].level4Gate (0014) — **not**
+  `LEVEL4_UNLOCK_THRESHOLD`, which this module imported until the gate became configurable
+  and which is now only the default that hook falls back to. See earnsLevel4() below for what
+  went wrong while this file still tested against the literal ૮૦.
+*/
+import { useLevel4GateSetting } from './useSettings';
 import { isISODay, msUntilISTMidnight, todayIST } from './daily';
 
 /**
@@ -163,11 +166,25 @@ export const scoreOf = (ticks, baseline = 0) => Math.max(ticks?.size ?? 0, count
 /**
  * §7 — has this day's લેવલ ૩ score opened લેવલ ૪?
  *
- * Asked here only to decide *when to flush* and when to re-read the profile. The answer
- * that counts is `profiles.level4_unlocked`, set by the trigger in 0008 on the row this
- * module writes. Nothing here ever writes that flag.
+ * Asked here only to decide *when to flush* and when to re-read the profile. The answer that
+ * counts is the database's — `level4_gate_open()` reads `progress` on every લેવલ ૪ request —
+ * and nothing in this module writes any unlock flag.
+ *
+ * **The number is a parameter now, and that is the point** (0014). It used to be
+ * `LEVEL4_UNLOCK_THRESHOLD`, the literal ૮૦, which stopped being the rule the day the gate
+ * moved into settings. A project running at ૬૦ had a યુવક crossing his real threshold while
+ * this function said no, so the day was not sent and the profile was not re-read: લેવલ ૪ was
+ * open in the database and shut on his phone until the next minute's flush or a reload.
+ *
+ * `gate.require === false` is passed as a threshold of 0 by the caller, which is correct here
+ * and only here: with no gate, the first tick of the day has already "opened" લેવલ ૪, so the
+ * day is worth sending promptly. It is not a claim that ૦ is the threshold — see
+ * useLevel4GateSetting(), which keeps the two apart for everything that renders a number.
+ *
+ * @param {number} level3Score today's score
+ * @param {number} threshold   the સંચાલક's number, from useLevel4GateSetting()
  */
-export const earnsLevel4 = (level3Score) => level3Score >= LEVEL4_UNLOCK_THRESHOLD;
+export const earnsLevel4 = (level3Score, threshold) => level3Score >= threshold;
 
 /** One row per (યુવક, day) — the shape §12 insists on, and `progress`'s primary key. */
 export function progressRows(uid, outbox, at = new Date().toISOString()) {
@@ -247,7 +264,19 @@ export function useDailyProgress() {
   const baseRef = useRef(baseline);
   const uidRef = useRef(uid);
   const tokenRef = useRef(null);
-  const unlockedRef = useRef(false);
+  /**
+   * Have we already noticed this યુવક cross the gate, in this session?
+   *
+   * A latch, and not `profiles.level4_unlocked` (0014). That flag records 0008's fixed ૮૦ and
+   * nothing else, so under a gate the સંચાલક has moved it answers a different question: at ૬૦
+   * it is false for a યુવક who is already through, and at ૧૦૦ it is true for one who is not.
+   * Reading it here made both branches below wrong in opposite directions.
+   *
+   * What it guards is only cost — one profile re-read and one early flush per session. It is
+   * never consulted to decide whether લેવલ ૪ is open; that question belongs to
+   * `level4_gate_open()` in the database, which reads the `progress` row rather than any flag.
+   */
+  const noticedRef = useRef(false);
   const refreshRef = useRef(null);
   const inFlightRef = useRef(false);
   /**
@@ -263,9 +292,23 @@ export function useDailyProgress() {
    */
   const floorReadyRef = useRef(false);
 
+  /*
+    The સંચાલક's number, and the one place this module learns it (0014).
+
+    `require: false` collapses to 0 here, and only here: with no gate the very first tick has
+    already "opened" લેવલ ૪, so the day is worth sending promptly. Nothing in this module
+    renders the number, so the distinction between "no gate" and "a gate of zero" — which
+    matters everywhere a sentence is printed — costs nothing to drop at this one call site.
+
+    While the settings row is in flight `resolveLevel4Gate()` answers the shared default, so
+    the worst case for the width of one round trip is the behaviour this module had before:
+    the old ૮૦.
+  */
+  const { gate } = useLevel4GateSetting();
+  const gateScore = gate.require ? gate.threshold : 0;
+
   uidRef.current = uid;
   tokenRef.current = session?.access_token ?? null;
-  unlockedRef.current = Boolean(profile?.level4_unlocked);
   refreshRef.current = refreshProfile;
 
   // ---------------------------------------------------------------- flush
@@ -309,13 +352,19 @@ export function useDailyProgress() {
       /*
         §7 — the level is the database's to open, so this asks rather than assumes.
 
-        The row that just landed fires progress_unlock_level4() inside the same
-        transaction (0008_level4_unlock.sql:165), which sets profiles.level4_unlocked.
-        Re-reading the profile is how that reaches the screen without a reload; doing it
-        only when a sent row actually qualifies, and only while the flag is still false,
-        keeps it to exactly one extra read in a યુવક's lifetime.
+        The row that just landed is what `level4_gate_open()` reads, so the moment it is in,
+        લેવલ ૪ is genuinely open. Re-reading the profile is how that reaches the screen
+        without a reload.
+
+        Latched rather than read off `profiles.level4_unlocked` (0014). That flag answers
+        0008's fixed ૮૦ and nothing else, so at a gate of ૬૦ it stays false for a યુવક who is
+        already through — and this branch would then fire on every flush for the rest of his
+        day, one profile read a minute for nothing. The latch is the honest version of the
+        same optimisation: refresh once per session, the first time a sent row crosses the
+        real threshold.
       */
-      if (!unlockedRef.current && rows.some((r) => earnsLevel4(r.level3_score))) {
+      if (!noticedRef.current && rows.some((r) => earnsLevel4(r.level3_score, gateScore))) {
+        noticedRef.current = true;
         refreshRef.current?.();
       }
     } catch (err) {
@@ -356,17 +405,24 @@ export function useDailyProgress() {
       writeLocal(outboxKey(id), box);
 
       /*
-        The one tick that is worth a round trip of its own: the ૮૦th.
+        The one tick that is worth a round trip of its own: the one that crosses the gate.
 
         Everything else can wait a minute, but this is the tick that opens લેવલ ૪, and the
-        opening happens in Postgres — the trigger cannot fire on a row that has not been
-        sent. Waiting up to 60 seconds to tell a યુવક that the last level of the સાધના is
-        now his would be a strange silence. Fires once, on the crossing, not on every tick
-        above the threshold.
+        opening happens in Postgres — `level4_gate_open()` reads the `progress` row, and it
+        cannot read a row that has not been sent. Waiting up to 60 seconds to tell a યુવક that
+        the last level of the સાધના is now his would be a strange silence. Fires once, on the
+        crossing, not on every tick above the threshold.
+
+        **Which tick that is comes from the સંચાલક** (0014). It was the ૮૦th, always, and at
+        a gate of ૬૦ that meant the twenty ticks either side of the real crossing did nothing:
+        the day sat in the outbox and લેવલ ૪ stayed shut on screen while being open in the
+        database. `gateScore` is his number.
       */
-      if (!unlockedRef.current && !earnsLevel4(before) && earnsLevel4(l3)) flush();
+      if (!noticedRef.current && !earnsLevel4(before, gateScore) && earnsLevel4(l3, gateScore)) {
+        flush();
+      }
     },
-    [flush]
+    [flush, gateScore]
   );
 
   // ---------------------------------------------------------------- load

@@ -53,9 +53,22 @@
 /** A કસોટી of લેવલ ૪, passed. `code` is the કસોટી's own code, already in Gujarati digits. */
 export const passedActivity = (code) => ({
   title: `અભિનંદન — લેવલ ${code} પૂરું થયું`,
+  /*
+    The order of these two clauses is the whole sentence.
+    ────────────────────────────────────────────────────────
+    It read "આ કસોટી હવે કાયમ પૂરી ગણાશે — ફરી કરવી હોય તો…", and a યુવક reading the first
+    half stops there: "કાયમ પૂરી" arriving first sounds like a door closing, and the
+    permission tucked after a dash is read as a consolation rather than as the rule. It was
+    also the exact sentence 0016 shipped with 'ફરી આપવાની નથી' in that second half, so the
+    shape itself carries the old meaning.
+
+    So the permission leads and is stated without a limit, and the permanence follows as the
+    reassurance it actually is. Nothing about a કસોટી closes — that is the sentence.
+  */
   line:
-    'તમે જે ધીરજથી દર્શન સાચવ્યાં એ આજે કામ લાગ્યું. આ કસોટી હવે કાયમ પૂરી ગણાશે — ' +
-    'ફરી કરવી હોય તો જ્યારે મન થાય ત્યારે કરી શકાય.',
+    'તમે જે ધીરજથી દર્શન સાચવ્યાં એ આજે કામ લાગ્યું. આ કસોટી ફરી આપવી હોય તો જેટલી વાર ' +
+    'મન થાય તેટલી વાર આપી શકાય — કોઈ મર્યાદા નથી, અને કંઈ બંધ થતું નથી. પૂરી થયેલી ગણતરી ' +
+    'કાયમ તમારી જ રહેશે, ફરી આપો તો પણ.',
   grow: 'આમ જ એક પછી એક આગળ વધતા રહો — દરેક દર્શન સ્મરણમાં વધુ ઊંડું ઊતરે છે. જય સ્વામિનારાયણ 🙏',
 });
 
