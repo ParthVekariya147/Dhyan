@@ -3,7 +3,22 @@ import DarshanCard from './DarshanCard';
 import Lightbox from './Lightbox';
 import './darshan.css';
 
-const BATCH = 10;
+/**
+ * Six, not ten — because of Google's rate limit rather than because of weight.
+ *
+ * lh3.googleusercontent.com answers 429 to a client that asks for too much of it too
+ * quickly, and mounting a batch is exactly what fires those requests: `loading="lazy"`
+ * defers the cards still far below, but on a fast scroll the browser's own threshold sweeps
+ * in and pulls most of a batch at once. Ten together is enough to trip it; six leaves the
+ * same headroom with one more observer trigger, which costs nothing a યુવક can perceive
+ * because the sentinel still fires a full 900px before the end of the list.
+ *
+ * This is a smaller lever than it looks, and it is not the fix on its own — the throttle is
+ * about the rate of requests, and the browser, not this number, decides the true
+ * concurrency. What actually recovers a refused દર્શન is the retry in
+ * src/lib/useImageRetry.js. This just asks for the refusal less often.
+ */
+const BATCH = 6;
 
 /**
  * Renders scenes in batches as the reader approaches the end of the list.

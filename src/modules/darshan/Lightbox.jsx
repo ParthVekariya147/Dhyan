@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { gu } from '../../lib/scenes';
+import { useImageRetry } from '../../lib/useImageRetry';
 
 /**
  * The enlarged view of one દ્રશ્ય.
@@ -13,6 +14,14 @@ import { gu } from '../../lib/scenes';
  * enlarged દ્રશ્ય is called by the same number as the card behind it.
  */
 export default function Lightbox({ item, onClose }) {
+  /*
+    The likeliest of all of them to be refused, and the worst place for it. `fullUrl` is the
+    ૨૫૬૦-wide encode, asked for at the moment a યુવક deliberately taps to see a દ્રશ્ય
+    closely — and it is a fresh URL, so it cannot be served from the card's cache. A 429 here
+    is a black screen over a દર્શન he asked for. See src/lib/useImageRetry.js.
+  */
+  const { attempt, onError } = useImageRetry();
+
   useEffect(() => {
     if (!item) return;
     const onKey = (e) => {
@@ -30,7 +39,13 @@ export default function Lightbox({ item, onClose }) {
     <div className={`lb${item ? ' on' : ''}`} onClick={onClose}>
       {item && (
         <>
-          <img src={item.fullUrl || item.url} alt={item.t} decoding="async" />
+          <img
+            key={`${item.id}-${attempt}`}
+            src={item.fullUrl || item.url}
+            alt={item.t}
+            decoding="async"
+            onError={onError}
+          />
           <div className="lb-cap">
             {gu(item.displayIndex)}.&nbsp; {item.t}
           </div>

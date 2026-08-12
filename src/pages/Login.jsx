@@ -155,8 +155,8 @@ export default function Login() {
         <form onSubmit={submit} noValidate>
           <TextField
             id="identifier"
-            label="મોબાઈલ નંબર અથવા ઈમેલ"
-            hint="બંનેમાંથી કોઈપણ એકથી લોગિન થઈ શકે છે."
+            label="મોબાઈલ નંબર "
+            hint="મોબાઈલ નંબર લોગિન થઈ શકે છે."
             error={errs.identifier}
             value={identifier}
             onChange={(e) => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { gu } from '../../lib/scenes';
+import { useImageRetry } from '../../lib/useImageRetry';
 
 /**
  * One દર્શન scene: a picture, its number, its વર્ણન.
@@ -26,6 +27,13 @@ import { gu } from '../../lib/scenes';
  */
 export default function DarshanCard({ item, onOpen }) {
   const ref = useRef(null);
+  /*
+    Google's CDN answers 429 when this feed asks for ten pictures at once, and a browser
+    never retries a failed <img> by itself — so one throttled request used to leave a blank
+    frame under a વર્ણન for the rest of the visit, on the level whose whole purpose is the
+    picture. See src/lib/useImageRetry.js.
+  */
+  const { attempt, onError } = useImageRetry();
 
   useEffect(() => {
     const el = ref.current;
@@ -60,7 +68,7 @@ export default function DarshanCard({ item, onOpen }) {
           }
         }}
       >
-        <img src={item.url} alt={item.t} loading="lazy" decoding="async" />
+        <img key={attempt} src={item.url} alt={item.t} loading="lazy" decoding="async" onError={onError} />
       </div>
       <div className="cap">
         <span className="txt">{item.t}</span>

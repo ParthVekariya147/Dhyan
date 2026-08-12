@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { L4_ACTIVITY_STATUS, markRevision, useLevel4Activity } from '../../lib/level4';
 import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 import { gu } from '../../lib/scenes';
+import { useImageRetry } from '../../lib/useImageRetry';
 import PageIntro from '../../components/PageIntro';
 import Lightbox from '../darshan/Lightbox';
 /*
@@ -337,6 +338,7 @@ function RevisionScene({ item, rank, onOpen }) {
   }, []);
 
   const eager = rank <= 1;
+  const { attempt, onError } = useImageRetry();
   /*
     The number a યુવક reads — useScenes()'s continuous ૧…N (ORDERING.md §4), the same one
     the કસોટી he has just come from printed. Emphatically **not** `rank + 1`: `rank` is a
@@ -371,12 +373,17 @@ function RevisionScene({ item, rank, onOpen }) {
           }
         }}
       >
+        {/* Retried if the CDN refuses it — src/lib/useImageRetry.js. This screen is the one
+            offered to a યુવક who did not remember enough, so a દ્રશ્ય that silently fails to
+            arrive here is the one he most needed to see. */}
         <img
+          key={attempt}
           src={item.url}
           alt={item.t}
           loading={eager ? 'eager' : 'lazy'}
           fetchPriority={rank === 0 ? 'high' : rank === 1 ? 'low' : 'auto'}
           decoding="async"
+          onError={onError}
         />
       </div>
       <div className="cap">
