@@ -26,6 +26,8 @@ const DarshanDetailPage = lazy(() => import('./features/darshan/pages/DarshanDet
 const ProgressPage = lazy(() => import('./features/progress/pages/ProgressPage'));
 const SessionsPage = lazy(() => import('./features/sessions/pages/SessionsPage'));
 const LevelsPage = lazy(() => import('./features/levels/pages/LevelsPage'));
+const Level4ListPage = lazy(() => import('./features/level4/pages/Level4ListPage'));
+const Level4EditorPage = lazy(() => import('./features/level4/pages/Level4EditorPage'));
 const VideoPage = lazy(() => import('./features/video/pages/VideoPage'));
 const SettingsPage = lazy(() => import('./features/settings/pages/SettingsPage'));
 const AuditLogPage = lazy(() => import('./features/audit/pages/AuditLogPage'));
@@ -63,6 +65,16 @@ export default function App() {
             <Route path="/progress" element={<Gate need="progress.read"><ProgressPage /></Gate>} />
             <Route path="/sessions" element={<Gate need="sessions.read"><SessionsPage /></Gate>} />
             <Route path="/levels" element={<Gate need="settings.read"><LevelsPage /></Gate>} />
+            {/* લેવલ ૪ is a container of sub-levels, and arranging them is a different job from
+                deciding which levels exist — /levels stays the availability screen. Both sit
+                under settings.read for the reason AdminShell's NAV table gives: the permission
+                named is the one that decides whether the page can say anything true, and every
+                control that *writes* here is disabled without settings.update and refused by
+                the policy behind it. The editor's static /config segment ranks above nothing —
+                there is no /levels/:levelId route for it to compete with — so it is placed
+                beside its list purely to be read as a pair. */}
+            <Route path="/levels/4" element={<Gate need="settings.read"><Level4ListPage /></Gate>} />
+            <Route path="/levels/4/config/:configId" element={<Gate need="settings.read"><Level4EditorPage /></Gate>} />
             <Route path="/video" element={<Gate need="settings.read"><VideoPage /></Gate>} />
             <Route path="/settings" element={<Gate need="settings.read"><SettingsPage /></Gate>} />
             <Route path="/audit-logs" element={<Gate need="audit.read"><AuditLogPage /></Gate>} />

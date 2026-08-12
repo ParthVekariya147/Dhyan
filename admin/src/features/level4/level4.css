@@ -1,0 +1,141 @@
+/* લેવલ ૪ — the sub-level builder.
+ *
+ * Loaded only by the two Level 4 pages, so it rides their chunk and costs nothing on any
+ * other screen (§51). Every colour is a token from admin.css: this is the same console, and
+ * a section with its own palette reads as a different product.
+ */
+
+/* ---------------------------------------------------------------- version bar */
+
+.l4-versions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.l4-versions .field { margin-bottom: 0; min-width: 240px; }
+.l4-meta { color: var(--muted); font-size: 12.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------- sub-level cards */
+
+.l4-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+.l4-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* A sub-level that is switched off is still in the list — §28 keeps it so a યુવક's finished
+   work still points at something — and it must be legible at a glance without relying on
+   colour alone, hence the dashed edge as well as the pill. */
+.l4-card.is-off { border-style: dashed; opacity: .75; }
+.l4-card.is-selected { border-color: var(--accent); }
+
+.l4-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.l4-code { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.l4-card h3 { font-size: 13.5px; font-weight: 600; }
+.l4-range { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.l4-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+.l4-card-actions .btn { padding: 6px 10px; font-size: 12px; }
+
+/* ---------------------------------------------------------------- editor layout */
+
+.l4-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); align-items: start; }
+
+.l4-nav { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.l4-nav li { display: flex; align-items: center; gap: 6px; }
+.l4-nav-btn {
+  all: unset;
+  flex: 1;
+  cursor: pointer;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 13px;
+}
+.l4-nav-btn:hover { background: var(--panel-2); }
+.l4-nav-btn.is-active { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.l4-nav-n { color: var(--muted); font-size: 11.5px; }
+.l4-move { background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 6px; width: 26px; height: 26px; cursor: pointer; font-size: 12px; }
+.l4-move:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------- the picker */
+
+.l4-modes { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.l4-mode {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--line); border-radius: 7px;
+  padding: 7px 13px; font: inherit; font-size: 13px; cursor: pointer;
+}
+.l4-mode[aria-pressed="true"] { background: var(--panel-2); border-color: var(--accent); font-weight: 600; }
+
+.l4-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+.l4-tools .field { margin-bottom: 0; min-width: 96px; flex: 0 0 auto; }
+.l4-tools .field.grow { flex: 1 1 200px; }
+
+.l4-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  max-height: 460px;
+  overflow-y: auto;
+  /* The scroll container has to be the containing block for the rows below, or
+     `contain-intrinsic-size` estimates against the page instead. */
+  contain: paint;
+}
+
+.l4-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  cursor: pointer;
+
+  /*
+    Virtualisation, done by the browser — the same answer src/modules/levels/levels.css
+    gives the યુવક tick list, and for the same reasons.
+
+    The collection is whatever the sheet holds: 109 rows today, and the code may not assume
+    a number (§40, §62). A thousand live checkboxes is a real cost on every keystroke in the
+    search box, and a windowing library is a dependency this project does not take. With
+    `content-visibility: auto` the engine skips layout and paint for rows outside the box and
+    does them as they approach; `contain-intrinsic-size: auto 33px` keeps the scrollbar honest
+    and lets the browser remember each row's measured height, so scrolling back lands where it
+    was. A browser without the property renders every row, which is also correct — only slower.
+  */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 33px;
+}
+.l4-row:last-child { border-bottom: 0; }
+.l4-row:hover { background: var(--panel-2); }
+.l4-row input[type="checkbox"] { width: auto; flex: 0 0 auto; }
+.l4-row-n { font-variant-numeric: tabular-nums; color: var(--muted); flex: 0 0 52px; }
+.l4-row-t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Held by another sub-level: still selectable, because moving a દ્રશ્ય from one to another is
+   an ordinary edit — the duplicate is reported by the engine, not forbidden by the row. */
+.l4-row-taken { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; }
+
+.l4-summary {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel-2);
+  padding: 10px 12px; margin-bottom: 12px;
+  font-size: 12.5px;
+}
+.l4-summary strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.l4-summary div { display: flex; flex-direction: column; }
+.l4-summary span { color: var(--muted); }
+
+/* A preview is the numbers, nothing else — the same restraint §12 asks of the યુવક test
+   screen, so a સંચાલક checking a sub-level is looking at what a યુવક will be asked. */
+.l4-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.l4-chip {
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 2px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .l4-cols { grid-template-columns: 1fr; }
+  .l4-list { max-height: 340px; }
+}

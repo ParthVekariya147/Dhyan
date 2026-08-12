@@ -1,29 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../lib/auth';
 import { useLevels } from '../../lib/useSettings';
 import { useScenes } from '../../lib/useScenes';
 import { useDailyProgress } from '../../lib/progress';
-import { LEVEL4_UNLOCK_THRESHOLD } from '../../lib/constants';
 import { gu } from '../../lib/scenes';
 import ProgressRing from './ProgressRing';
 import TickRow from './TickRow';
 import './levels.css';
 
 /**
- * લેવલ ૩ (વર્ણન યાદી) અને લેવલ ૪ (ફક્ત નંબર) — §7, the heart of the સાધના.
+ * This page is લેવલ ૩ and nothing else, so the number is a constant and not a prop.
+ *
+ * It was a prop while one component served both લેવલ ૩ and લેવલ ૪ — see below. It is read
+ * in three places that all mean the same thing: the day bucket a tick lands in
+ * (`progress.toggle`), the row in the સંચાલક's level list this page is named by (§36), and
+ * TickRow's decision to show the વર્ણન. Named rather than written as `3` three times, so
+ * those three stay one fact.
+ */
+const LEVEL = 3;
+
+/**
+ * લેવલ ૩ — વર્ણન યાદી (§7), the heart of the સાધના.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * One component for two levels
+ * It used to be two levels, and is now one
  * ────────────────────────────────────────────────────────────────────────────
  *
- * The two screens differ in exactly one thing — whether the વર્ણન is on screen from the
- * start or waits behind 'જવાબ જુઓ'. Everything else is identical and must stay identical:
- * the same 1 → N order, the same tick, the same ring, the same day, the same row in
- * `progress`. Writing them twice would be writing the midnight reset twice, the flush
- * twice and the ક્રમ twice, and the first divergence between the copies would be a bug
- * nobody could see. §1 rule 1 describes them as one ladder with one rung removed, and this
- * is that, expressed once.
+ * This component served લેવલ ૩ and લેવલ ૪ from one body, because the two screens differed
+ * in exactly one thing — whether the વર્ણન was on screen from the start or waited behind
+ * 'જવાબ જુઓ' — and writing them twice would have been writing the midnight reset twice,
+ * the flush twice and the ક્રમ twice.
+ *
+ * That is no longer what લેવલ ૪ is (LEVEL4.md decision #1). લેવલ ૪ is a container of
+ * પ્રવૃત્તિઓ the સંચાલક composes — ૪.૧, ૪.૨, … each opened by finishing the one before it,
+ * each permanently finished once passed, each attempted once and submitted rather than
+ * ticked through a day. Its flat 1 → N list and its 'જવાબ જુઓ' reveal are gone, and with
+ * them the reason these two were ever one file. લેવલ ૪ now lives in src/modules/level4/.
+ *
+ * What has *not* changed is anything on this page: the same 1 → N order, the same tick,
+ * the same ring, the same day, the same row in `progress`.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * What is deliberately absent
@@ -35,22 +50,18 @@ import './levels.css';
  * * **No 'પૂરું કરો' button** (§9). There is nothing to submit: each tick is already
  *   saved to the phone and the day's score is already on its way. Closing the app mid-way
  *   loses nothing, so a button whose only job is to promise that would be a lie about how
- *   this works.
+ *   this works. (લેવલ ૪ does have one, and for the opposite reason: an attempt there is a
+ *   single event that has not happened until it is sent.)
  * * **No sorting, no filtering, no "hide the ones you've done".** ક્રમ કદી તૂટે નહીં
  *   (§1 rule 2): 1 → N, always, at every level, on every visit.
  * * **Nothing red, nothing scolding, no count of what is missing** (§1 rule 4). An
  *   unticked દ્રશ્ય is simply not ticked yet.
  * * **No streaks** (§10). Not a word on this page counts consecutive days.
  */
-export default function LevelPage({ level }) {
-  const { profile } = useAuth();
+export default function LevelPage() {
   const { levels } = useLevels();
   const { scenes, total, loading } = useScenes();
   const P = useDailyProgress();
-
-  // લેવલ ૪'s answers, revealed one at a time and never remembered: tomorrow the same
-  // number should ask the same question. Component state, so it also resets on leaving.
-  const [revealed, setRevealed] = useState(() => new Set());
 
   const { prune, toggle } = P;
   const validIds = useMemo(() => new Set(scenes.map((s) => s.id)), [scenes]);
@@ -65,46 +76,11 @@ export default function LevelPage({ level }) {
     if (!loading && P.ready) prune(validIds);
   }, [loading, P.ready, validIds, prune]);
 
-  const onToggle = useCallback((id) => toggle(level, id), [toggle, level]);
-  const onReveal = useCallback((id) => setRevealed((prev) => new Set(prev).add(id)), []);
+  const onToggle = useCallback((id) => toggle(LEVEL, id), [toggle]);
 
   // The name the સંચાલક chose (§36); the *behaviour* is never his to change (§37), which
-  // is why `level` arrives from the route and the name only from settings.
-  const name = levels.find((l) => l.levelId === level)?.name ?? '';
-  const score = level === 4 ? P.score4 : P.score3;
-  const carried = level === 4 ? P.carried4 : P.carried3;
-  const ticked = level === 4 ? P.ticked4 : P.ticked3;
-
-  // ---------------------------------------------------------------- the lock (§7)
-  /*
-    Read, never written. `profiles.level4_unlocked` is set by the AFTER trigger on
-    `public.progress` in supabase/migrations/0008_level4_unlock.sql — this page's only part
-    in it is writing the day's level3_score, which progress.js does. A યુવક who reaches
-    /level/4 by typing the URL gets this same invitation rather than a redirect: bouncing
-    him back to the home page would answer a question he did not ask.
-  */
-  if (level === 4 && !profile?.level4_unlocked) {
-    return (
-      <div className="level-wrap">
-        <LevelBar />
-        <section className="level-locked">
-          <div className="locked-mark" aria-hidden="true">🔒</div>
-          <h2>{name || 'ફક્ત નંબર'}</h2>
-          {/*
-            An invitation, not a rebuke (§1 rule 4). It says what opens the level — never
-            how far away he is, never how many days he has taken, never that he failed
-            today. The number is the shared constant the database rule mirrors, so the
-            promise printed here and the trigger that keeps it cannot drift apart.
-          */}
-          <p className="locked-line">
-            લેવલ ૩ માં {gu(LEVEL4_UNLOCK_THRESHOLD)} પૂરાં કરો, પછી આ ખૂલશે
-          </p>
-          <p className="locked-sub">એક જ દિવસમાં {gu(LEVEL4_UNLOCK_THRESHOLD)} દ્રશ્યો — પછી આ લેવલ કાયમ ખુલ્લું રહેશે.</p>
-          <Link to="/level/3" className="btn-gold btn-inline">લેવલ ૩ શરૂ કરો</Link>
-        </section>
-      </div>
-    );
-  }
+  // is why only the name comes from settings.
+  const name = levels.find((l) => l.levelId === LEVEL)?.name ?? '';
 
   // ---------------------------------------------------------------- states
   if (loading || !P.ready) {
@@ -130,24 +106,20 @@ export default function LevelPage({ level }) {
     );
   }
 
-  const complete = score >= total;
+  const complete = P.score3 >= total;
 
   return (
     <div className="level-wrap">
       <LevelBar />
 
       <header className="level-head">
-        <p className="level-eyebrow">લેવલ {gu(level)}</p>
+        <p className="level-eyebrow">લેવલ {gu(LEVEL)}</p>
         <h1>{name}</h1>
         <ProgressRing
-          score={score}
+          score={P.score3}
           total={total}
           label="આજની પ્રગતિ"
-          sub={
-            level === 3
-              ? 'વર્ણન વાંચો, દ્રશ્ય મનમાં લાવો, પછી ટિક કરો.'
-              : 'ફક્ત નંબર જુઓ. દ્રશ્ય મનમાં આવે તો ટિક કરો.'
-          }
+          sub="વર્ણન વાંચો, દ્રશ્ય મનમાં લાવો, પછી ટિક કરો."
         />
 
         {/*
@@ -165,9 +137,9 @@ export default function LevelPage({ level }) {
           cleared). Explained rather than hidden — a ring reading ૫૦ above fifty empty
           boxes with no word about it is the confusion §1 asks us not to create.
         */}
-        {carried > 0 && (
+        {P.carried3 > 0 && (
           <p className="level-note level-carried">
-            આજનાં {gu(carried)} દ્રશ્યો બીજેથી ગણતરીમાં લેવાયાં છે. અહીં એ ટિક થયેલાં નહીં દેખાય,
+            આજનાં {gu(P.carried3)} દ્રશ્યો બીજેથી ગણતરીમાં લેવાયાં છે. અહીં એ ટિક થયેલાં નહીં દેખાય,
             પણ ગણતરીમાં છે.
           </p>
         )}
@@ -198,11 +170,9 @@ export default function LevelPage({ level }) {
             id={s.id}
             n={s.n ?? s.index}
             text={s.t}
-            level={level}
-            ticked={ticked.has(s.id)}
-            revealed={level === 4 && revealed.has(s.id)}
+            level={LEVEL}
+            ticked={P.ticked3.has(s.id)}
             onToggle={onToggle}
-            onReveal={onReveal}
           />
         ))}
       </ol>
@@ -210,8 +180,8 @@ export default function LevelPage({ level }) {
       {/* ફક્ત આનંદ (§1 rule 4) — the only thing said at the end is thanks. */}
       <p className="level-foot" aria-live="polite">
         {complete
-          ? `આજનું ધ્યાન સંપૂર્ણ — ${gu(score)} દ્રશ્યો. જય સ્વામિનારાયણ 🙏`
-          : `આજ સુધી ટિક: ${gu(score)} / ${gu(total)}`}
+          ? `આજનું ધ્યાન સંપૂર્ણ — ${gu(P.score3)} દ્રશ્યો. જય સ્વામિનારાયણ 🙏`
+          : `આજ સુધી ટિક: ${gu(P.score3)} / ${gu(total)}`}
       </p>
     </div>
   );

@@ -34,6 +34,10 @@ const HomeRing = lazy(() => import('../modules/levels/HomeRing'));
  *
  * `earned` marks the level whose availability is not the સંચાલક's to give (§7) — see
  * supabase/migrations/0008_level4_unlock.sql.
+ *
+ * લેવલ ૪'s destination is the પ્રવૃત્તિ list (LEVEL4.md decision #1), not a flat list of
+ * દ્રશ્યો any more. The path did not change, so nothing here did: /level/4 is the level's
+ * front door either way, and what is behind it is App.jsx's business and not this page's.
  */
 const LEVEL_CODE = {
   1: { to: '/welcome', ready: true },
@@ -117,8 +121,23 @@ export default function Home() {
               the row that records the day's score, so what this page shows is derived from
               the same data the સંચાલક's dashboard reads.
             */
+            /*
+              The gate is shown here and decided on the level's own page.
+
+              It used to be decided here too — a locked લેવલ ૪ was rendered as an untappable
+              tile. That is no longer honest: since LEVEL4.md decision #3 the gate belongs to
+              the published લેવલ ૪ configuration (`require_gate`, `gate_threshold`), and a
+              સંચાલક who turns it off would leave a યુવક looking at a tile he cannot press
+              for a level that is in fact open to him. The flag below is the AFTER trigger's
+              answer to the *default* gate (0008, threshold ૮૦, untouched by this work), so
+              it is a true and cheap hint — but a hint, and the tile stays tappable.
+
+              Behind it, Level4Page reads the real gate and shows the same invitation, in the
+              configuration's own words. Nothing is granted by tapping: `level4_submit`
+              re-checks the gate server-side on every attempt (§37).
+            */
             const locked = code.earned && !profile?.level4_unlocked;
-            const disabled = !code.ready || locked;
+            const disabled = !code.ready;
             const body = (
               <>
                 <span className="level-n">લેવલ {gu(l.levelId)}</span>

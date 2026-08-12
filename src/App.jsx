@@ -23,13 +23,28 @@ const DarshanPage = lazy(() => import('./modules/darshan/DarshanPage'));
 const LearningPage = lazy(() => import('./modules/learning/LearningPage'));
 
 /**
- * લેવલ ૩ અને લેવલ ૪ (§7) — the daily સાધના itself.
+ * લેવલ ૩ (§7) — the daily સાધના itself.
  *
  * Lazy for the same reason as the two above: it reads useScenes(), and so pulls in
- * content/darshan.json. Both routes share one chunk because they share one component —
- * a યુવક who reaches લેવલ ૪ has certainly already loaded લેવલ ૩.
+ * content/darshan.json. It used to serve લેવલ ૪ as well, from the same chunk; લેવલ ૪ is now
+ * a container of પ્રવૃત્તિઓ rather than a variant of this list, and has its own pages below.
  */
 const LevelPage = lazy(() => import('./modules/levels/LevelPage'));
+
+/**
+ * લેવલ ૪ — three screens, three chunks, and lazy for the same reason as everything else
+ * here: they read useScenes() for the printed numbers, and a યુવક on the login screen has
+ * no use for content/darshan.json yet (§14, slow networks).
+ *
+ * Split three ways rather than bundled as one, because they are not one journey through
+ * the same bytes: the list is what a યુવક opens every day, the test is what he opens when
+ * he sits down to it, and the revision — the only one of the three that carries images —
+ * is what he opens when he needs to look again. Loading the image screen to read the list
+ * would be paying for the pictures લેવલ ૪ exists to do without.
+ */
+const Level4Page = lazy(() => import('./modules/level4/Level4Page'));
+const ActivityTestPage = lazy(() => import('./modules/level4/ActivityTestPage'));
+const RevisionPage = lazy(() => import('./modules/level4/RevisionPage'));
 
 function Loading() {
   return (
@@ -152,26 +167,55 @@ export default function App() {
             A route each, unlike the guided journey below, because these are not stages of
             one flow: they are two places a યુવક chooses between from the home page, every
             day, for as long as he does the સાધના. Nothing about the URL grants anything —
-            લેવલ ૪'s lock is `profiles.level4_unlocked`, read inside the page, so typing
-            /level/4 early shows the invitation rather than the level (and rather than a
-            redirect, which would answer a question he did not ask).
+            લેવલ ૪'s gate and the order of its પ્રવૃત્તિઓ are read inside the pages, from the
+            published configuration, so typing a લેવલ ૪ path early shows the invitation
+            rather than the level (and rather than a redirect, which would answer a question
+            he did not ask). The server re-checks all of it in `level4_submit` regardless:
+            a URL has never been permission here (§37).
           */}
           <Route
             path="/level/3"
             element={
               <Guarded>
                 <Suspense fallback={<Loading />}>
-                  <LevelPage level={3} />
+                  <LevelPage />
                 </Suspense>
               </Guarded>
             }
           />
+
+          {/*
+            લેવલ ૪, in three paths and no more (§42): the list, one પ્રવૃત્તિ's test, and that
+            પ્રવૃત્તિ's દર્શન. There is deliberately no route per sub-level — ૪.૧ and ૪.૭ are
+            rows of one table the સંચાલક edits, and a path shaped like /level/4.1 would turn
+            his data into this file's business every time he published a new one.
+          */}
           <Route
             path="/level/4"
             element={
               <Guarded>
                 <Suspense fallback={<Loading />}>
-                  <LevelPage level={4} />
+                  <Level4Page />
+                </Suspense>
+              </Guarded>
+            }
+          />
+          <Route
+            path="/level/4/:activityId"
+            element={
+              <Guarded>
+                <Suspense fallback={<Loading />}>
+                  <ActivityTestPage />
+                </Suspense>
+              </Guarded>
+            }
+          />
+          <Route
+            path="/level/4/:activityId/revision"
+            element={
+              <Guarded>
+                <Suspense fallback={<Loading />}>
+                  <RevisionPage />
                 </Suspense>
               </Guarded>
             }

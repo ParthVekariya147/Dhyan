@@ -51,6 +51,11 @@ export const NAV = [
   { to: '/progress', label: 'Progress', icon: '◔', need: 'progress.read' },
   { to: '/sessions', label: 'Sessions', icon: '◷', need: 'sessions.read' },
   { to: '/levels', label: 'Level', icon: '⧉', need: 'settings.read' },
+  // Its own entry rather than a link buried inside Levels: લેવલ ૪ is a container the સંચાલક
+  // fills — which દર્શન each sub-level asks for — and that is a section's worth of work, not
+  // a setting. `settings.read` for the same reason its neighbours have it: a VIEWER may read
+  // what is configured while settings.update and the policy behind it refuse every save.
+  { to: '/levels/4', label: 'Level 4', icon: '⌗', need: 'settings.read' },
   { to: '/video', label: 'Video', icon: '▷', need: 'settings.read' },
   { to: '/settings', label: 'Settings', icon: '⚙', need: 'settings.read' },
   { to: '/audit-logs', label: 'Audit Log', icon: '✎', need: 'audit.read' },

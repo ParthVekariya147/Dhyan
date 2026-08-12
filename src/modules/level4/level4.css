@@ -1,0 +1,137 @@
+/* લેવલ ૪ — the કસોટી cards and the attempt panels.
+
+   Only what is new. The wrap, the bar, the head, the ring, the row rhythm, the lock and
+   empty panels and the buttons all come from the levels module's stylesheet, which both
+   of these pages import beside this one: લેવલ ૩ and લેવલ ૪ are one visual language and
+   this file must not start a second one.
+
+   Nothing here is red (§1 rule 4). A કસોટી that is locked, one that is waiting to be
+   revised and one that is finished are three ordinary places to be, told apart by weight
+   and by warmth — never by warning. */
+
+/* ---------------------------------------------------------------- the cards */
+
+.l4-list { list-style: none; margin: 24px 0 0; padding: 0; }
+.l4-list > li { margin-top: 12px; }
+
+.l4-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 17px 17px 15px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  background: linear-gradient(180deg, #221a12, #1a140e);
+  border: 1px solid rgba(240, 199, 120, .22);
+  transition: border-color .2s ease, transform .12s ease;
+}
+.l4-card:hover { border-color: rgba(240, 199, 120, .55); }
+.l4-card:active { transform: scale(.995); }
+.l4-card:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 3px; }
+
+/* Quiet, and dashed like every other not-yet on the home page — never dimmed to the point
+   of looking broken, and never marked with anything negative. */
+.l4-card.is-locked {
+  opacity: .55;
+  border-style: dashed;
+  cursor: default;
+}
+.l4-card.is-locked:hover { border-color: rgba(240, 199, 120, .22); }
+
+.l4-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.l4-code {
+  font-size: 13px;
+  letter-spacing: .4px;
+  color: var(--color-gold);
+}
+
+.l4-state {
+  flex: none;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid rgba(240, 199, 120, .28);
+  color: #8b7a66;
+}
+/* The three tones: waiting is the faintest, open is gold, done is filled. */
+.l4-state.is-open { color: var(--color-gold-soft); border-color: rgba(240, 199, 120, .5); }
+.l4-state.is-done {
+  color: #2a1d12;
+  border-color: transparent;
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  font-weight: 700;
+}
+
+.l4-title { font-size: 17px; font-weight: 700; color: #f4ead8; }
+.l4-range { font-size: 13.5px; color: var(--color-muted); }
+.l4-desc { font-size: 13.5px; line-height: 1.75; color: #8b7a66; }
+.l4-lock { font-size: 12.5px; line-height: 1.6; color: #8b7a66; }
+.l4-go { margin-top: 3px; font-size: 14px; color: var(--color-gold-soft); }
+
+/* The secondary way to the દર્શન, offered on a card waiting to be revised. Sits under the
+   card rather than inside it, so the card stays one tap with one destination. */
+.l4-aside {
+  display: inline-block;
+  margin: 9px 0 0 17px;
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- the attempt */
+
+/* The submit sits above the fold of the finger, not below the last row: the final box a
+   યુવક ticks is often in the middle of the list. `aria-live` on the container announces it
+   when it appears, so it is not a visual-only event (§31). */
+.l4-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 18px;
+  background: linear-gradient(180deg, rgba(16, 13, 10, 0), var(--color-ink) 42%);
+}
+.l4-actions .btn-inline { margin-top: 0; }
+
+.l4-crumb { font-size: 13px; color: var(--color-muted); }
+
+/* The completed banner. Gold-tinted rather than grey — this is good news. */
+.l4-banner {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(240, 199, 120, .22);
+  background: rgba(240, 199, 120, .05);
+  color: var(--color-gold-soft);
+}
+
+/* ---------------------------------------------------------------- after the attempt */
+
+/* Deliberately the same panel for both replies — the same size, the same gold border, the
+   same calm. §16: an incomplete attempt is not a smaller version of a completed one, and
+   must not look like a downgraded copy of it. */
+.l4-panel {
+  margin: 30px auto 0;
+  max-width: 480px;
+  padding: 38px 24px 32px;
+  border-radius: 18px;
+  text-align: center;
+  background: radial-gradient(420px 260px at 50% 20%, #2a1f14 0%, var(--color-panel) 72%);
+  border: 1px solid rgba(240, 199, 120, .28);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
+  animation: dropIn .6s cubic-bezier(.2,.7,.3,1) both;
+}
+.l4-mark { font-size: 44px; animation: pop .7s cubic-bezier(.2,1.5,.4,1) both; }
+.l4-panel h2 {
+  margin-top: 12px;
+  font-size: clamp(20px, 4.6vw, 26px);
+  font-weight: 700;
+  color: var(--color-gold-soft);
+}
+.l4-panel-line { margin-top: 14px; font-size: 15.5px; line-height: 1.9; color: #f4ead8; }
+
+@media (max-width: 480px) {
+  .l4-card { padding: 15px 14px 13px; }
+  .l4-aside { margin-left: 14px; }
+}

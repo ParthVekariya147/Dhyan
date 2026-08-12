@@ -97,6 +97,13 @@ const DATA_ERRORS = {
   PGRST200: SERVER_SETUP,
   PGRST202: SERVER_SETUP,
   PGRST204: SERVER_SETUP,
+  // A whole table the panel expects is absent — "Could not find the table
+  // 'public.level4_configs' in the schema cache". In practice this means one thing: a
+  // migration in supabase/migrations/ has not been applied to this project. It sat
+  // unmapped until Level 4 shipped four new tables at once and turned a missing migration
+  // from a theoretical state into the first thing a સંચાલક would meet, worded as though
+  // the network had hiccuped.
+  PGRST205: SERVER_SETUP,
   '42703': SERVER_SETUP,
   '42883': SERVER_SETUP,
   '42P01': SERVER_SETUP,
@@ -131,6 +138,57 @@ const WRITE_ERRORS = {
   // from 0001 — the same constraint the Firestore build had to fake with a companion doc.
   '23505': 'These details are already used for another record. Please enter something different.',
 };
+
+/**
+ * લેવલ ૪'s own P0001 messages — the one place this file reads a message, and why.
+ *
+ * The rule above is to branch on the code and never on the text, because a trigger's
+ * `raise exception` string is developer English that was never written to be read by a
+ * સંચાલક. `level4_publish()` and the guards in 0010_level4_activities.sql are the
+ * exception, and deliberately so: their texts are *identifiers* — `level4_publish_no_activities`,
+ * `level4_config_frozen` — chosen to be matched rather than displayed. Agent 1's migration
+ * says as much beside each `raise`.
+ *
+ * Without this map every one of them arrives as P0001's single fallback sentence, and the
+ * four conditions below are precisely the ones a સંચાલક can fix himself — telling him only
+ * that "the server has blocked it" would be withholding the answer while appearing to give
+ * one. They are all prevented client-side first; this is what is left when the panel and
+ * the database disagree, which is exactly when the honest message matters most.
+ *
+ * Matched by prefix, so `level4_publish_empty_activity: 4.3` finds its entry and keeps the
+ * activity code for the sentence. Nothing outside the `level4_` namespace is read this way.
+ */
+const LEVEL4_ERRORS = [
+  ['level4_publish_empty_activity', (rest) =>
+    `Sub-level ${rest || ''} has no darshan in it. An empty sub-level can never be completed, so it would lock every sub-level after it. Add its darshan, or make it inactive.`.replace('  ', ' ')],
+  // Distinct from the one above, because the fix is in a different panel: this sub-level
+  // has darshan chosen, but every one of them is currently withheld, so it would vanish
+  // from the yuvak's screen the moment it went live. The darshan panel is where that is
+  // released — the Level 4 builder cannot help him here.
+  ['level4_publish_withheld_activity', (rest) =>
+    `Every darshan in sub-level ${rest || ''} is currently withheld, so the sub-level would not appear at all. Publish them in the Darshan section first.`.replace('  ', ' ')],
+
+  ['level4_publish_no_activities',
+    'This configuration has no active sub-levels, so there would be nothing for a yuvak to do. Create at least one before publishing.'],
+  ['level4_publish_already_published', 'This configuration is already the published one.'],
+  ['level4_publish_archived', 'An archived configuration cannot be published. Copy it to a new version first.'],
+  ['level4_publish_not_found', 'That configuration no longer exists. Reload the page.'],
+  ['level4_clone_not_found', 'That configuration no longer exists. Reload the page.'],
+  ['level4_config_frozen',
+    'A published or archived configuration cannot be edited — that is what protects the progress of every yuvak already working through it. Use "New Version" to make an editable copy.'],
+];
+
+function level4Error(e) {
+  const msg = String(e?.message || '');
+  if (!msg.startsWith('level4_')) return null;
+  for (const [key, text] of LEVEL4_ERRORS) {
+    if (!msg.startsWith(key)) continue;
+    // `level4_publish_empty_activity: 4.3` → '4.3'. Absent for every other entry.
+    const rest = msg.slice(key.length).replace(/^[:\s]+/, '').trim();
+    return typeof text === 'function' ? text(rest) : text;
+  }
+  return null;
+}
 
 /**
  * Chrome says "Failed to fetch", Firefox "NetworkError when attempting to fetch resource",
@@ -183,6 +241,9 @@ export function saveError(e) {
   log(e);
   if (isNetwork(e)) return NETWORK;
   return (
+    // Before the code lookup: these arrive as P0001, which has a fallback sentence that
+    // would otherwise win and say nothing. See LEVEL4_ERRORS.
+    level4Error(e) ||
     pick(WRITE_ERRORS, e?.code) ||
     pick(DATA_ERRORS, e?.code) ||
     'There was a problem saving. Please try again.'

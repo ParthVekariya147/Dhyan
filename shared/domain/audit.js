@@ -51,6 +51,23 @@ export const ACTIONS = {
   SETTINGS_UPDATED: 'SETTINGS_UPDATED',
   LEVEL_UPDATED: 'LEVEL_UPDATED',
 
+  /*
+    લેવલ ૪'s sub-level configuration — audit_level4_config() (0010_level4_activities.sql).
+
+    Three of the four come from the AFTER UPDATE trigger, following 0004's rule that the
+    database writes its own trail. LEVEL4_CONFIG_CLONED is the exception and is written by
+    `level4_clone_config()` itself, because only that function knows which configuration
+    the new draft was copied *from* — a trigger on the INSERT sees the copy and not the
+    source.
+
+    Creating an empty draft is deliberately not audited: it governs nothing until it is
+    published, and a trail that records every abandoned draft buries the publishes.
+  */
+  LEVEL4_PUBLISHED: 'LEVEL4_PUBLISHED',
+  LEVEL4_ARCHIVED: 'LEVEL4_ARCHIVED',
+  LEVEL4_CONFIG_UPDATED: 'LEVEL4_CONFIG_UPDATED',
+  LEVEL4_CONFIG_CLONED: 'LEVEL4_CONFIG_CLONED',
+
   // People — audit_profile() on profiles, and audit_admin_profile().
   USER_UPDATED: 'USER_UPDATED',
   USER_SUSPENDED: 'USER_SUSPENDED',
@@ -77,6 +94,11 @@ export const ACTION_LABELS = {
   SETTINGS_UPDATED: 'Settings updated',
   LEVEL_UPDATED: 'Level updated',
 
+  LEVEL4_PUBLISHED: 'Level 4 configuration published',
+  LEVEL4_ARCHIVED: 'Level 4 configuration archived',
+  LEVEL4_CONFIG_UPDATED: 'Level 4 configuration updated',
+  LEVEL4_CONFIG_CLONED: 'Level 4 configuration copied to a new version',
+
   USER_UPDATED: 'User details updated',
   USER_SUSPENDED: 'User account suspended',
   USER_DISABLED: 'User account disabled',
@@ -95,6 +117,7 @@ export const RESOURCE_LABELS = {
   settings: 'Settings',
   profiles: 'User',
   admin_profiles: 'Admin',
+  level4_configs: 'Level 4',
 };
 
 export const resourceLabel = (r) => RESOURCE_LABELS[r] || r || '—';
