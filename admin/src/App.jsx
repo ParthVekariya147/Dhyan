@@ -19,6 +19,7 @@ import { PageLoading } from './components/StateBlocks';
 const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage'));
 const UsersPage = lazy(() => import('./features/users/pages/UsersPage'));
 const UserDetailPage = lazy(() => import('./features/users/pages/UserDetailPage'));
+const UserActivityPage = lazy(() => import('./features/users/pages/UserActivityPage'));
 const DarshanListPage = lazy(() => import('./features/darshan/pages/DarshanListPage'));
 const DarshanHealthPage = lazy(() => import('./features/darshan/pages/DarshanHealthPage'));
 const DarshanImportPage = lazy(() => import('./features/darshan/pages/DarshanImportPage'));
@@ -29,6 +30,7 @@ const LevelsPage = lazy(() => import('./features/levels/pages/LevelsPage'));
 const Level4ListPage = lazy(() => import('./features/level4/pages/Level4ListPage'));
 const Level4EditorPage = lazy(() => import('./features/level4/pages/Level4EditorPage'));
 const VideoPage = lazy(() => import('./features/video/pages/VideoPage'));
+const NavigationPage = lazy(() => import('./features/navigation/pages/NavigationPage'));
 const SettingsPage = lazy(() => import('./features/settings/pages/SettingsPage'));
 const AuditLogPage = lazy(() => import('./features/audit/pages/AuditLogPage'));
 
@@ -52,6 +54,17 @@ export default function App() {
             <Route path="/dashboard" element={<Gate need="users.read"><DashboardPage /></Gate>} />
             <Route path="/users" element={<Gate need="users.read"><UsersPage /></Gate>} />
             <Route path="/users/:userId" element={<Gate need="users.read"><UserDetailPage /></Gate>} />
+            {/*
+              One user's day-by-day record and his points ledger. `users.read` and not a new
+              permission: every role that holds it also holds `progress.read`, which is what
+              the three views behind this page are gated on in RLS, so the route gate and the
+              data gate agree without inventing a name. §23 and §24 of the brief ask for this
+              to be auditable, and the ledger is append-only with no update path for anyone.
+            */}
+            <Route
+              path="/users/:userId/activity"
+              element={<Gate need="users.read"><UserActivityPage /></Gate>}
+            />
             <Route path="/darshan" element={<Gate need="darshan.read"><DarshanListPage /></Gate>} />
             <Route path="/darshan/health" element={<Gate need="darshan.read"><DarshanHealthPage /></Gate>} />
             {/* The bulk importer writes to every દ્રશ્ય it names, so it is gated on the
@@ -76,6 +89,16 @@ export default function App() {
             <Route path="/levels/4" element={<Gate need="settings.read"><Level4ListPage /></Gate>} />
             <Route path="/levels/4/config/:configId" element={<Gate need="settings.read"><Level4EditorPage /></Gate>} />
             <Route path="/video" element={<Gate need="settings.read"><VideoPage /></Gate>} />
+            {/* The bottom bar of the યુવક app — settings/nav, its own row beside settings/app.
+                `settings.read` like the three screens around it, and for the same reason
+                AdminShell's NAV table gives: the permission a section names is the one that
+                decides whether the page can say anything true, and a VIEWER may read which
+                four buttons a યુવક has while settings.update, the RLS policy and the trigger
+                in 0019 all refuse the save. Placed between Video and Settings because those
+                are the two it is read against — all three configure what the app looks like
+                rather than what is in it — and it competes with no other path for
+                precedence. */}
+            <Route path="/navigation" element={<Gate need="settings.read"><NavigationPage /></Gate>} />
             <Route path="/settings" element={<Gate need="settings.read"><SettingsPage /></Gate>} />
             <Route path="/audit-logs" element={<Gate need="audit.read"><AuditLogPage /></Gate>} />
           </Route>

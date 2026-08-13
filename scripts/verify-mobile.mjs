@@ -50,6 +50,21 @@ const SITE = `http://localhost:${PORT}`;
 /** §21's list, exactly. */
 const WIDTHS = [320, 360, 375, 390, 412, 430];
 
+/**
+ * The widths §21 does not name, and the blind spot that cost us the desktop layout.
+ *
+ * Every width above is BELOW --page-max (460px), so at all six of them the form column
+ * is simply the screen minus its padding — which means a bug that removes the 460px cap
+ * entirely is invisible here. That is not hypothetical: `.auth-wrap` carried both
+ * `max-width: var(--page-max)` (forms.css) and `max-width: 100%` (tokens.css's overflow
+ * guard) at the same specificity, the bundler emitted the guard last, and લોગિન and
+ * નોંધણી rendered as a single 1900px-wide line of inputs on a monitor. All six mobile
+ * widths stayed green throughout.
+ *
+ * So the cap is asserted where it can actually fail: on screens WIDER than the form.
+ */
+const WIDE = [768, 1280, 1920];
+
 let pass = 0;
 const fails = [];
 const check = (name, ok, detail = '') => {
@@ -150,7 +165,23 @@ async function submitEmpty(page) {
 
 const results = {};
 
-for (const path of ['/register', '/login']) {
+/*
+  /forgot-password joins the two original pages here, and it belongs in this loop rather
+  than in one of its own.
+
+  §18 asks that the recovery screens be "consistent with existing login/register UI", and
+  that is not a claim a reading of the CSS can settle - it is the same claim these two pages
+  already make about each other, and the reason this file measures rather than reviews. The
+  page is built from the same components/Field.jsx and the same styles/forms.css, so it
+  either produces the identical fingerprint at every width or something about it is quietly
+  different. Adding it to the array is the whole change: all eight checks below, and the
+  design-system comparison further down, then cover it too.
+
+  /reset-password is deliberately NOT here. Without a recovery session it has no <form> to
+  measure - it renders the refusal screen - so `waitForSelector('form')` would time out. It
+  is measured separately below, in the state a visitor without a link actually sees.
+*/
+for (const path of ['/register', '/login', '/forgot-password']) {
   results[path] = {};
 
   for (const width of WIDTHS) {
@@ -213,13 +244,135 @@ for (const path of ['/register', '/login']) {
   page to fix an overflow, which is exactly how the two drifted apart before, fails here
   rather than six months later on somebody's phone.
 */
+const LABEL = { '/register': 'નોંધણી', '/forgot-password': 'પાસવર્ડ ભૂલી ગયા?' };
+
 for (const width of WIDTHS) {
   const a = results['/login'][width];
-  const b = results['/register'][width];
-  for (const key of Object.keys(a)) {
-    check(`@ ${width} — લોગિન and નોંધણી agree on ${key}`, a[key] === b[key],
-      `login ${a[key]} vs register ${b[key]}`);
+  // લોગિન is the reference every other auth screen is compared against, which is what makes
+  // this a system rather than a set of pairs: a third page added later is one entry in this
+  // array, and it either matches લોગિન at all six widths or it is a second design.
+  for (const other of ['/register', '/forgot-password']) {
+    const b = results[other][width];
+    for (const key of Object.keys(a)) {
+      check(`@ ${width} — લોગિન and ${LABEL[other]} agree on ${key}`, a[key] === b[key],
+        `login ${a[key]} vs ${other} ${b[key]}`);
+    }
   }
+}
+
+// ---- 9. the column stops growing, and centres -----------------------------------
+/*
+  On a screen wider than the form, three things must be true and only the first one is
+  about width: the column is capped at --page-max, it is centred rather than parked
+  against the left edge, and the controls inside it are the same size they are on a
+  phone. The third is what stops a "desktop fix" from quietly becoming a second design.
+*/
+const PAGE_MAX = 460;
+
+for (const path of ['/register', '/login', '/forgot-password']) {
+  for (const width of WIDE) {
+    const page = await browser.newPage();
+    await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+    await page.goto(`${SITE}${path}`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('form', { timeout: 10_000 });
+
+    const m = await measure(page);
+    const box = await page.evaluate(() => {
+      const r = document.querySelector('.auth-wrap').getBoundingClientRect();
+      return { left: Math.round(r.left), right: Math.round(r.right) };
+    });
+    const at = `${path} @ ${width}`;
+
+    check(`${at} — the form column stops at --page-max`, m.system.containerWidth === PAGE_MAX,
+      `${m.system.containerWidth}px wide, expected ${PAGE_MAX}`);
+
+    // Centred: the gap either side must match. Off-by-one from an odd viewport is fine.
+    const gapL = box.left;
+    const gapR = width - box.right;
+    check(`${at} — the column is centred`, Math.abs(gapL - gapR) <= 1,
+      `${gapL}px left vs ${gapR}px right`);
+
+    // The design system does not change because the screen got bigger.
+    check(`${at} — controls keep their phone size`,
+      m.system.inputHeight >= 44 && m.system.inputSize >= 16,
+      `input ${m.system.inputHeight}px tall, ${m.system.inputSize}px text`);
+
+    check(`${at} — document does not scroll sideways`, m.docScrollWidth <= m.vw + 0.5,
+      `scrollWidth ${m.docScrollWidth} > ${m.vw}`);
+
+    await page.close();
+  }
+}
+
+// ---- 10. the refusal screen, which is the one a visitor without a link gets --------
+/*
+  /reset-password has no <form> until Supabase has opened a recovery session, so it cannot
+  join the loops above. What it does have - and what every other check in this file would
+  miss - is a screen it shows to somebody arriving with an expired link, a forwarded link,
+  or no link at all. That screen is a heading, a paragraph and two full-width links, and it
+  is reached by a યુવક who is already stuck; a sideways scroll or a clipped button there is
+  worse than anywhere else in the app.
+
+  The `#error=` fragment is what a real expired Supabase link carries, and using it here
+  means the page renders its refusal immediately instead of waiting out the six-second grace
+  window - so this measures the finished state rather than the spinner.
+
+  Both `.btn`s are <Link>s wearing a button's clothes, which is exactly the thing worth
+  measuring: the `a.btn` rule in forms.css is what makes an inline <a> the same object as
+  the <button> above it, and without it they would be left-aligned and shrink-wrapped.
+*/
+for (const width of [...WIDTHS, ...WIDE]) {
+  const page = await browser.newPage();
+  await page.setViewport({ width, height: 780, deviceScaleFactor: 2, isMobile: width < 700 });
+  await page.goto(`${SITE}/reset-password#error=access_denied&error_code=otp_expired`, {
+    waitUntil: 'networkidle0',
+  });
+  await page.waitForSelector('.auth-card .btn', { timeout: 10_000 });
+
+  const m = await measure(page);
+  const at = `/reset-password (expired link) @ ${width}`;
+
+  check(`${at} — document does not scroll sideways`, m.docScrollWidth <= m.vw + 0.5,
+    `scrollWidth ${m.docScrollWidth} > ${m.vw}`);
+  check(`${at} — nothing is laid out past the screen edge`, m.overflowing.length === 0,
+    m.overflowing.slice(0, 3).join(' | '));
+
+  const clipped = m.controls.filter((c) => !c.fits);
+  check(`${at} — no control is clipped`, clipped.length === 0,
+    clipped.slice(0, 3).map((c) => c.what).join(' | '));
+  const small = m.controls.filter((c) => c.h < 44);
+  check(`${at} — every control is at least 44px tall`, small.length === 0,
+    small.slice(0, 3).map((c) => `${c.what} ${c.h}px`).join(' | '));
+  check(`${at} — no text below 12px`, m.smallest.size >= 12,
+    `${m.smallest.size}px on ${m.smallest.what}`);
+
+  // Both ways off the dead end must be there. §1 - a refusal without an exit is the thing
+  // this project forbids, and it is one deleted line away at any time.
+  const exits = await page.evaluate(() =>
+    [...document.querySelectorAll('.auth-card a')].map((a) => a.getAttribute('href'))
+  );
+  check(`${at} — offers a new link and a way back to લોગિન`,
+    exits.includes('/forgot-password') && exits.includes('/login'), exits.join(', '));
+
+  /*
+    Nothing internal reaches the screen.
+
+    The page READS `error_code` to decide what to draw, which is exactly the situation in
+    which somebody later renders it "to help with support". `otp_expired` and `access_denied`
+    are Supabase's words, not a યુવક's, and the second one in particular describes an
+    account rather than a link. Asserted against the rendered text rather than the source,
+    so it holds however the string arrives.
+  */
+  const shown = await page.evaluate(() => document.body.innerText);
+  check(`${at} — the refusal shows no internal error code`,
+    !shown.includes('otp_expired') && !shown.includes('access_denied'), shown.slice(0, 120));
+
+  // And with no recovery session there is no password field to submit, at any width. This
+  // is the reset-session bypass, checked from the outside.
+  const inputs = await page.evaluate(() => document.querySelectorAll('input').length);
+  check(`${at} — no password field without a recovery session`, inputs === 0, `${inputs} input(s)`);
+
+  await page.close();
 }
 
 await browser.close();
@@ -230,4 +383,6 @@ if (fails.length) {
   console.log(fails.map((f) => `  ✗ ${f}`).join('\n') + '\n');
   process.exit(1);
 }
-console.log('  ✓ ' + `${WIDTHS.join(' / ')} px — લોગિન and નોંધણી fit, agree, and do not jump\n`);
+console.log('  ✓ ' + `${WIDTHS.join(' / ')} px — લોગિન, નોંધણી and પાસવર્ડ ભૂલી ગયા? fit, agree, and do not jump`);
+console.log('  ✓ ' + `${[...WIDTHS, ...WIDE].join(' / ')} px — the expired-link screen fits and keeps both exits`);
+console.log('  ✓ ' + `${WIDE.join(' / ')} px — the column stops at ${PAGE_MAX}px and centres\n`);

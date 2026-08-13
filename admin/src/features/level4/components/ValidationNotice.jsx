@@ -21,13 +21,13 @@ export default function ValidationNotice({ result, collection }) {
   if (!errors.length && !warnings.length) {
     return (
       <div className="notice notice-ok" role="status">
-        Checked — no problems found in this version.
+        Checked - no problems found in this version.
       </div>
     );
   }
 
   return (
-    <ul className="issue-list" style={{ marginBottom: 12 }}>
+    <ul className="issue-list l4-issues">
       {errors.map((e, i) => (
         <Issue key={`e${i}`} issue={e} tone="error" collection={collection} />
       ))}
@@ -59,7 +59,7 @@ function Issue({ issue, tone, collection }) {
     const source = Number.isInteger(item.sourceIndex) ? item.sourceIndex : item.index;
     return {
       text: Number.isInteger(source) ? `#${gu(source)}` : id,
-      title: 'Withheld, so it has no number users would see — this is the number printed on the artwork',
+      title: 'Withheld, so it has no number users would see - this is the number printed on the artwork',
     };
   };
 
@@ -68,15 +68,19 @@ function Issue({ issue, tone, collection }) {
 
   return (
     <li className={`issue issue-${tone}`}>
-      <span className="pill" style={{ flex: '0 0 auto' }}>{tone === 'error' ? 'Error' : 'Warning'}</span>
-      <div style={{ minWidth: 0 }}>
+      {/* The word is the signal and the tint only repeats it (§43, §56) — which is why the
+          badge says "Error" rather than being a red dot. */}
+      <span className={`pill pill-${tone === 'error' ? 'danger' : 'warn'} l4-issue-tag`}>
+        {tone === 'error' ? 'Error' : 'Warning'}
+      </span>
+      <div className="l4-issue-body">
         <div>{issue.en || issue.gu}</div>
         {issue.gu && issue.gu !== issue.en && <div className="hint">{issue.gu}</div>}
 
         {!!keys.length && <div className="hint">Sub-levels: {keys.join(', ')}</div>}
 
         {!!ids.length && (
-          <div className="l4-chips" style={{ marginTop: 6 }}>
+          <div className="l4-chips l4-issue-chips">
             {ids.slice(0, SHOWN).map((id) => {
               const chip = chipFor(id);
               return (

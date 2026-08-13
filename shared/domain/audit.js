@@ -109,7 +109,7 @@ export const ACTION_LABELS = {
   ADMIN_DISABLED: 'Admin disabled',
 };
 
-export const actionLabel = (a) => ACTION_LABELS[a] || a || '—';
+export const actionLabel = (a) => ACTION_LABELS[a] || a || '-';
 
 /** `resource_type` is the table name, so the trail reads the same as the schema. */
 export const RESOURCE_LABELS = {
@@ -120,7 +120,7 @@ export const RESOURCE_LABELS = {
   level4_configs: 'Level 4',
 };
 
-export const resourceLabel = (r) => RESOURCE_LABELS[r] || r || '—';
+export const resourceLabel = (r) => RESOURCE_LABELS[r] || r || '-';
 
 /**
  * Which fields of a `before`/`after` pair are worth showing.

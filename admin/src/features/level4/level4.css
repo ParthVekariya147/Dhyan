@@ -1,83 +1,257 @@
 /* લેવલ ૪ — the sub-level builder.
  *
  * Loaded only by the two Level 4 pages, so it rides their chunk and costs nothing on any
- * other screen (§51). Every colour is a token from admin.css: this is the same console, and
- * a section with its own palette reads as a different product.
+ * other screen (§51). Every colour, size, radius and gap below is a token from admin.css:
+ * this is the same console, and a section with its own palette reads as a different
+ * product. Nothing here invents a hex value — when the panel moved from the slate theme to
+ * the light one, a stylesheet holding its own `#19222e` would have gone on painting the old
+ * product inside the new one.
+ *
+ * Breakpoints are the four admin.css documents — 1200 / 900 / 640 / 380 — and no others.
  */
 
 /* ---------------------------------------------------------------- version bar */
 
-.l4-versions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-.l4-versions .field { margin-bottom: 0; min-width: 240px; }
-.l4-meta { color: var(--muted); font-size: 12.5px; display: flex; gap: 14px; flex-wrap: wrap; }
+.l4-versions { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: flex-end; }
+/* The select is the widest thing on the row and the one a finger aims at, so it takes the
+   slack; the status badge beside it never stretches. */
+.l4-versions .field { margin-bottom: 0; min-width: 220px; flex: 1 1 260px; }
+/* Lifted onto the select's own baseline rather than its label's, so the two read as one
+   control and not as a badge that has slipped a line. */
+.l4-versions .pill { margin-bottom: var(--sp-2); }
 
-/* ---------------------------------------------------------------- sub-level cards */
+/* Created / published / gate — three facts on one line, each a whole phrase, so a wrap
+   breaks between them rather than through the middle of a date. */
+.l4-meta {
+  display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4);
+  color: var(--text-muted); font-size: var(--fs-help); margin-top: var(--sp-3);
+}
+.l4-meta > span { min-width: 0; }
 
-.l4-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+/* ---------------------------------------------------------------- the hierarchy
+ *
+ * §22 — Level 4 is a container, and the screen has to say so before it says anything else.
+ * A flat run of equal cards makes ૪.૧ and ૪.૭ look like seven unrelated levels; the rail
+ * below is the whole point of this section — one trunk, and every sub-level hanging off it
+ * in the order a યુવક meets them.
+ *
+ * The rail is drawn with a border on the list and a stub on each node rather than with a
+ * background image, so it stretches to whatever height the content takes and costs nothing
+ * to recolour.
+ */
 
-.l4-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.l4-tree { margin-bottom: var(--sp-4); }
+
+.l4-tree-head {
+  display: flex; align-items: baseline; gap: var(--sp-2) var(--sp-3);
+  flex-wrap: wrap; margin-bottom: var(--sp-3);
+}
+.l4-tree-root {
+  font-size: var(--fs-section); font-weight: var(--fw-semi); color: var(--text-strong);
+}
+.l4-tree-sub { font-size: var(--fs-help); color: var(--text-muted); }
+
+.l4-nodes {
+  list-style: none;
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  margin-inline-start: var(--sp-2);
+  padding-inline-start: var(--sp-5);
+  border-inline-start: 2px solid var(--border);
+}
+
+.l4-node {
+  position: relative;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  box-shadow: var(--sh-1);
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  min-width: 0;
+}
+/* The stub joining the trunk to this node, aimed at the middle of the code badge rather
+   than at the top of the card — a connector that lands on a corner reads as a mistake. */
+.l4-node::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--sp-5));
+  top: calc(var(--sp-4) + 12px);
+  width: var(--sp-5); height: 2px;
+  background: var(--border);
 }
 /* A sub-level that is switched off is still in the list — §28 keeps it so a યુવક's finished
    work still points at something — and it must be legible at a glance without relying on
-   colour alone, hence the dashed edge as well as the pill. */
-.l4-card.is-off { border-style: dashed; opacity: .75; }
-.l4-card.is-selected { border-color: var(--accent); }
+   colour alone, hence the dashed edge as well as the badge inside it. */
+.l4-node.is-off { border-style: dashed; background: var(--surface-hover); }
 
-.l4-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.l4-code { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.l4-card h3 { font-size: 13.5px; font-weight: 600; }
-.l4-range { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.l4-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
-.l4-card-actions .btn { padding: 6px 10px; font-size: 12px; }
+.l4-node-head { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; }
+.l4-node-code {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center;
+  min-height: 24px; padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--brand-50); border: 1px solid var(--brand-100); color: var(--brand-700);
+  font-size: var(--fs-table); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.l4-node-title {
+  flex: 1 1 160px; min-width: 0;
+  font-size: var(--fs-body); font-weight: var(--fw-semi); color: var(--text-strong);
+}
+.l4-node-title.is-untitled { color: var(--text-faint); font-weight: var(--fw-medium); }
+.l4-node-desc { font-size: var(--fs-table); color: var(--text-body); }
+
+/*
+ * The facts, as a definition list rather than a paragraph: a સંચાલક comparing ૪.૨ with ૪.૩
+ * is reading down a column, and prose makes him read across two. `auto-fit` collapses it to
+ * one column on a phone without a second rule.
+ */
+.l4-facts {
+  display: grid; gap: var(--sp-2) var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.l4-facts > div { min-width: 0; }
+.l4-facts dt {
+  font-size: var(--fs-micro); font-weight: var(--fw-semi); letter-spacing: .04em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.l4-facts dd {
+  font-size: var(--fs-table); color: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.l4-facts dd .hint { display: block; }
+
+.l4-node-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: auto; }
 
 /* ---------------------------------------------------------------- editor layout */
 
-.l4-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); align-items: start; }
+/* The list of sub-levels and the one being edited belong on one screen — the decision is
+   one decision (§36). Below 1200 the rail is too narrow to hold a code and a count, so the
+   two stack rather than squeeze. */
+.l4-cols {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  align-items: start;
+}
 
-.l4-nav { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.l4-nav li { display: flex; align-items: center; gap: 6px; }
+.l4-nav { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.l4-nav li { display: flex; align-items: center; gap: var(--sp-1); }
 .l4-nav-btn {
   all: unset;
-  flex: 1;
+  flex: 1 1 auto; min-width: 0;
+  box-sizing: border-box;
   cursor: pointer;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  font-size: 13px;
+  display: flex; align-items: center; gap: var(--sp-2);
+  min-height: var(--tap);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  font-size: var(--fs-table);
 }
-.l4-nav-btn:hover { background: var(--panel-2); }
-.l4-nav-btn.is-active { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
-.l4-nav-n { color: var(--muted); font-size: 11.5px; }
-.l4-move { background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 6px; width: 26px; height: 26px; cursor: pointer; font-size: 12px; }
+/* `all: unset` takes the focus ring with it, and a keyboard user then moves through this
+   list blind. Put back explicitly (§56). */
+.l4-nav-btn:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
+.l4-nav-btn:hover { background: var(--surface-sunken); }
+.l4-nav-btn.is-active {
+  background: var(--brand-50); border-color: var(--brand-100); color: var(--brand-700);
+  /* The bar is a second, non-colour marker for which one is open (§43). */
+  box-shadow: inset 3px 0 0 var(--brand-500);
+  font-weight: var(--fw-semi);
+}
+.l4-nav-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.l4-nav-n {
+  flex: 0 0 auto;
+  color: var(--text-muted); font-size: var(--fs-micro); font-variant-numeric: tabular-nums;
+}
+.l4-nav-btn.is-active .l4-nav-n { color: var(--brand-700); }
+
+/* Reordering is done with these on a touchscreen — HTML5 drag never fires there — so they
+   are a real target, not a 26px decoration. */
+.l4-move {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--tap); height: var(--tap); min-width: var(--tap);
+  background: var(--surface-card); border: 1px solid var(--border-strong); color: var(--text-body);
+  border-radius: var(--r-sm); cursor: pointer; font-size: var(--fs-help);
+}
+.l4-move:hover:not(:disabled) { background: var(--surface-sunken); }
 .l4-move:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ---------------------------------------------------------------- the picker */
 
-.l4-modes { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.l4-mode {
-  background: transparent; color: var(--text);
-  border: 1px solid var(--line); border-radius: 7px;
-  padding: 7px 13px; font: inherit; font-size: 13px; cursor: pointer;
+.l4-summary {
+  display: grid; gap: var(--sp-3) var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  padding: var(--sp-3); margin-bottom: var(--sp-3);
 }
-.l4-mode[aria-pressed="true"] { background: var(--panel-2); border-color: var(--accent); font-weight: 600; }
+.l4-summary div { display: flex; flex-direction: column; min-width: 0; }
+.l4-summary strong {
+  font-size: var(--fs-body); font-weight: var(--fw-semi); color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+.l4-summary span { color: var(--text-muted); font-size: var(--fs-help); }
 
-.l4-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
-.l4-tools .field { margin-bottom: 0; min-width: 96px; flex: 0 0 auto; }
-.l4-tools .field.grow { flex: 1 1 200px; }
+/* A segmented control, not two loose buttons: Range and Individual are one choice, and the
+   shared border says so. `aria-pressed` carries the state for a screen reader; the fill and
+   the weight carry it for everyone else. */
+.l4-modes {
+  display: inline-flex; flex-wrap: wrap;
+  border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+  overflow: hidden; margin-bottom: var(--sp-3);
+}
+.l4-mode {
+  background: var(--surface-card); color: var(--text-body);
+  border: 0; border-inline-end: 1px solid var(--border);
+  padding: 0 var(--sp-4); min-height: var(--tap);
+  font: inherit; font-size: var(--fs-table); cursor: pointer;
+}
+.l4-mode:last-child { border-inline-end: 0; }
+.l4-mode:hover { background: var(--surface-sunken); }
+.l4-mode[aria-pressed="true"] {
+  background: var(--brand-50); color: var(--brand-700); font-weight: var(--fw-semi);
+  box-shadow: inset 0 -2px 0 var(--brand-500);
+}
+
+.l4-tools { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: flex-end; margin-bottom: var(--sp-3); }
+.l4-tools .field { margin-bottom: 0; min-width: 110px; flex: 0 0 auto; }
+.l4-tools .field.grow { flex: 1 1 200px; min-width: 0; }
+.l4-tools .hint { padding-bottom: var(--sp-2); }
+/* §31 — helper text belongs under the control it explains, with room before the next one.
+   `.hint` carries no margin of its own because most of its uses sit inside a `.field`. */
+.l4-help { margin-bottom: var(--sp-3); }
+
+/*
+ * §5 — the count, Select All and Clear, kept where a thumb can reach them.
+ *
+ * The list below is as long as the collection, so on a phone the buttons that act on it
+ * would otherwise be a full screen above whatever is being ticked. Sticky, and offset by
+ * the shell's own sticky topbar rather than to 0 — at 0 it slides underneath it (the topbar
+ * is z-index 20) and the count disappears exactly when it starts to matter.
+ */
+.l4-selbar {
+  position: sticky; top: var(--topbar-h); z-index: 3;
+  display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap;
+  background: var(--surface-card);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3);
+  font-size: var(--fs-table);
+}
+/* Something is selected: a stripe and a count, so neither depends on a colour being
+   noticed. */
+.l4-selbar.is-picked { border-inline-start: 3px solid var(--brand-500); }
+.l4-selbar-count { color: var(--text-body); font-variant-numeric: tabular-nums; min-width: 0; }
+.l4-selbar-count strong { font-weight: var(--fw-semi); color: var(--text-strong); }
+/* Pushed to the far end so the buttons sit in the same place whatever the count grows to. */
+.l4-selbar-btns { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-inline-start: auto; }
 
 .l4-list {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
   max-height: 460px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   /* The scroll container has to be the containing block for the rows below, or
      `contain-intrinsic-size` estimates against the page instead. */
   contain: paint;
@@ -86,10 +260,12 @@
 .l4-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
+  gap: var(--sp-2) var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-2) var(--sp-3);
+  min-height: var(--tap);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-table);
   cursor: pointer;
 
   /*
@@ -100,55 +276,135 @@
     a number (§40, §62). A thousand live checkboxes is a real cost on every keystroke in the
     search box, and a windowing library is a dependency this project does not take. With
     `content-visibility: auto` the engine skips layout and paint for rows outside the box and
-    does them as they approach; `contain-intrinsic-size: auto 33px` keeps the scrollbar honest
+    does them as they approach; `contain-intrinsic-size: auto 52px` keeps the scrollbar honest
     and lets the browser remember each row's measured height, so scrolling back lands where it
-    was. A browser without the property renders every row, which is also correct — only slower.
+    was — and `auto` is what makes a wrapped row on a phone measure itself rather than be
+    guessed at. A browser without the property renders every row, which is also correct —
+    only slower.
   */
   content-visibility: auto;
-  contain-intrinsic-size: auto 33px;
+  contain-intrinsic-size: auto 52px;
 }
 .l4-row:last-child { border-bottom: 0; }
-.l4-row:hover { background: var(--panel-2); }
-.l4-row input[type="checkbox"] { width: auto; flex: 0 0 auto; }
+.l4-row:hover { background: var(--surface-hover); }
+/* Selected rows are tinted as well as ticked, because at a hundred rows the checkbox column
+   alone is hard to read down. The tick is still the authority — this only repeats it. */
+.l4-row.is-picked { background: var(--brand-50); }
+.l4-row.is-picked:hover { background: var(--brand-100); }
+.l4-row input[type="checkbox"] {
+  width: 16px; height: 16px; min-height: 0;
+  accent-color: var(--brand-500); flex: 0 0 auto; cursor: pointer;
+}
+
+/*
+ * The picture. A સંચાલક dividing the collection is looking for a દ્રશ્ય, and he knows it by
+ * sight long before he knows its number.
+ *
+ * `aspect-ratio` and not a height: the box is the right size before the bytes arrive, so a
+ * hundred rows do not reflow as they decode — which with `loading="lazy"` happens while he
+ * is scrolling. The empty tile is the same shape for the same reason: a દ્રશ્ય with no
+ * artwork must not make its row shorter than its neighbours.
+ */
+.l4-row-thumb {
+  flex: 0 0 auto;
+  width: 56px; aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+}
+.l4-row-thumb.is-empty {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint); font-size: var(--fs-micro);
+}
+
 /* Two numbers on every row, and the difference between them has to be readable at a glance
    (ORDERING.md decision #2). The one the user sees leads — full weight, full contrast; the
    one printed on the artwork follows in grey, smaller, prefixed `#`. They are the same number
    until a Darshan is withheld, and from that moment on picking by the wrong one silently
    selects the wrong pictures, so the hierarchy is doing real work. */
-.l4-row-n { font-variant-numeric: tabular-nums; font-weight: 650; flex: 0 0 40px; text-align: right; }
-.l4-row-src { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11.5px; flex: 0 0 46px; }
-.l4-row-t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.l4-row-n {
+  font-variant-numeric: tabular-nums; font-weight: var(--fw-semi); color: var(--text-strong);
+  flex: 0 0 36px; text-align: end;
+}
+.l4-row-src {
+  font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: var(--fs-micro);
+  flex: 0 0 42px;
+}
+.l4-row-t { flex: 1 1 180px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Which numbering a search result matched on — `47` finds both the forty-seventh Darshan and
    the one printed 47, and a row that does not say which is worse than no result at all. The
    display match is the expected one and carries no badge; the other two announce themselves. */
 .l4-row-why {
-  color: var(--muted); font-size: 11px; flex: 0 0 auto;
-  border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+  color: var(--text-muted); font-size: var(--fs-micro); flex: 0 0 auto;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 0 var(--sp-2); white-space: nowrap;
 }
 /* Held by another sub-level: still selectable, because moving a દ્રશ્ય from one to another is
    an ordinary edit — the duplicate is reported by the engine, not forbidden by the row. */
-.l4-row-taken { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; }
-
-.l4-summary {
-  display: flex; gap: 18px; flex-wrap: wrap;
-  border: 1px solid var(--line); border-radius: 8px;
-  background: var(--panel-2);
-  padding: 10px 12px; margin-bottom: 12px;
-  font-size: 12.5px;
-}
-.l4-summary strong { font-size: 14px; font-variant-numeric: tabular-nums; }
-.l4-summary div { display: flex; flex-direction: column; }
-.l4-summary span { color: var(--muted); }
+.l4-row-taken { color: var(--text-muted); font-size: var(--fs-micro); flex: 0 0 auto; white-space: nowrap; }
 
 /* A preview is the numbers, nothing else — the same restraint §12 asks of the યુવક test
    screen, so a સંચાલક checking a sub-level is looking at what a યુવક will be asked. */
-.l4-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.l4-chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
 .l4-chip {
-  border: 1px solid var(--line); border-radius: 6px;
-  padding: 2px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  padding: 0 var(--sp-2); font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums; color: var(--text-body);
+}
+
+/* ---------------------------------------------------------------- the check report
+ *
+ * `.issue-list` / `.issue` are admin.css's; these four only place the parts inside one, so
+ * ValidationNotice can stay free of inline style objects — a `style={{ marginTop: 6 }}` is a
+ * hard-coded value in a different syntax, and it survives a theme change the same way a hex
+ * does: badly.
+ */
+.l4-issues { margin-bottom: var(--sp-3); }
+.l4-issue-tag { flex: 0 0 auto; }
+.l4-issue-body { min-width: 0; }
+.l4-issue-chips { margin-top: var(--sp-1); }
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 1200px) {
+  /* 280px of rail plus a picker is more than this width can carry without the row of
+     Darshan numbers wrapping on every line. */
+  .l4-cols { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 900px) {
-  .l4-cols { grid-template-columns: 1fr; }
-  .l4-list { max-height: 340px; }
+  .l4-list { max-height: 380px; }
+  /* The drawer shell puts the topbar at the top of the viewport at this width too, so the
+     offset is unchanged — but the bar itself goes full width and its buttons spread. */
+  .l4-selbar-btns { margin-inline-start: 0; width: 100%; }
+  .l4-selbar-btns .btn { flex: 1 1 auto; }
+}
+
+@media (max-width: 640px) {
+  /* The trunk survives, narrower: it is what says these are parts of one level, and losing
+     it turns the page back into the flat list §22 is about. */
+  .l4-nodes { margin-inline-start: 0; padding-inline-start: var(--sp-3); }
+  .l4-node::before { inset-inline-start: calc(-1 * var(--sp-3)); width: var(--sp-3); }
+  .l4-node { padding: var(--sp-3); }
+  .l4-node-actions .btn { flex: 1 1 auto; }
+
+  .l4-versions .field { flex: 1 1 100%; }
+  .l4-tools .field { flex: 1 1 100%; min-width: 0; }
+  .l4-tools .btn { flex: 1 1 auto; }
+  .l4-modes { display: flex; width: 100%; }
+  .l4-mode { flex: 1 1 0; }
+
+  .l4-summary { grid-template-columns: 1fr 1fr; }
+  .l4-list { max-height: 320px; }
+  /* The caption gets the second line to itself rather than being ellipsised to three
+     characters between a thumbnail and a badge. */
+  .l4-row-t { flex: 1 1 100%; white-space: normal; }
+}
+
+@media (max-width: 380px) {
+  /* Tighten padding only — never a new layout (admin.css). */
+  .l4-node { padding: var(--sp-2); }
+  .l4-summary { grid-template-columns: 1fr; }
+  .l4-row-thumb { width: 44px; }
 }

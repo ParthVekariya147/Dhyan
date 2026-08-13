@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import DarshanFeed from './DarshanFeed';
 import ProgressBar from '../../components/ProgressBar';
@@ -7,6 +8,8 @@ import PageIntro from '../../components/PageIntro';
 import { gu } from '../../lib/scenes';
 import { useScenes } from '../../lib/useScenes';
 import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
+/* One દર્શન per visit that reaches the last દ્રશ્ય — see recordDarshan() below. */
+import { ACTIVITY_KEY, newToken, recordActivity } from '../../lib/activity';
 
 /**
  * ────────────────────────────────────────────────────────────────────────────
@@ -20,8 +23,13 @@ import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
  * Input          useScenes() — the published collection, both gates applied.
  * Visible        Every દ્રશ્ય's master image, its વર્ણન, its printed number; the count.
  * Actions        Look. Tap an image to enlarge it. Go on, or go back.
- * Persisted      Nothing. This page writes nothing at all — see the footer note.
- * Completion     None. There is nothing to finish here and nothing is recorded.
+ * Persisted      One `activity_attempts` row per visit that reaches the last દ્રશ્ય, and
+ *                nothing else. No tick, no score, no unlock, and still not one byte written
+ *                to `progress` — see the footer note, which is unchanged and still true.
+ * Completion     Reaching the foot of the collection. Recorded because §6 asks for
+ *                'દર્શન: ૫ વાર પૂર્ણ' and that sentence needs a countable event; observed
+ *                rather than claimed, so a page load can never satisfy it. Nothing on this
+ *                page or any other is gated on it.
  * Next           /level/3 — લેવલ ૩, વર્ણન યાદી.
  * Previous       /welcome — લેવલ ૧, the વિડિયો.
  * Excluded       Ticks, scoring, right-and-wrong, a 'પૂરું કરો' button, a મુખપૃષ્ઠ button at
@@ -51,6 +59,21 @@ import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 export default function DarshanPage() {
   const { scenes, total, loading } = useScenes();
   const spec = usePageSpec(JOURNEY_PAGE.LEVEL2);
+
+  /*
+    One token for the life of this visit, so the feed's callback is idempotent even if it is
+    ever made to fire more than once — the same defence EntryGate uses, for the same reason.
+    A second visit later today is a new mount, a new token, and a genuinely second દર્શન.
+
+    લેવલ ૨ carries no items and no total: there is nothing to tick here, so `recordActivity`
+    sends an empty selection and the server records the act rather than a coverage. That is
+    what makes `summariseRow()` render this level as '૫ વાર' and લેવલ ૩ as '૮૨ / ૧૦૮'.
+  */
+  const visitToken = useRef(null);
+  const recordDarshan = useCallback(() => {
+    if (!visitToken.current) visitToken.current = newToken();
+    recordActivity(ACTIVITY_KEY.DARSHAN, visitToken.current).catch(() => {});
+  }, []);
 
   return (
     <>
@@ -94,7 +117,20 @@ export default function DarshanPage() {
         </div>
       ) : (
         <>
-          <DarshanFeed items={scenes} />
+          {/*
+            `onComplete` — the one thing this page now records, and the only one.
+
+            It fires when the foot of the collection is genuinely on screen, which is the
+            nearest thing to "he has done a દર્શન" that this page can honestly observe (see
+            the long note in DarshanFeed.jsx). Everything else on this route is unchanged:
+            no tick, no score, no unlock, no `progress` write, and the two ways on below are
+            still plain <Link>s that write nothing.
+
+            Not awaited, and its rejection is swallowed. લેવલ ૨ has never been able to fail
+            and must not start now — a યુવક looking at the pictures cannot be shown an error
+            about a record he did not ask for, and nothing he can reach depends on it.
+          */}
+          <DarshanFeed items={scenes} onComplete={recordDarshan} />
 
           {/*
             The end of the દર્શન, and the two ways on from it — exactly two, and nothing else.
@@ -105,7 +141,9 @@ export default function DarshanPage() {
             પ્રવેશદ્વાર). A 'મુખપૃષ્ઠ' button here would be a third, sideways choice at the one
             moment the app should be pointing forward — and the browser's back button and
             the home page's own tiles already cover it. There is no 'પૂરું કરો' either: §9,
-            same as લેવલ ૩ — દર્શન records nothing, so there is nothing to submit.
+            and it is still the right absence now that the visit is recorded — the દર્શન is
+            finished by being looked at, not by being declared finished, so a button would
+            only offer a યુવક the chance to claim something he had not done.
 
             Both are plain <Link>s and neither writes anything. That is the requirement, not
             an omission: a યુવક who goes back to the વિડિયો must find today's લેવલ ૩ ticks
@@ -120,11 +158,11 @@ export default function DarshanPage() {
             That is the dead end §1 forbids. Here they are in the DOM from the first paint
             after loading, below the feed, whatever the feed is doing above them.
           */}
-          <nav className="darshan-actions" aria-label="આગળ શું">
+          <nav className="darshan-actions" aria-label="હવે આગળ શું">
             <Link to="/welcome" className="btn-quiet btn-inline">
               <NavArrow dir="back" />વિડિયો દર્શન
             </Link>
-            <Link to="/level/3" className="btn-gold btn-inline" aria-label="આગળ — લેવલ ૩">
+            <Link to="/level/3" className="btn-gold btn-inline" aria-label="આગળ - લેવલ ૩">
               આગળ<NavArrow />
             </Link>
           </nav>

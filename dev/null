@@ -1,0 +1,203 @@
+import { useEffect, useState } from "react";
+import {
+  DEFAULT_LEADERBOARD,
+  LEADERBOARD_KEY,
+  LEADERBOARD_PERIODS,
+  LEADERBOARD_TOP_MAX,
+  LEADERBOARD_TOP_MIN,
+  PERIOD_LABEL_EN,
+  SUGGESTED_LEADERBOARD,
+  resolveLeaderboard,
+  validateLeaderboard
+} from "../../../../../shared/domain/leaderboard.js";
+import { LEVELS_SETTINGS_DOC } from "../../../../../shared/domain/settings.js";
+import { supabase } from "../../../lib/supabase";
+import { useAdminAuth } from "../../../lib/adminAuth";
+import { StatusBadge } from "../../../components/StatCard";
+import { saveError } from "../../../lib/errors";
+export default function LeaderboardCard({ leaderboard, onSaved }) {
+  const { can } = useAdminAuth();
+  const mayEdit = can("settings.update");
+  const inUse = resolveLeaderboard(leaderboard);
+  const neverConfigured = !leaderboard || typeof leaderboard !== "object" || Array.isArray(leaderboard) || Object.keys(leaderboard).length === 0;
+  const [enabled, setEnabled] = useState(inUse.enabled);
+  const [periods, setPeriods] = useState(inUse.periods);
+  const [defaultPeriod, setDefaultPeriod] = useState(inUse.defaultPeriod);
+  const [topN, setTopN] = useState(String(inUse.topN));
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [touched, setTouched] = useState(false);
+  const savedKey = canon(inUse);
+  useEffect(() => {
+    setEnabled(inUse.enabled);
+    setPeriods(inUse.periods);
+    setDefaultPeriod(inUse.defaultPeriod);
+    setTopN(String(inUse.topN));
+    setTouched(false);
+    setMsg(null);
+  }, [savedKey]);
+  const offered = LEADERBOARD_PERIODS.filter((p) => periods.includes(p));
+  const candidate = { enabled, periods, defaultPeriod, topN: parseWhole(topN) };
+  const check = validateLeaderboard(candidate);
+  const error = touched && !check.ok ? check.gu : "";
+  const changed = check.ok && canon(check.leaderboard) !== canon(inUse);
+  function toggleEnabled(on) {
+    setEnabled(on);
+    setTouched(true);
+    setMsg(null);
+    if (!on || !neverConfigured || touched) return;
+    setPeriods([...SUGGESTED_LEADERBOARD.periods]);
+    setDefaultPeriod(SUGGESTED_LEADERBOARD.defaultPeriod);
+    setTopN(String(SUGGESTED_LEADERBOARD.topN));
+  }
+  function togglePeriod(period, on) {
+    setTouched(true);
+    setMsg(null);
+    const next = on ? [...periods.filter((p) => p !== period), period] : periods.filter((p) => p !== period);
+    setPeriods(next);
+    const stillOffered = LEADERBOARD_PERIODS.filter((p) => next.includes(p));
+    if (stillOffered.length && !stillOffered.includes(defaultPeriod)) setDefaultPeriod(stillOffered[0]);
+  }
+  function edited(fn) {
+    return (...args) => {
+      fn(...args);
+      setTouched(true);
+      setMsg(null);
+    };
+  }
+  async function save() {
+    const v = validateLeaderboard(candidate);
+    if (!v.ok) {
+      setTouched(true);
+      setMsg({ tone: "danger", text: v.gu });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      await saveLeaderboard(v.leaderboard);
+      setMsg({
+        tone: "ok",
+        text: v.leaderboard.enabled ? `Saved. Yuvaks can now see the top ${v.leaderboard.topN} names and their points.` : "Saved. The leaderboard is off, so no yuvak sees any other name."
+      });
+      onSaved?.();
+    } catch (e) {
+      setMsg({ tone: "danger", text: saveError(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("div", { style: cardHead }, /* @__PURE__ */ React.createElement("h2", { style: noMargin }, "Leaderboard"), /* @__PURE__ */ React.createElement(StatusBadge, { tone: inUse.enabled ? "ok" : "off" }, inUse.enabled ? "On" : "Off")), /* @__PURE__ */ React.createElement("p", { className: "card-note", style: cardIntro }, "A ranking of yuvaks by the points they have earned. This is the", " ", /* @__PURE__ */ React.createElement("strong", null, "only place in the app where one yuvak sees another yuvak"), ", so it is off until you switch it on."), /* @__PURE__ */ React.createElement("p", { className: "card-note", style: noTopMargin }, "Each line shows ", /* @__PURE__ */ React.createElement("strong", null, "a name and a number of points, and nothing else"), ". No phone number, no SMK number, no email, no sub-zone, no dates, and no id of any kind - a line on this list cannot be used to look anything else up. Only yuvaks who have actually earned points in the chosen period appear; nobody is listed at 0, so this never becomes a directory of everyone. A yuvak is also told where he himself stands, even when he is not high enough to be on the list."), !mayEdit && /* @__PURE__ */ React.createElement("div", { className: "notice notice-warn", role: "status" }, "You can read whether the leaderboard is on; changing it needs the", " ", /* @__PURE__ */ React.createElement("strong", null, "settings.update"), " permission."), /* @__PURE__ */ React.createElement("div", { style: controlRow }, /* @__PURE__ */ React.createElement("div", { className: "field", style: checkField }, /* @__PURE__ */ React.createElement("label", { className: "check", htmlFor: "lb-on" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      id: "lb-on",
+      type: "checkbox",
+      checked: enabled,
+      onChange: (e) => toggleEnabled(e.target.checked),
+      disabled: !mayEdit || busy
+    }
+  ), "Show a leaderboard"), /* @__PURE__ */ React.createElement("span", { className: "hint" }, enabled ? "Yuvaks can see the names below their own." : "Off - no yuvak sees any other name anywhere in the app."))), /* @__PURE__ */ React.createElement("div", { style: controlRow }, /* @__PURE__ */ React.createElement("div", { className: "field", style: periodField }, /* @__PURE__ */ React.createElement("span", { style: groupLabel, id: "lb-periods-label" }, "Periods to show"), /* @__PURE__ */ React.createElement("div", { role: "group", "aria-labelledby": "lb-periods-label", style: checkStack }, LEADERBOARD_PERIODS.map((p) => /* @__PURE__ */ React.createElement("label", { className: "check", key: p, htmlFor: `lb-period-${p}` }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      id: `lb-period-${p}`,
+      type: "checkbox",
+      checked: periods.includes(p),
+      onChange: (e) => togglePeriod(p, e.target.checked),
+      disabled: !mayEdit || busy
+    }
+  ), PERIOD_LABEL_EN[p]))), /* @__PURE__ */ React.createElement("span", { className: "hint" }, "More than one shows as tabs. The week starts on Monday and every period is counted in India time, on the server - so two yuvaks in different places are always being ranked over the same days.")), /* @__PURE__ */ React.createElement("div", { className: "field", style: selectField }, /* @__PURE__ */ React.createElement("label", { htmlFor: "lb-default" }, "Opens first"), /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      id: "lb-default",
+      value: offered.includes(defaultPeriod) ? defaultPeriod : "",
+      onChange: edited((e) => setDefaultPeriod(e.target.value)),
+      disabled: !mayEdit || busy || !offered.length,
+      "aria-describedby": "lb-default-help"
+    },
+    !offered.length && /* @__PURE__ */ React.createElement("option", { value: "" }, "Choose a period first"),
+    offered.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }, PERIOD_LABEL_EN[p]))
+  ), /* @__PURE__ */ React.createElement("span", { className: "hint", id: "lb-default-help" }, offered.length > 1 ? "The tab a yuvak lands on. He can switch to the others." : "Only the periods ticked beside this can open first.")), /* @__PURE__ */ React.createElement("div", { className: "field", style: numField }, /* @__PURE__ */ React.createElement("label", { htmlFor: "lb-top" }, "How many names"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      id: "lb-top",
+      type: "number",
+      inputMode: "numeric",
+      min: LEADERBOARD_TOP_MIN,
+      max: LEADERBOARD_TOP_MAX,
+      step: 1,
+      value: topN,
+      onChange: edited((e) => setTopN(e.target.value)),
+      disabled: !mayEdit || busy,
+      "aria-describedby": "lb-top-help"
+    }
+  ), /* @__PURE__ */ React.createElement("span", { className: "hint", id: "lb-top-help" }, "Between ", /* @__PURE__ */ React.createElement("span", { className: "mono" }, LEADERBOARD_TOP_MIN), " and", " ", /* @__PURE__ */ React.createElement("span", { className: "mono" }, LEADERBOARD_TOP_MAX), ". A longer list is more names shown to more people."))), error && /* @__PURE__ */ React.createElement("p", { className: "field-error", role: "alert", style: errorLine }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u26A0"), " ", error), /* @__PURE__ */ React.createElement("div", { className: "form-actions" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      className: `btn${busy ? " is-busy" : ""}`,
+      type: "button",
+      onClick: save,
+      disabled: !mayEdit || busy || !changed
+    },
+    busy ? "Saving\u2026" : "Save leaderboard"
+  ), msg && /* @__PURE__ */ React.createElement(
+    "span",
+    {
+      className: `save-state ${msg.tone === "ok" ? "is-ok" : "is-error"}`,
+      role: msg.tone === "ok" ? "status" : "alert"
+    },
+    msg.text
+  ), msg?.tone === "danger" && /* @__PURE__ */ React.createElement("button", { className: "btn btn-quiet btn-sm", type: "button", onClick: save, disabled: busy }, "Try again")), /* @__PURE__ */ React.createElement("p", { className: "card-note" }, "In force now:", " ", inUse.enabled ? /* @__PURE__ */ React.createElement(React.Fragment, null, "the top ", /* @__PURE__ */ React.createElement("span", { className: "mono" }, inUse.topN), " names for", " ", inUse.periods.map((p) => PERIOD_LABEL_EN[p]).join(", "), ", opening on", " ", PERIOD_LABEL_EN[inUse.defaultPeriod], ".") : "nothing - no yuvak sees any other name.", " ", "The same range is checked in the database, so a length outside", " ", /* @__PURE__ */ React.createElement("span", { className: "mono" }, LEADERBOARD_TOP_MIN), "-", /* @__PURE__ */ React.createElement("span", { className: "mono" }, LEADERBOARD_TOP_MAX), " cannot be stored by any route, and the leaderboard is built by one function that returns names and points only."));
+}
+async function saveLeaderboard(board) {
+  const { data, error } = await supabase.from("settings").select("value").eq("key", LEVELS_SETTINGS_DOC).maybeSingle();
+  if (error) throw error;
+  const current = data?.value ?? {};
+  const { error: writeError } = await supabase.from("settings").upsert(
+    {
+      key: LEVELS_SETTINGS_DOC,
+      value: { ...current, [LEADERBOARD_KEY]: board },
+      updated_at: (/* @__PURE__ */ new Date()).toISOString()
+    },
+    { onConflict: "key" }
+  );
+  if (writeError) throw writeError;
+}
+function parseWhole(text) {
+  const t = String(text ?? "").trim();
+  return t === "" || !/^\d+$/.test(t) ? NaN : Number(t);
+}
+function canon(b) {
+  return JSON.stringify([
+    b.enabled,
+    LEADERBOARD_PERIODS.filter((p) => (b.periods || []).includes(p)),
+    b.defaultPeriod,
+    b.topN
+  ]);
+}
+const cardHead = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--sp-3)",
+  flexWrap: "wrap",
+  marginBottom: "var(--sp-2)"
+};
+const noMargin = { marginBottom: 0 };
+const cardIntro = { marginTop: 0, marginBottom: "var(--sp-2)" };
+const noTopMargin = { marginTop: 0, marginBottom: "var(--sp-4)" };
+const controlRow = {
+  display: "flex",
+  gap: "var(--sp-4)",
+  flexWrap: "wrap",
+  alignItems: "flex-start"
+};
+const periodField = { marginBottom: "var(--sp-3)", flex: "1 1 200px" };
+const selectField = { marginBottom: "var(--sp-3)", flex: "0 1 200px" };
+const numField = { marginBottom: "var(--sp-3)", flex: "0 1 180px" };
+const checkField = { marginBottom: "var(--sp-3)", flex: "0 0 auto" };
+const checkStack = { display: "flex", flexDirection: "column", gap: "var(--sp-2)" };
+const groupLabel = {
+  fontSize: "var(--fs-label)",
+  fontWeight: "var(--fw-medium)",
+  color: "var(--text-body)"
+};
+const errorLine = { marginTop: "var(--sp-3)" };

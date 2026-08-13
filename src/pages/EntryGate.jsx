@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth';
-/* લેવલ ૧'s description, in the one language this page is written in. `inEnglish()` swaps in
-   the English half of the spec (shared/domain/journey.js keeps both for this page only), and
-   PageIntro's `lang` switches its own labels to match — so the page stays in one voice. */
-import { JOURNEY_PAGE, inEnglish, usePageSpec } from '../lib/journey';
+import { useAuth, guError } from '../lib/auth';
+/* લેવલ ૧'s description, from the same specification every other level reads its own. */
+import { JOURNEY_PAGE, usePageSpec } from '../lib/journey';
 import PageIntro from '../components/PageIntro';
 import '../styles/forms.css';
 import './entry-gate.css';
@@ -33,27 +31,15 @@ import './entry-gate.css';
  * questions still render, because a missing link must not be the thing that keeps a
  * yuvak out of the app.
  *
- * This page's wording is English while the rest of the app is still Gujarati, so it
- * carries its own `lang` — index.html declares `lang="gu"` for the document, and a
- * screen reader left on that setting reads English words with Gujarati pronunciation
- * rules. The attribute is the only thing that switches the voice back.
+ * This page used to be the one screen written in English, on the reasoning that the
+ * વિડિયો and its two questions are English and half a page in each language reads worse
+ * than either. It read worse in practice: a યુવક arrives here straight from નોંધણી, which
+ * is Gujarati, and met a screen he could not read at the exact moment he is being asked
+ * to answer something. So it is Gujarati like every other screen. `lang="gu"` comes from
+ * index.html and is not overridden here, and a failed write is explained by the same
+ * `guError` the લોગિન and નોંધણી pages use rather than by a second table of this page's
+ * own.
  */
-
-/**
- * This page's own wording for a failed write.
- *
- * `guError` from lib/auth is shared with the લોગિન and નોંધણી pages and answers in
- * Gujarati; calling it here would drop one Gujarati line into an otherwise English
- * page, at the one moment the yuvak most needs to read it. Only two things can fail
- * here — the network, or the profiles update itself — so this is a short mapping and
- * not a second copy of the shared table.
- */
-function gateError(e) {
-  const msg = String(e?.message || '');
-  if (msg.includes('Failed to fetch')) return 'Network problem. Please try again.';
-  if (e?.status === 429) return 'Too many attempts. Please wait a moment, then try again.';
-  return 'Your answer could not be saved. Please try again.';
-}
 
 export default function EntryGate({ videoId, replay = false }) {
   const { profile, saveGateAnswers, logout } = useAuth();
@@ -87,6 +73,51 @@ export default function EntryGate({ videoId, replay = false }) {
   useEffect(() => () => clearTimeout(savedTimer.current), []);
 
   /**
+   * લેવલ ૧ in the history, and the three decisions inside one line of code.
+   *
+   * **What counts.** Both answers being Yes, and nothing else. There is no watch event here
+   * to record: the વિડિયો is a bare `<iframe>` and this app has never loaded YouTube's
+   * player API, deliberately — §5 says outright that verifying a like or a comment was
+   * judged too heavy, and measuring playback would be the same weight for the same kind of
+   * claim. So the honest signal is the one the page already has, and this records that
+   * rather than inventing a watch it cannot see. A page *load* is explicitly not it (§5 of
+   * the brief: "Do not create fake completions from page loads") — arriving here records
+   * nothing at all.
+   *
+   * **One row per visit, not per tap.** The token is minted once for the life of this
+   * component, so a યુવક on a return visit who unticks and reticks a box sends three
+   * requests and creates one attempt: `activity_submit` recognises the token and hands back
+   * the row it already wrote. Coming back this evening is a new mount, a new token, and
+   * genuinely a second વાર.
+   *
+   * **It never blocks the gate.** The promise is not awaited and its rejection is swallowed,
+   * which is the same shape and the same argument as `markRevision()` on RevisionPage: the
+   * thing that matters here is `saveGateAnswers`, and a યુવક must not be held at the door —
+   * or worse, turned back — because a history row could not be filed. The cost is admitted:
+   * a submission lost to a dead connection is lost, and the day will read one વાર short.
+   * That is the right trade for a record that no permission and no unlock depends on.
+   *
+   * **Imported dynamically, and that is not a style choice.** This page is one of the three
+   * `src/App.jsx` loads eagerly — it is the પ્રવેશદ્વાર, so it must paint on the first visit
+   * without waiting for a second chunk — which means a static import here would put
+   * src/lib/activity.js and the whole of shared/domain/points.js into the entry bundle that
+   * every યુવક downloads before anything renders. `verify:separation` holds that chunk to a
+   * measured threshold for exactly this reason, and the module is not needed until the moment
+   * both boxes are ticked, which is at the earliest several seconds of વિડિયો away. Nothing
+   * is awaited on the render path and the import resolves from cache after the first call.
+   */
+  const visitToken = useRef(null);
+  const recordLevel1 = (next) => {
+    if (!next.liked || !next.commented) return;
+    import('../lib/activity')
+      .then(({ ACTIVITY_KEY, newToken, recordActivity }) => {
+        if (!visitToken.current) visitToken.current = newToken();
+        return recordActivity(ACTIVITY_KEY.VIDEO, visitToken.current);
+      })
+      .catch(() => {});
+  };
+
+  /**
    * First pass through the gate: both answers, then straight on to લેવલ ૨.
    *
    * §5/§6 — this used to land on the home page, which broke the one sequence the spec
@@ -105,11 +136,15 @@ export default function EntryGate({ videoId, replay = false }) {
     setError(null);
     try {
       await saveGateAnswers({ liked, commented });
+      // After the write that matters has come back, and before the navigation, so the
+      // request is started while this component is still mounted. Not awaited: see
+      // recordLevel1().
+      recordLevel1({ liked, commented });
       nav('/darshan', { replace: true });
     } catch (e) {
       // §1 — never a dead end. The ticks stay where they are and the button comes back,
       // so the same tap retries rather than sending him to the login screen.
-      setError(gateError(e));
+      setError(guError(e));
     } finally {
       setBusy(false);
     }
@@ -129,13 +164,14 @@ export default function EntryGate({ videoId, replay = false }) {
     setError(null);
     try {
       await saveGateAnswers(next);
+      recordLevel1(next);
       setSavedAt(Date.now());
       clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSavedAt(0), 2600);
     } catch (e) {
       // The tick stays visible and the message says what happened; toggling again is
       // the retry. Reverting it under his finger would look like the app refusing him.
-      setError(gateError(e));
+      setError(guError(e));
     } finally {
       setBusy(false);
     }
@@ -147,15 +183,14 @@ export default function EntryGate({ videoId, replay = false }) {
     replay ? change({ liked, commented: v }) : setCommented(v);
 
   return (
-    <div className="auth-wrap gate-wrap" lang="en">
+    <div className="auth-wrap gate-wrap">
       <div className="auth-card">
-        <h1 className="auth-title">{replay ? 'Video Darshan' : 'Welcome'}</h1>
+        <h1 className="auth-title">{replay ? 'વિડિયો દર્શન' : 'સ્વાગત છે'}</h1>
         <p className="auth-sub">
-          {/* A salutation, not a sentence — it is transliterated rather than translated. */}
-          Jay Swaminarayan{profile?.name ? `, ${profile.name}` : ''} —<br />
+          જય સ્વામિનારાયણ{profile?.name ? `, ${profile.name}` : ''}<br />
           {replay
-            ? 'You can watch this video again whenever you like'
-            : 'Please watch this video before you begin your dhyan'}
+            ? 'આ વિડિયો તમે ગમે ત્યારે ફરી જોઈ શકો છો'
+            : 'ધ્યાન શરૂ કરતાં પહેલાં આ વિડિયો જુઓ'}
         </p>
 
         {/*
@@ -167,7 +202,7 @@ export default function EntryGate({ videoId, replay = false }) {
           come back only to watch again does not need the page explained a second time, and
           the line above it already says what this visit is.
         */}
-        <PageIntro spec={inEnglish(spec)} lang="en" compact={replay} />
+        <PageIntro spec={spec} compact={replay} />
 
         {videoId ? (
           <div className="gate-video">
@@ -203,7 +238,7 @@ export default function EntryGate({ videoId, replay = false }) {
               */}
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`}
-                title="Varni Dhyan"
+                title="વર્ણી ધ્યાન"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture"
                 allowFullScreen
                 loading="lazy"
@@ -216,18 +251,18 @@ export default function EntryGate({ videoId, replay = false }) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Open on YouTube
+              યુટ્યુબ પર ખોલો
             </a>
           </div>
         ) : (
           <div className="notice warn">
-            The video link has not been set yet. This page will work once the admin adds it.
+            વિડિયોની કડી હજી મુકાઈ નથી. સંચાલક કડી મૂકે એટલે અહીં વિડિયો દેખાશે.
           </div>
         )}
 
         <div className="gate-qs">
           <p className="gate-qs-head">
-            {replay ? 'Your answers' : 'Please answer both questions'}
+            {replay ? 'તમારા જવાબ' : 'બંને પ્રશ્નોના જવાબ આપો (યુટ્યુબ માટે છે)'}
           </p>
 
           <label className="gate-q">
@@ -236,7 +271,7 @@ export default function EntryGate({ videoId, replay = false }) {
               checked={liked}
               onChange={(e) => onLiked(e.target.checked)}
             />
-            <span>Have you liked this video?</span>
+            <span>આ વિડિયોને તમે લાઈક કર્યો છે?</span>
           </label>
 
           <label className="gate-q">
@@ -245,7 +280,7 @@ export default function EntryGate({ videoId, replay = false }) {
               checked={commented}
               onChange={(e) => onCommented(e.target.checked)}
             />
-            <span>Have you written a good comment on this video?</span>
+            <span>આ વિડિયો પર તમે સારી કોમેન્ટ લખી છે?</span>
           </label>
 
           {/*
@@ -257,11 +292,11 @@ export default function EntryGate({ videoId, replay = false }) {
               ? <span className="is-bad">{error}</span>
               : replay
                 ? savedAt
-                  ? <span className="is-good">Answer saved</span>
-                  : 'To change an answer, just tick or untick — it saves straight away.'
+                  ? <span className="is-good">જવાબ સચવાઈ ગયો</span>
+                  : 'જવાબ બદલવો હોય તો ટિક કરો કે ટિક કાઢી નાખો, એ તરત સચવાઈ જશે.'
                 : ready
-                  ? 'Thank you. You can go on to Level 2 now.'
-                  : 'You can go on to Level 2 once both answers are Yes.'}
+                  ? 'આભાર. હવે તમે લેવલ ૨ પર જઈ શકશો.'
+                  : 'બંને જવાબ "હા" થાય એટલે લેવલ ૨ પર જવાશે.'}
           </p>
         </div>
 
@@ -290,17 +325,17 @@ export default function EntryGate({ videoId, replay = false }) {
             rule keeps the foot of the દર્શન to exactly two ways on.)
           */
           <button className="btn" type="button" onClick={() => nav('/darshan')}>
-            Next — Level 2: Darshan
+            આગળ - લેવલ ૨: દર્શન
           </button>
         ) : (
           <>
             <button className="btn" type="button" onClick={submit} disabled={!ready || busy}>
-              {busy ? 'Saving…' : 'Next — Level 2: Darshan'}
+              {busy ? 'સચવાય છે…' : 'આગળ - લેવલ ૨: દર્શન'}
             </button>
 
             <p className="auth-alt">
               <button className="linklike" type="button" onClick={logout}>
-                Sign in with a different account
+                બીજા ખાતાથી લોગિન કરો
               </button>
             </p>
           </>

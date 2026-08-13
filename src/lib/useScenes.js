@@ -24,6 +24,87 @@ const VISIBLE = new Set(['PUBLISHED', 'ACTIVE']);
 const isWithheld = (row) => !(row.active !== false && VISIBLE.has(row.status ?? 'ACTIVE'));
 
 /**
+ * ────────────────────────────────────────────────────────────────────────────
+ * One overlay read per page load, not one per screen
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * This hook used to hold its `select *` inside the effect, so every mount was another full
+ * read of `public.scenes`. That is not one screen's cost: useScenes() is read by the home
+ * ring, દર્શન, લેવલ ૩, the લેવલ ૪ list, one કસોટી, its પુનરાવર્તન and સેટિંગ — so an ordinary
+ * evening of મુખપૃષ્ઠ → લેવલ ૩ → લેવલ ૪ → કસોટી is four full-table reads of the same rows,
+ * doubled again by StrictMode in development. At 400-500 યુવકો that is the busiest query in
+ * the application and none of it buys anything: the rows have not changed between two
+ * navigations a second apart.
+ *
+ * The shape is `src/lib/useNavigation.js`'s, deliberately and to the line — a module-scope
+ * promise every caller joins, plus the settled value beside it so a mount after the read has
+ * finished paints the final list on its first frame instead of one frame of the manifest.
+ * That file's reasoning applies here unchanged, so it is not restated:
+ *
+ *   * **No TTL, and there must not be one.** The cache is scoped to the page load and dies
+ *     with the tab. A સંચાલક who withholds a દ્રશ્ય reaches a યુવક on his next visit, which is
+ *     how every other setting in this app already behaves. A TTL would buy nothing a reload
+ *     does not and would cost a દર્શન list that can renumber itself under a thumb mid-session
+ *     — and renumbering is exactly what ORDERING.md §1 asks this app never to do casually.
+ *   * **No concurrent duplicates.** Two screens mounting in the same frame join one promise.
+ *   * **A failed read still resolves**, to null, which is the manifest fallback the comment
+ *     below already describes. It never rejects: a rejection here would be an unhandled one
+ *     in the console of every યુવક with a bad signal, and the screen has something to render
+ *     either way.
+ *
+ * Nothing about the overlay's *meaning* changes here. Both gates, the numbering and the
+ * fallback are the same lines they were; only how often the rows are fetched is different.
+ */
+let overlayPromise = null;
+
+/** `undefined` = not settled yet. `null` is a real settled value: no overlay, use the manifest. */
+let overlaySettled;
+
+function loadOverlay() {
+  if (overlayPromise) return overlayPromise;
+
+  overlayPromise = (async () => {
+    // Selected whole rather than column by column, exactly as the panel's loadScenes does.
+    // One small table — and naming columns here would mean quoting `order`, which is also
+    // PostgREST's own sort parameter.
+    const { data, error } = await supabase.from('scenes').select('*');
+
+    // An unreadable overlay is not fatal. Falling back to the manifest shows the finalised
+    // દર્શન rather than an empty page, which is the §1 answer: never leave the યુવક at a dead
+    // end. A signed-out visitor reads zero rows here by RLS, not an error, and lands in the
+    // same place.
+    //
+    // The failure is NOT cached as a settled answer — `overlayPromise` is cleared so the next
+    // screen he opens tries again. A bad minute of signal on the મુખપૃષ્ઠ must not cost him the
+    // સંચાલક's edits for the rest of the tab's life.
+    if (error) {
+      overlayPromise = null;
+      return null;
+    }
+
+    overlaySettled = data ?? null;
+    return overlaySettled;
+  })();
+
+  return overlayPromise;
+}
+
+/**
+ * Throw the overlay away, so the next reader fetches it again.
+ *
+ * Exported for symmetry with `clearNavCache()` and for the same narrow purpose: a screen that
+ * *changes* the overlay would have to call this, or it would go on showing what it just
+ * replaced. Nothing in the યુવક app is that screen — `public.scenes` is written only from the
+ * સંચાલક panel, which is a separate build in a separate tab — so today this has no caller. It
+ * is here so that the day one appears, the answer is a function that already exists rather
+ * than a reload.
+ */
+export function clearSceneOverlayCache() {
+  overlayPromise = null;
+  overlaySettled = undefined;
+}
+
+/**
  * The finalised દર્શન — what the Drive folder and the સંચાલક's sheet produced, with the
  * સંચાલક's own edits applied on top and anything he has withheld removed.
  *
@@ -47,8 +128,10 @@ const isWithheld = (row) => !(row.active !== false && VISIBLE.has(row.status ?? 
  * policy already lets any authenticated યુવક select from it.
  */
 export function useScenes() {
-  const [overlay, setOverlay] = useState(null);
-  const [loading, setLoading] = useState(configured);
+  // Seeded from the settled value, so the second screen of a session paints the final list on
+  // its first frame. `undefined` means the read has not finished; `null` is a real answer.
+  const [overlay, setOverlay] = useState(() => (overlaySettled === undefined ? null : overlaySettled));
+  const [loading, setLoading] = useState(configured && overlaySettled === undefined);
 
   useEffect(() => {
     // Hooks cannot be skipped, so the unconfigured guard lives inside the effect — the
@@ -58,23 +141,21 @@ export function useScenes() {
       return;
     }
 
+    // Already settled: nothing to wait for and nothing to request. This is the path every
+    // navigation after the first takes.
+    if (overlaySettled !== undefined) {
+      setOverlay(overlaySettled);
+      setLoading(false);
+      return;
+    }
+
     let alive = true;
 
-    // Selected whole rather than column by column, exactly as the panel's loadScenes does.
-    // One small table, read once per view — and naming columns here would mean quoting
-    // `order`, which is also PostgREST's own sort parameter.
-    supabase
-      .from('scenes')
-      .select('*')
-      .then(({ data, error }) => {
-        if (!alive) return;
-        // An unreadable overlay is not fatal. Falling back to the manifest shows the
-        // finalised દર્શન rather than an empty page, which is the §1 answer: never leave
-        // the યુવક at a dead end. A signed-out visitor reads zero rows here by RLS, not
-        // an error, and lands in the same place.
-        setOverlay(error ? null : data ?? null);
-        setLoading(false);
-      });
+    loadOverlay().then((rows) => {
+      if (!alive) return;
+      setOverlay(rows);
+      setLoading(false);
+    });
 
     return () => {
       alive = false;

@@ -27,7 +27,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
-import { ADMIN_MOBILES, MOBILE_RE, EMAIL_RE } from '../shared/domain/constants.js';
+import { MOBILE_RE, EMAIL_RE } from '../shared/domain/constants.js';
+/*
+  The founding numbers, from the module that exists so they cannot reach a browser. This
+  script is the only legitimate reader — see shared/domain/admin-bootstrap.js. It runs in
+  Node, by hand, with the secret key; nothing here is bundled.
+*/
+import { ADMIN_MOBILES } from '../shared/domain/admin-bootstrap.js';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SUB_ZONES = ['vedroad', 'varachha', 'navsari'];

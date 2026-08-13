@@ -224,10 +224,139 @@ export function validateTickWord(word) {
   if (text.length > TICK_WORD_MAX) {
     return {
       ok: false,
-      gu: `Ticked-row word: ${TICK_WORD_MAX} characters or fewer — it has to fit inside a row.`,
+      gu: `Ticked-row word: ${TICK_WORD_MAX} characters or fewer - it has to fit inside a row.`,
     };
   }
   return { ok: true, text };
+}
+
+/**
+ * settings['app'].value.slideshow — how long the fullscreen દર્શન holds each દ્રશ્ય.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What it is for
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The gallery's આપોઆપ (GalleryViewer.jsx) advances by itself once a યુવક starts it. How long
+ * it waits is not a fact about the code — it is a judgement about how long a દ્રશ્ય wants to
+ * be looked at, and that judgement belongs to the સંચાલક, who can watch a room full of યુવકો
+ * and see whether six seconds is hurried. So it is a setting, not a constant.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why it lives on settings['app'] and not settings['levels']
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `levels` holds what a level *is* — its name, its order, whether it is offered, what opens
+ * લેવલ ૪. This is none of those. It is a property of a viewing surface, in the same class as
+ * `tickWord` and the two ધૂન: something a યુવક experiences, changeable without a deploy,
+ * changing nothing about the ladder. The યુવક app already reads the `app` row on every visit
+ * (src/lib/useSettings.js), so this rides a request that is being made anyway.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Seconds, stored; milliseconds, used
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The stored unit is **seconds**, because that is the unit the સંચાલક types and the unit the
+ * bound is expressed in. The conversion to the milliseconds `setTimeout` wants happens at the
+ * one place that starts the timer, and never in the stored value — a row holding 8000 that
+ * someone later reads as seconds is a two-and-a-quarter-hour slideshow.
+ */
+export const SLIDESHOW_KEY = 'slideshow';
+
+/**
+ * One second to sixty, and both ends are meant.
+ *
+ * The floor is 1 and not 0: zero is not a fast slideshow, it is a slideshow with no dwell at
+ * all — ૧૦૯ દ્રશ્યો flickering past in whatever time the pictures take to decode, which is
+ * not a setting anybody wants and is indistinguishable from a bug. A યુવક who wants to move
+ * that fast has the › arrow.
+ *
+ * The ceiling is 60 because past a minute the slideshow has stopped being a slideshow: a
+ * યુવક watching a દ્રશ્ય for two minutes cannot tell it from one that has frozen, and would
+ * reasonably reload the app. An unbounded number here would also let a mistyped 600 look
+ * exactly like a broken આપોઆપ, with nothing on any screen to say which it was.
+ */
+export const SLIDESHOW_MIN_SECONDS = 1;
+export const SLIDESHOW_MAX_SECONDS = 60;
+
+/**
+ * Six seconds — today's behaviour exactly, so a project that never opens this field keeps
+ * the pace it already had.
+ *
+ * That is the same rule DEFAULT_LEVEL4_GATE follows and it is the one that matters here:
+ * this setting is being added to a feature that already shipped with a six-second dwell
+ * hard-coded in GalleryViewer.jsx, and a default of anything else would silently re-time
+ * every existing project's દર્શન on deploy. Six also sits inside the 5–10s the brief
+ * recommends, so nothing is being preserved at the cost of being wrong.
+ */
+export const DEFAULT_SLIDESHOW = Object.freeze({ seconds: 6 });
+
+/**
+ * settings['app'].value.slideshow → the dwell actually in force.
+ *
+ * Forgiving, in the same shape and for the same reason as resolveLevel4Gate() and
+ * resolveTickWord() above: this is jsonb that anybody with `settings.update` once wrote, and
+ * every way it can be wrong has to end at a number `setTimeout` can use. The direction each
+ * branch falls in is the whole point —
+ *
+ *   absent / not an object   → the default. Nothing has been configured.
+ *   not a number             → the default. **`typeof`, never `Number()`**, exactly as the
+ *                              gate resolver argues: `Number(null)` and `Number('')` are both
+ *                              0, so a coercing check turns "nothing here" into a dwell of
+ *                              zero — the flickering slideshow the floor exists to forbid.
+ *   below the floor          → clamped up to 1, not defaulted to 6. A સંચાલક who wrote 0 was
+ *                              asking for "as fast as possible", and the fastest this is
+ *                              allowed to go is the honest answer to that.
+ *   above the ceiling        → clamped down to 60, for the mirror-image reason.
+ *   fractional               → rounded, not floored. 1.6s is nearer 2 than 1, and unlike the
+ *                              gate — where flooring is the safe direction because it can
+ *                              only make a threshold easier — nothing here is safer either
+ *                              way, so the arithmetic that is simply more accurate wins.
+ *
+ * A NaN or an Infinity is refused by `Number.isFinite` before either clamp sees it: NaN
+ * survives both `Math.min` and `Math.max` unchanged, so clamping alone would hand
+ * `setTimeout` a NaN — which fires immediately, and turns a mistyped setting into exactly
+ * the zero-dwell flicker the floor is written to prevent.
+ */
+export function resolveSlideshow(stored) {
+  const s = stored && typeof stored === 'object' ? stored : {};
+  const n = s.seconds;
+  if (typeof n !== 'number' || !Number.isFinite(n)) return { seconds: DEFAULT_SLIDESHOW.seconds };
+  return {
+    seconds: Math.min(SLIDESHOW_MAX_SECONDS, Math.max(SLIDESHOW_MIN_SECONDS, Math.round(n))),
+  };
+}
+
+/**
+ * Refuses what resolveSlideshow() would silently clamp — same division of labour as the two
+ * validators above.
+ *
+ * The resolver forgives because a stored row must always produce a running slideshow; this
+ * refuses because a સંચાલક who types 90 should be told the ceiling is 60, not have it
+ * quietly become 60 and be left to discover the difference by watching. A value this accepts
+ * is a value the resolver returns unchanged — that equivalence is what keeps the panel's
+ * field and the યુવક's dwell the same number, and `settings_slideshow_seconds()` in
+ * 0018_gallery_slideshow.sql mirrors both.
+ */
+export function validateSlideshow(slideshow) {
+  const s = slideshow && typeof slideshow === 'object' ? slideshow : null;
+  if (!s) return { ok: false, gu: 'The slideshow setting is missing.' };
+
+  // `typeof`, matching the resolver. Validating with Number() while resolving with typeof is
+  // how a value passes the save and is then quietly replaced — the સંચાલક is told "Saved",
+  // and the slideshow runs at a speed he did not choose.
+  const n = s.seconds;
+  if (typeof n !== 'number' || !Number.isFinite(n)) {
+    return { ok: false, gu: 'Slideshow interval: enter a number of seconds.' };
+  }
+  if (!Number.isInteger(n)) return { ok: false, gu: 'Slideshow interval: enter a whole number of seconds.' };
+  if (n < SLIDESHOW_MIN_SECONDS || n > SLIDESHOW_MAX_SECONDS) {
+    return {
+      ok: false,
+      gu: `Slideshow interval: between ${SLIDESHOW_MIN_SECONDS} and ${SLIDESHOW_MAX_SECONDS} seconds.`,
+    };
+  }
+  return { ok: true, seconds: n };
 }
 
 /**
@@ -348,7 +477,7 @@ export function validateLevels(levels) {
   // A yuvak partway through must never be stranded: §36 forbids putting users into an
   // impossible learning state, and Level 2 is the only level with content today.
   if (!levels.find((l) => l.levelId === 2)?.enabled) {
-    return { ok: false, gu: 'Level 2 (Darshan) cannot be disabled — it is the only active level right now.' };
+    return { ok: false, gu: 'Level 2 (Darshan) cannot be disabled - it is the only active level right now.' };
   }
   return { ok: true };
 }

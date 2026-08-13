@@ -1,0 +1,441 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   The fullscreen દર્શન viewer.
+
+   Imported by GalleryViewer.jsx ITSELF, not by its consumers. /darshan, /learn and /level/N
+   are separate lazy chunks and Vite ships each chunk's CSS with the chunk, so a component
+   that leaves its styling to whoever mounts it can arrive unstyled on a route that forgot —
+   which is exactly why RevisionPage.jsx has to import darshan.css by hand for the older
+   lightbox. Importing here means no consumer can forget, ever.
+
+   For the same reason nothing below borrows from darshan.css: every button, pill and focus
+   ring is declared here, out of the tokens in src/styles/tokens.css. Same argument already
+   written out at darshan.css:71-87.
+
+   ── the z-index ladder ──
+   .gv 80  ›  .lb 70  ›  #bar 60  ›  .dhun 55  ›  #top 50
+   The reading-progress line, the ધૂન control and back-to-top all sit under this, as they
+   already sat under the lightbox.
+
+   ── prefers-reduced-motion ──
+   src/index.css kills every animation and transition with `!important` but resets nothing,
+   so any element whose BASE style is hidden and which is only revealed by a transition would
+   stay invisible for those users, for ever. The rule here, and it is not optional:
+
+       the base style of every element is its VISIBLE state.
+       entrances are @keyframes; hidden states are unmount.
+
+   There is no exception, because there is nothing here that hides. Every control in this
+   viewer is on screen from the first paint to the last, so the rule above costs nothing:
+   see the note in GalleryViewer.jsx about why the idle fade was removed rather than tuned.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.gv {
+  position: fixed;
+  inset: 0;
+  /* vh first as the fallback, dvh second so it wins where it is understood: in landscape the
+     browser chrome eats a large slice of a small height and vh alone measures without it.
+     Same idiom as src/pages/entry-gate.css. */
+  height: 100vh;
+  height: 100dvh;
+  width: 100%; /* never 100vw — that overflows by the width of a scrollbar */
+  z-index: 80;
+  background: #050403;
+  overscroll-behavior: contain;
+  font-family: var(--font-gu);
+  /* Base is the shown state; the fade is a keyframe, so reduced motion simply arrives. */
+  opacity: 1;
+  animation: gv-in 0.22s ease both;
+}
+
+@keyframes gv-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- the picture ---------------------------------------------------------- */
+
+.gv-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The contract with the browser: it keeps vertical panning and pinch-zoom, we take the
+     horizontal axis. See useSwipe.js — this one declaration is why that hook never has to
+     call preventDefault(), and why a pinch arrives as a pointercancel. */
+  touch-action: pan-y pinch-zoom;
+  will-change: transform;
+}
+
+.gv-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* The whole artwork, at its own aspect ratio. Nothing cropped, nothing stretched. */
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* A skeleton inside the stage, not a spinner over the application (§17). */
+.gv-skel {
+  position: absolute;
+  width: min(64vw, 240px);
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(240, 199, 120, 0.08), rgba(240, 199, 120, 0.34), rgba(240, 199, 120, 0.08));
+  background-size: 220% 100%;
+  animation: gv-shimmer 1.2s linear infinite;
+}
+
+@keyframes gv-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+.gv-fail {
+  position: absolute;
+  max-width: min(90vw, 380px);
+  padding: 22px 20px;
+  border: 1px solid rgba(240, 199, 120, 0.28);
+  border-radius: var(--radius-card, 16px);
+  background: var(--color-panel);
+  color: #f4ead8;
+  text-align: center;
+  line-height: var(--lh-body, 1.65);
+}
+
+.gv-fail p {
+  margin: 0 0 14px;
+  font-size: var(--fs-body, 15px);
+}
+
+/* ---- the controls --------------------------------------------------------- */
+
+.gv-chrome {
+  position: absolute;
+  inset: 0;
+  /* The layer itself is inert so it cannot swallow a swipe; only the controls take taps. */
+  pointer-events: none;
+}
+
+.gv-chrome > * {
+  pointer-events: auto;
+}
+
+.gv-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: max(10px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 12px
+    max(12px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, rgba(5, 4, 3, 0.78), transparent);
+  transition: background 0.25s ease;
+}
+
+/* index.html does not set viewport-fit=cover, so every env() above resolves to 0 today and
+   iOS insets the layout viewport for us instead. max() is written anyway so the viewer is
+   already correct the day that meta tag changes — and so nothing here sits under a notch,
+   a home indicator or a rounded corner either way (§22). */
+
+.gv-top > * {
+  min-width: 0;
+}
+
+.gv-count {
+  padding: 8px 14px;
+  border: 1px solid rgba(240, 199, 120, 0.45);
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(240, 199, 120, 0.09);
+  color: var(--color-gold-soft);
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* One shape for every icon button, sized by the app-wide control floor. tokens.css names
+   48px as the floor and 44px as iOS's absolute minimum; nothing here goes below 44. */
+.gv-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h, 48px);
+  height: var(--control-h, 48px);
+  padding: 0;
+  border: 1px solid rgba(240, 199, 120, 0.26);
+  border-radius: 50%;
+  background: rgba(16, 13, 10, 0.62);
+  backdrop-filter: blur(4px);
+  color: var(--color-gold-soft);
+  font-family: var(--font-latin, inherit);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.25s ease, background 0.2s ease, transform 0.12s ease;
+}
+
+.gv-icon:active {
+  transform: scale(0.93);
+}
+
+.gv-icon:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
+.gv-nav {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  /* Comfortably larger than the glyph: a 20px icon button is not tappable on a phone (§33). */
+  width: 56px;
+  height: 56px;
+  font-size: 30px;
+}
+
+.gv-prev {
+  left: max(8px, env(safe-area-inset-left, 0px));
+}
+
+.gv-next {
+  right: max(8px, env(safe-area-inset-right, 0px));
+}
+
+/* ---- the foot ------------------------------------------------------------- */
+
+/* Anchored by `bottom`, so it grows upward as the વર્ણન opens rather than pushing anything
+   off screen. The inline padding keeps it clear of the two centred arrows. */
+.gv-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-inline: max(14px, env(safe-area-inset-left, 0px));
+}
+
+.gv-desc {
+  width: min(100%, 640px);
+  max-height: 38dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 15px 17px;
+  border: 1px solid rgba(240, 199, 120, 0.25);
+  border-radius: var(--radius-control, 10px);
+  background: rgba(24, 19, 13, 0.96);
+  color: #f4ead8;
+  font-size: clamp(14px, 3.4vw, 17px);
+  line-height: var(--lh-body, 1.65);
+  text-align: center;
+  /* Base is shown; the rise is a keyframe. */
+  opacity: 1;
+  transform: none;
+  animation: gv-rise 0.2s ease both;
+}
+
+@keyframes gv-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- the permanent row: number, and the way to the વર્ણન ------------------ */
+
+/* Always on screen. There is no rule anywhere in this file that hides, fades, shrinks or
+   reflows this row — not on idle, not while the panel is open, not in landscape, not at
+   320px. See the note in GalleryViewer.jsx: the number is half of what લેવલ ૨ is teaching,
+   so it is furniture. */
+.gv-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+/* The દ્રશ્ય's own printed number. Gold and pill-shaped like the counter above it, but
+   marked with # so the two are never read as the same number — the counter is a position in
+   today's collection, this is the number the યુવક is learning. */
+.gv-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid rgba(240, 199, 120, 0.4);
+  border-radius: var(--radius-pill, 999px);
+  /* Opaque enough to stay legible over the brightest દ્રશ્ય in the collection. */
+  background: rgba(10, 8, 6, 0.74);
+  backdrop-filter: blur(4px);
+  color: var(--color-gold-soft);
+  font-size: clamp(14px, 3.4vw, 16.5px);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gv-num-h {
+  color: var(--color-gold);
+  font-family: var(--font-latin, inherit);
+  opacity: 0.7;
+}
+
+/* The ⓘ control. Dark and semi-transparent by requirement, not by taste: it sits over
+   artwork this app does not choose and cannot preview, so it has to stay readable over a
+   white sky and a black doorway alike. */
+.gv-desc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid rgba(240, 199, 120, 0.24);
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(10, 8, 6, 0.74);
+  backdrop-filter: blur(4px);
+  color: #efe1c9;
+  font-family: inherit;
+  font-size: clamp(13.5px, 3.2vw, 16px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.gv-desc-i {
+  flex: none;
+  color: var(--color-gold);
+  font-family: var(--font-latin, inherit);
+  font-size: 16px;
+}
+
+/* Open: the control says so rather than leaving the panel to speak for itself. */
+.gv-desc-btn[aria-expanded='true'] {
+  border-color: rgba(240, 199, 120, 0.55);
+  background: rgba(240, 199, 120, 0.16);
+  color: var(--color-gold-soft);
+}
+
+/* The one દ્રશ્ય with no વર્ણન. Still there, still the same size, plainly not pressable —
+   the row must not change shape between દ્રશ્યો (§10). */
+.gv-desc-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.gv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: var(--control-h, 48px);
+  padding: 12px 26px;
+  border: 1px solid rgba(240, 199, 120, 0.32);
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(240, 199, 120, 0.08);
+  color: var(--color-gold-soft);
+  font-family: inherit;
+  font-size: var(--fs-button, 16px);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.25s ease;
+}
+
+.gv-auto.on {
+  border-color: transparent;
+  background: linear-gradient(160deg, var(--color-gold-soft), #d3a04a);
+  color: #2a1d12;
+}
+
+.gv-desc-btn:hover:not(:disabled),
+.gv-btn:hover,
+.gv-icon:hover:not(:disabled) {
+  background: rgba(240, 199, 120, 0.18);
+}
+
+.gv-auto.on:hover {
+  background: linear-gradient(160deg, #fff0cf, #d3a04a);
+}
+
+.gv :focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* The dialog takes focus on open so Space means આપોઆપ from the first moment (see
+   GalleryViewer). It is a container, not a control, so it does not draw a ring. */
+.gv:focus,
+.gv:focus-visible {
+  outline: none;
+}
+
+/* ---- landscape, and any short viewport ------------------------------------ */
+
+/* A phone held sideways is about 360px tall. Three stacked 48px rows plus a picture is not
+   a દર્શન, so the controls drop to 44px — iOS's published floor, the size dhun.css already
+   ships a secondary control at — and the foot is inset past the two arrows so the વર્ણન can
+   use the horizontal room landscape actually has. The arrows stay at 50%, which is already
+   right at any height. Bound matches src/pages/entry-gate.css. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .gv-top {
+    padding-block: 6px 8px;
+  }
+
+  .gv-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .gv-nav {
+    width: 48px;
+    height: 48px;
+    font-size: 26px;
+  }
+
+  .gv-prev {
+    left: max(4px, env(safe-area-inset-left, 0px));
+  }
+
+  .gv-next {
+    right: max(4px, env(safe-area-inset-right, 0px));
+  }
+
+  .gv-btn {
+    min-height: 44px;
+    padding: 10px 22px;
+  }
+
+  .gv-bottom {
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    gap: 7px;
+    padding-inline: 64px;
+  }
+
+  /* Free to be tall: the arrows are outside it now, not above it. */
+  .gv-desc {
+    max-height: 46dvh;
+    padding: 11px 14px;
+  }
+
+  /* The row stays whole. On a 360px-tall screen it is tempting to drop the word વર્ણન to an
+     ⓘ alone, or to put the number inside the top bar — both were tried and both are the same
+     mistake: a યુવક turning his phone sideways mid-ક્રમ would watch the two things he is
+     memorising rearrange themselves. Only the padding gives way. */
+  .gv-num,
+  .gv-desc-btn {
+    min-height: 44px;
+    padding: 9px 14px;
+  }
+}

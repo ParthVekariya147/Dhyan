@@ -1,7 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supabase/client.js';
-import { EMAIL_RE, isAdminMobile } from './constants';
+import { EMAIL_RE } from './constants';
+/*
+  From recovery-routes.js and NOT from recovery.js, deliberately.
+
+  This module is eager — App.jsx imports it at the top — so anything it reaches for is in the
+  chunk a visitor downloads before seeing a single field. recovery.js also holds every
+  Gujarati sentence the two recovery screens say, and Rollup will not drop the unread exports
+  of a module something eager imports. Taking one function from there put all of those
+  strings into the entry chunk and pushed it past the 60 KB budget verify:separation enforces.
+*/
+import { resetRedirectTo } from '../../shared/domain/recovery-routes.js';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -123,6 +133,25 @@ export function AuthProvider({ children }) {
    */
   const [registering, setRegistering] = useState(false);
 
+  /**
+   * Has Supabase opened a password-recovery session in this tab?
+   *
+   * Held HERE, and not inside the /reset-password page, because of when the event fires.
+   * `detectSessionInUrl` is on (shared/supabase/client.js), so the client consumes the
+   * recovery link and emits PASSWORD_RECOVERY as soon as anything first touches it — which
+   * is this provider's effect below, mounted at the root, before the router has resolved a
+   * lazy page chunk. A listener installed later in the reset page would subscribe *after*
+   * the one event it exists to hear: onAuthStateChange replays INITIAL_SESSION to a new
+   * subscriber and does not replay PASSWORD_RECOVERY.
+   *
+   * It is a latch, never cleared by later events. A recovery session goes on to look like
+   * an ordinary one — the same shape arrives again on token refresh — so a flag that
+   * followed the newest event would drop to false mid-reset and lock the યુવક out of the
+   * form while he was typing in it. `clearRecovery()` below is the only way down, called
+   * once the password is actually changed.
+   */
+  const [recovery, setRecovery] = useState(false);
+
   const loadProfile = useCallback(async (userId) => {
     if (!userId) return null;
     // maybeSingle: a signed-in user with no row is a real state — it happens between
@@ -192,8 +221,14 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, next) => {
       if (!alive) return;
+
+      // The latch. Set before anything is awaited, so a slow profile read cannot let the
+      // reset page render its "link is not valid" state in the gap after the event arrived
+      // and before this provider finished reacting to it.
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+
       setSession(next);
       await syncProfile(next?.user?.id ?? null);
       if (!alive) return;
@@ -207,6 +242,62 @@ export function AuthProvider({ children }) {
   }, [syncProfile]);
 
   const user = session?.user ?? null;
+
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    Does this યુવક hold a સંચાલક role? Asked of the server (§65).
+    ────────────────────────────────────────────────────────────────────────────
+
+    This was `isAdminMobile(profile?.mobile)` — a list of three literal phone numbers compiled
+    into the bundle. It is now one RPC, and the reasons are three:
+
+      1. **The numbers must not ship.** They are three founders' personal mobiles and they were
+         being served to every visitor in a preloaded chunk. See
+         shared/domain/admin-bootstrap.js, which is where they went and why.
+      2. **The list stopped being the answer.** Since 0024 authority is
+         `public.bootstrap_admins` plus `admin_profiles`, not `profiles.mobile`. A client
+         predicate reading the column would now be answering a question the database no longer
+         asks.
+      3. **It was wrong for everybody else already.** A CONTENT_MANAGER, COORDINATOR, VIEWER or
+         appointed ADMIN holds a real role and a real panel, and none of them has a §3 mobile —
+         so none of them was offered the link. `effective_role()` returns their role, so they
+         are now.
+
+    It is the same call `admin/src/lib/adminAuth.jsx` makes, which is the point: the link the
+    યુવક app draws and the panel that opens when he follows it agree, because one function
+    answered both.
+
+    **Deliberately outside the `loading` effect above.** `loading` gates every route decision,
+    and this decides one link. Making the router wait on an extra round trip so that a link
+    might appear a moment sooner is the wrong trade on a Surat mobile connection, and §13 asks
+    for no flicker on the paths that matter rather than for perfection on this one. The link
+    appears when the answer arrives; nothing else waits for it.
+
+    **Fails closed.** A failed RPC leaves `adminRole` null and draws no link. That is the safe
+    direction — the panel re-checks the role on entry and every RLS policy re-checks it per
+    row, so a missing link costs an administrator one typed URL, while a link drawn on a failed
+    check would promise a panel the database will refuse.
+  */
+  const [adminRole, setAdminRole] = useState(null);
+
+  useEffect(() => {
+    if (!configured || !user) {
+      setAdminRole(null);
+      return;
+    }
+
+    let alive = true;
+    supabase
+      .rpc('effective_role')
+      .then(({ data, error }) => {
+        if (!alive) return;
+        setAdminRole(error ? null : data ?? null);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
 
   /**
    * Finish a registration whose profile insert never ran (§14).
@@ -245,8 +336,15 @@ export function AuthProvider({ children }) {
       profileError,
       loading,
       registering,
+      recovery,
       unconfigured: !configured,
-      isAdmin: isAdminMobile(profile?.mobile),
+      /*
+        Any role at all opens the panel — which role decides what is inside it, and that is
+        the panel's business, not this app's. `adminRole` is the server's answer; see the
+        effect above for why it is not read off `profile.mobile` any more.
+      */
+      isAdmin: Boolean(adminRole),
+      adminRole,
 
       /**
        * Registration (§4).
@@ -449,13 +547,68 @@ export function AuthProvider({ children }) {
         setProfile((p) => ({ ...p, ...patch }));
       },
 
-      /** The only recovery route — there is no OTP fallback. */
+      /**
+       * Ask Supabase to mail a recovery link. The only recovery route — there is no OTP
+       * fallback, and there is deliberately no mobile-number path (§2).
+       *
+       * Two things about this call are load-bearing:
+       *
+       * `redirectTo` points at /reset-password, not at /login. It used to be /login, which
+       * meant the mail opened the app with a live recovery session on a page that had no
+       * idea what to do with one — the યુવક was silently signed in and shown a login form,
+       * and the password he came to change was never changed. The destination must be a
+       * page whose whole job is that session.
+       *
+       * The origin comes from the running page unless the build names one, so a preview
+       * deploy mails links back to itself and production mails production. `VITE_SITE_URL`
+       * exists for the case where they must differ — a mail opened on a device that never
+       * saw the preview host, say — and is the only place a URL may be pinned. §2: nothing
+       * hardcodes localhost, because nothing hardcodes anything.
+       *
+       * There is no error branch on "no such address": Supabase does not tell us, and we
+       * would not pass it on if it did (§3). The caller maps every outcome through
+       * `neutralOutcome()`.
+       */
       async resetPassword(email) {
+        const origin = import.meta.env.VITE_SITE_URL || location.origin;
         const { error } = await supabase.auth.resetPasswordForEmail(
           email.trim().toLowerCase(),
-          { redirectTo: `${location.origin}/login` }
+          { redirectTo: resetRedirectTo(origin) }
         );
         if (error) throw error;
+      },
+
+      /**
+       * Set a new password on the recovery session Supabase has already established.
+       *
+       * §10/§12 — this takes ONE argument, and that is the security property. There is no
+       * email parameter, no user id and no token: `updateUser` acts on whoever the current
+       * session says is signed in, so the identity comes from Supabase's own verification
+       * of the link rather than from anything the page could be persuaded to pass. A
+       * variant of this function that accepted an address would be the "arbitrary user
+       * password update" §24 asks to be tested for, and no amount of checking in the page
+       * above it would take that back.
+       *
+       * Nothing is written to `profiles` or anywhere else. Supabase Auth owns the password
+       * (§12), and `auth.users` is the single store the mobile-login function signs against
+       * too — which is why one reset covers both doors (§15).
+       */
+      async updatePassword(password) {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+      },
+
+      /**
+       * Leave recovery mode.
+       *
+       * Called once the password has actually changed. Separate from `logout()` because the
+       * two are not the same act and the reset page needs both, in that order: drop the
+       * latch so a back gesture cannot return to a form that would now edit an ordinary
+       * session, then end the session itself so he re-enters with the password he just set
+       * (§13). Doing only the second would leave the latch true for the next navigation.
+       */
+      clearRecovery() {
+        setRecovery(false);
       },
 
       async logout() {
@@ -466,7 +619,7 @@ export function AuthProvider({ children }) {
         if (user) await syncProfile(user.id);
       },
     }),
-    [user, session, profile, profileError, loading, registering, syncProfile, completePendingProfile]
+    [user, session, profile, profileError, loading, registering, recovery, adminRole, syncProfile, completePendingProfile]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

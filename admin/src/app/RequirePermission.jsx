@@ -31,6 +31,12 @@ export default function RequirePermission({ need, children }) {
   if (!can(need)) {
     return (
       <div className="state state-error" role="alert">
+        {/* A refusal is not a failure, so it does not borrow ErrorState's warning styling
+            or its "Something went wrong" title — nothing went wrong. It is a locked door
+            with a label, and there is deliberately no retry: pressing it would ask the
+            same question and get the same answer. */}
+        <span className="state-icon" aria-hidden="true">🔒</span>
+        <p className="state-title">This section is not open to your role</p>
         <p>{NO_SECTION_PERMISSION}</p>
         {/* Which role is refusing, because "no permission" with no subject leaves the
             person nothing to quote when he asks the SUPER_ADMIN for the access. */}

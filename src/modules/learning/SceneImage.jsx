@@ -36,6 +36,8 @@ export default function SceneImage({ scene, eager = false, className = '' }) {
       fetchPriority={eager ? 'high' : 'auto'}
       decoding="async"
       draggable={false}
+      /* Load-bearing: lh3 throttles per referrer — see driveImageUrl in shared/domain/drive.js. */
+      referrerPolicy="no-referrer"
       onError={onError}
     />
   );

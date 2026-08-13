@@ -108,7 +108,7 @@ export default function SessionsPage() {
         res.truncated
           ? {
               tone: 'notice-warn',
-              text: `Exported the first ${written} rounds. More match these dates than one file holds (limit ${res.cap}) — choose a shorter range and export again.`,
+              text: `Exported the first ${written} rounds. More match these dates than one file holds (limit ${res.cap}) - choose a shorter range and export again.`,
             }
           : { tone: 'notice-ok', text: `Exported ${written} rounds.` }
       );
@@ -130,17 +130,20 @@ export default function SessionsPage() {
     setPage(0);
   };
 
+  // Every label reads on its own. Below 900px DataTable turns each row into a card and
+  // prints these labels beside their values with no header row above them, so a heading
+  // that only made sense in a column ("Session", "Memory Darshan") becomes a question.
   const columns = [
     {
       key: 'user',
       label: 'User',
-      render: (r) => (r.user ? <Link to={`/users/${r.uid}`}>{r.user.name}</Link> : <span className="mono">—</span>),
+      render: (r) => (r.user ? <Link to={`/users/${r.uid}`}>{r.user.name}</Link> : <span className="mono">-</span>),
     },
     { key: 'subZone', label: 'Subzone', render: (r) => subZoneNameEn(r.user?.subZoneId) },
-    { key: 'sessionId', label: 'Session', render: (r) => <span className="mono">{r.sessionId}</span> },
+    { key: 'sessionId', label: 'Session id', render: (r) => <span className="mono">{r.sessionId}</span> },
     { key: 'remembered', label: 'Remembered', align: 'right', render: (r) => <span className="mono">{r.remembered}</span> },
     { key: 'pending', label: 'Remaining', align: 'right', render: (r) => <span className="mono">{r.pending}</span> },
-    { key: 'pct', label: 'Completion', align: 'right', render: (r) => (r.total ? percent(r.remembered, r.total) : '—') },
+    { key: 'pct', label: 'Completion', align: 'right', render: (r) => (r.total ? percent(r.remembered, r.total) : '-') },
     { key: 'submittedAt', label: 'Submitted', render: (r) => dateTimeGu(r.submittedAt) },
     {
       key: 'status',
@@ -152,26 +155,58 @@ export default function SessionsPage() {
         return s ? (
           <span className={`pill ${s.tone}`}>{s.label}</span>
         ) : (
-          <span className="pill pill-off">{r.status || '—'}</span>
+          <span className="pill pill-off">{r.status || '-'}</span>
         );
       },
     },
     {
       key: 'completedAt',
-      label: 'Memory Darshan',
+      label: 'Memory Darshan finished',
       // Kept as its own column now that the pill no longer stands in for it. Blank means
       // the recall stage is still open, which is a position in the journey, not a lapse.
       render: (r) => (r.completedAt ? dateTimeGu(r.completedAt) : <span className="pill pill-off">In progress</span>),
     },
   ];
 
+  // Each sentence names the filter that produced the emptiness, so the way out of it is in
+  // the message. "No learning session available yet" is only true when nothing is
+  // narrowing the list — with a date range on, it would be a claim about the whole table
+  // made from a query that only looked at three days of it.
+  const emptyMessage =
+    from || to
+      ? `No round was submitted in these dates${completedOnly ? ' with status Complete' : ''}. Try a wider range.`
+      : completedOnly
+        ? 'No round has status Complete yet. Clear the tick to see rounds that are still going.'
+        : 'No learning session available yet.';
+
   return (
     <>
-      <PageHeader title="Sessions" sub="Every submitted round — one session, one document" />
+      {/* The export is the page's one action, so it belongs in the header rather than at
+          the end of the filter bar, where it sat between a date field and the table and
+          looked like a third filter. It still exports exactly what the filters describe —
+          runExport reads the same `completedOnly` and IST bounds the table does. */}
+      <PageHeader
+        title="Sessions"
+        sub="Every submitted round - one session, one document"
+        actions={
+          <button
+            className={`btn${exporting ? ' is-busy' : ''}`}
+            type="button"
+            onClick={runExport}
+            disabled={exporting}
+            aria-busy={exporting}
+          >
+            {exporting ? 'Preparing…' : 'Export to Excel (CSV)'}
+          </button>
+        }
+      />
 
-      <div className="filters">
+      <div className="filters" role="group" aria-label="Filter the rounds">
         <div className="field">
-          <label htmlFor="c" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* .check is the panel's checkbox row: it carries the --tap floor, so the label
+              and the box together are a 44px target on a phone. The inline flex it
+              replaces was 8px of hard-coded gap and a target the height of the text. */}
+          <label className="check" htmlFor="c">
             <input
               id="c"
               type="checkbox"
@@ -180,7 +215,6 @@ export default function SessionsPage() {
                 reset();
                 setCompletedOnly(e.target.checked);
               }}
-              style={{ width: 'auto' }}
             />
             Completed only
           </label>
@@ -221,6 +255,9 @@ export default function SessionsPage() {
           <span className="hint">Both days included, counted in India (IST)</span>
         </div>
 
+        {/* Only rendered once a date is set, so the bar carries no dead control on a page
+            that has just been opened. It is quiet, not primary: undoing a filter is not
+            the thing this page is for. */}
         {(from || to) && (
           <button
             className="btn btn-quiet"
@@ -234,10 +271,6 @@ export default function SessionsPage() {
             Clear dates
           </button>
         )}
-
-        <button className="btn" type="button" onClick={runExport} disabled={exporting}>
-          {exporting ? 'Preparing…' : 'Export to Excel (CSV)'}
-        </button>
       </div>
 
       {/* role="status" so a screen reader hears the result of a press that produced no
@@ -248,11 +281,9 @@ export default function SessionsPage() {
 
       <AsyncBlock
         state={{ ...state, isEmpty: !state.loading && !state.error && !rows.length }}
-        empty={
-          from || to
-            ? 'No round was submitted in these dates. Try a wider range.'
-            : 'No learning session available yet.'
-        }
+        emptyIcon="◷"
+        emptyTitle={from || to || completedOnly ? 'No round matches these filters' : 'No round yet'}
+        empty={emptyMessage}
         onRetry={state.retry}
         skeleton={<TableSkeleton cols={columns.length} />}
       >

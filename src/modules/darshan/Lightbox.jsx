@@ -39,11 +39,20 @@ export default function Lightbox({ item, onClose }) {
     <div className={`lb${item ? ' on' : ''}`} onClick={onClose}>
       {item && (
         <>
+          {/*
+            `data-full-image` marks this as "an enlarged દ્રશ્ય, asked for at the full width".
+            scripts/verify-loading.mjs finds the enlarged image by that attribute rather than
+            by class name, so the same assertion covers this overlay and લેવલ ૨'s fullscreen
+            viewer alike. Nothing about the behaviour of this component changes.
+          */}
           <img
             key={`${item.id}-${attempt}`}
+            data-full-image=""
             src={item.fullUrl || item.url}
             alt={item.t}
             decoding="async"
+            /* Load-bearing: lh3 throttles per referrer — see driveImageUrl in shared/domain/drive.js. */
+            referrerPolicy="no-referrer"
             onError={onError}
           />
           <div className="lb-cap">

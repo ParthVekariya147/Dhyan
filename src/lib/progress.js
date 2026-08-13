@@ -186,13 +186,41 @@ export const scoreOf = (ticks, baseline = 0) => Math.max(ticks?.size ?? 0, count
  */
 export const earnsLevel4 = (level3Score, threshold) => level3Score >= threshold;
 
-/** One row per (યુવક, day) — the shape §12 insists on, and `progress`'s primary key. */
+/**
+ * One row per (યુવક, day) — the shape §12 insists on, and `progress`'s primary key.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * `level4_score` is deliberately NOT in this row (0026)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * It used to be, and it was a data-loss bug rather than a redundancy. An upsert with
+ * `Prefer: resolution=merge-duplicates` is an UPDATE of **every column in the payload**, and
+ * the લેવલ ૪ figure this module could supply is stale by construction:
+ *
+ *   * `day.l4` is the set of લેવલ ૪ ticks made in this tab, and nothing has called
+ *     `toggle(4, …)` since લેવલ ૪ became કસોટીઓ answered through `level4_submit`. It is
+ *     always empty.
+ *   * `baseline.l4` is read from `progress` once, when the hook mounts, and never re-read —
+ *     which is right for the floor it exists to be, and wrong as something to write back.
+ *
+ * So a tab opened at 09:00, kept open while લેવલ ૪ was sat in another tab at 10:00, and
+ * flushed at 10:05 sent `level4_score: 0` over the 40 the server had recorded. One tick of
+ * લેવલ ૩ cost a યુવક his whole લેવલ ૪ afternoon, silently, with no error anywhere.
+ *
+ * The column is the server's: `level4_submit()` counts it from the day's attempts. Omitting it
+ * here is the correction — PostgREST updates only the columns it is given, so the server's
+ * value is left exactly as it stands, while `level4_score`'s NOT NULL DEFAULT 0 still fills it
+ * on the INSERT that opens a new day. `progress_guard_level4_score()` (0026) enforces the same
+ * rule in the database, for the યુવક still running a bundle cached before this change.
+ *
+ * `score4` and `carried4` are unaffected: they are read from the baseline and still describe
+ * what the server holds.
+ */
 export function progressRows(uid, outbox, at = new Date().toISOString()) {
   return Object.entries(outbox).map(([date, s]) => ({
     user_id: uid,
     date,
     level3_score: s.l3,
-    level4_score: s.l4,
     // `progress.updated_at` defaults on insert only, so an upsert that lands as an UPDATE
     // would otherwise keep the timestamp of the first write of the day — and the
     // dashboard's "છેલ્લે ક્યારે" reads exactly this column (§11).

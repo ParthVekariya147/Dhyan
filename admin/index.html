@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#141a22">
+  <!-- viewport-fit=cover so env(safe-area-inset-*) resolves: the confirm dialog becomes a
+       bottom sheet on a phone and pads itself past the home indicator with it. Without
+       this the inset is always 0 and the sheet's buttons sit under the gesture bar. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Matches the topbar, which is what sits under the browser chrome. It was the old
+       dark slate; the panel is a light console now and a dark strip above a white header
+       reads as a rendering fault. -->
+  <meta name="theme-color" content="#ffffff">
   <!-- An operational panel must never be indexed, and must not leak referrers. -->
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="same-origin">
-  <title>Admin Panel — Varni Dhyan</title>
+  <title>Admin Panel - Varni Dhyan</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 </head>
 <body>

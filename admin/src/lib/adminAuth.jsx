@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from './supabase';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../../shared/supabase/client.js';
 import { can as roleCan, isReadOnly as roleIsReadOnly } from '../../../shared/domain/permissions.js';
+import { resetRedirectTo } from '../../../shared/domain/recovery-routes.js';
 import { dataError } from './errors';
 
 const Ctx = createContext(null);
@@ -166,10 +167,35 @@ export function AdminAuthProvider({ children }) {
         if (error) throw error;
       },
 
+      /**
+       * Mail a recovery link to a સંચાલક who cannot get in.
+       *
+       * The destination is /reset-password — the યુવક app's recovery screen — and NOT
+       * /admin/, which is what this used to send. That was not a cosmetic difference. Supabase
+       * opens a live recovery session the moment it verifies the link, so the old redirect
+       * landed a સંચાલક on the dashboard *already signed in*, with nothing on screen asking
+       * for a new password: the link was spent, the password was unchanged, and the only
+       * visible outcome was that he was mysteriously logged in. Every further attempt did the
+       * same thing, so an admin who had genuinely forgotten his password could never recover it.
+       *
+       * It points at the other app rather than at a screen of the panel's own because there is
+       * exactly one thing that screen may do, and src/pages/ResetPassword.jsx already does it
+       * correctly: open the form only for a recovery session, call updateUser() with a password
+       * and nothing else, then end the session so the new password is typed once before it is
+       * relied on. A second copy here would be a second place for that to be got wrong, in the
+       * one flow where getting it wrong means an arbitrary password update. Both apps are served
+       * from this origin (netlify.toml), so the same host serves both halves of the journey.
+       *
+       * He finishes on the યુવક લોગિન screen and opens /admin/ again from there — one extra
+       * navigation, in exchange for a reset that actually resets.
+       *
+       * Password storage is Supabase Auth's throughout. This function mails a link; it never
+       * sees, sets or transports a password, and no administrator sees another person's.
+       */
       resetPassword: async (email) => {
         const { error } = await supabase.auth.resetPasswordForEmail(
           String(email).trim().toLowerCase(),
-          { redirectTo: `${location.origin}/admin/` }
+          { redirectTo: resetRedirectTo(import.meta.env.VITE_SITE_URL || location.origin) }
         );
         if (error) throw error;
       },

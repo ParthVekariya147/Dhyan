@@ -4,7 +4,7 @@ import { useAsync } from '../../../lib/useAsync';
 import { listProgress, pendingHotspots } from '../../learning/services/learningService';
 import { REMEMBERED_THRESHOLD, rememberedAtLeast, subZoneRegularity } from '../services/reportService';
 import DataTable, { Pager } from '../../../components/DataTable';
-import { AsyncBlock, TableSkeleton } from '../../../components/StateBlocks';
+import { AsyncBlock, Empty, TableSkeleton } from '../../../components/StateBlocks';
 import { PageHeader } from '../../../components/StatCard';
 import { dateTimeGu, gu, percent } from '../../../lib/format';
 import { dataError } from '../../../lib/errors';
@@ -161,7 +161,7 @@ export default function ProgressPage() {
       label: 'User',
       render: (r) => (r.user ? <Link to={`/users/${r.uid}`}>{r.user.name}</Link> : <span className="mono">{r.uid.slice(0, 8)}…</span>),
     },
-    { key: 'smk', label: 'SMK', render: (r) => <span className="mono">{r.user?.smk || '—'}</span> },
+    { key: 'smk', label: 'SMK', render: (r) => <span className="mono">{r.user?.smk || '-'}</span> },
     { key: 'subZone', label: 'Subzone', render: (r) => subZoneNameEn(r.user?.subZoneId) },
     { key: 'stage', label: 'Stage', render: (r) => STAGE_LABEL[r.currentStage] || r.currentStage },
     { key: 'remembered', label: 'Remembered', align: 'right', render: (r) => <span className="mono">{r.remembered}</span> },
@@ -170,16 +170,27 @@ export default function ProgressPage() {
       key: 'pct',
       label: 'Completion',
       align: 'right',
-      render: (r) => (r.total ? percent(r.remembered, r.total) : '—'),
+      render: (r) => (r.total ? percent(r.remembered, r.total) : '-'),
     },
     { key: 'updatedAt', label: 'Last activity', render: (r) => dateTimeGu(r.updatedAt) },
   ];
+
+  // The empty message follows the filter rather than describing the organisation: with a
+  // stage chosen, "No user has started learning yet" would be a claim about 2,000 people
+  // made from a query that only looked at one stage of them.
+  const emptyMessage = stage
+    ? `No user is at ${STAGE_LABEL[stage] || stage} right now. Choose All to see everyone.`
+    : 'No user has started learning yet.';
 
   return (
     <>
       <PageHeader title="Progress" sub="Where each user has reached right now" />
 
-      <div className="filters">
+      {/* §28 — one filter bar above the list, pagination below it, and nothing between the
+          two but the rows. role="group" gives the bar a name of its own, so a screen reader
+          reaching it hears what these two selects govern rather than two loose combo
+          boxes. */}
+      <div className="filters" role="group" aria-label="Filter the progress list">
         <div className="field">
           <label htmlFor="st">Stage</label>
           <select
@@ -195,6 +206,7 @@ export default function ProgressPage() {
               <option key={s} value={s}>{STAGE_LABEL[s]}</option>
             ))}
           </select>
+          <span className="hint">Asked of the database - covers everyone, not just this page.</span>
         </div>
         <div className="field">
           <label htmlFor="sz">Subzone</label>
@@ -204,13 +216,19 @@ export default function ProgressPage() {
             <option value="varachha">Varachha</option>
             <option value="navsari">Navsari</option>
           </select>
-          <span className="hint">This filter applies only to the rows on this page — use Next to keep looking.</span>
+          {/* The two hints sit side by side on purpose: the difference between a WHERE
+              clause and a filter over the loaded page is the one thing about this bar a
+              સંચાલક has to know, and it is easier to read as a contrast than as a warning
+              buried under one control. */}
+          <span className="hint">Applies only to the rows on this page - use Next to keep looking.</span>
         </div>
       </div>
 
       <AsyncBlock
         state={{ ...state, isEmpty: !state.loading && !state.error && !pageRows.length }}
-        empty="No user has started learning yet."
+        emptyIcon="◔"
+        emptyTitle={stage ? 'Nobody is at this stage' : 'Nothing to show yet'}
+        empty={emptyMessage}
         onRetry={state.retry}
         skeleton={<TableSkeleton cols={columns.length} />}
       >
@@ -218,9 +236,16 @@ export default function ProgressPage() {
           {filteredOutWholePage ? (
             // Says exactly what happened — this page, not the organisation — and the Pager
             // below it stays on screen, so the next page is one click away.
-            <p className="card-note">
-              No user from {subZoneNameEn(subZone)} on this page. Try the next page, or choose All.
-            </p>
+            //
+            // <Empty> rather than a line of small print: this stands where the table was,
+            // and a footnote-sized sentence in the space a table just left reads as a
+            // rendering failure. Empty is the panel's shape for "nothing here, and here is
+            // what to do about it" (§35).
+            <Empty
+              icon="◔"
+              title={`Nobody from ${subZoneNameEn(subZone)} on this page`}
+              message="This page of results holds no user from that subzone. Try Next, or choose All."
+            />
           ) : (
             <DataTable caption="Progress" columns={columns} rows={rows} rowKey={(r) => r.id} />
           )}
@@ -239,8 +264,14 @@ export default function ProgressPage() {
         </>
       </AsyncBlock>
 
+      {/* §28 — the table above is the page; everything below it is a report that has to be
+          asked for. The rule says so before the first card, so the two halves are not read
+          as one long list of things that loaded. */}
+      <h2 className="section-title">Reports</h2>
+
       {/* role="status" so a screen reader hears the result of a press that produced no
-          visible change on the page itself — the file went to Downloads (§56). */}
+          visible change on the page itself — the file went to Downloads (§56). It sits
+          above both report cards because either of them can write a file. */}
       {exportNote && (
         <div className={`notice ${exportNote.tone}`} role="status">{exportNote.text}</div>
       )}
@@ -259,7 +290,7 @@ export default function ProgressPage() {
         <h2>{REMEMBERED_THRESHOLD}+ remembered · ૫૦+ યાદ રાખનારા</h2>
         <p className="card-note">
           Yuvaks who have remembered {gu(REMEMBERED_THRESHOLD)} darshan or more, most first.
-          Follows the subzone chosen above — and unlike the table, that filter covers
+          Follows the subzone chosen above - and unlike the table, that filter covers
           everyone, not just this page.
         </p>
 
@@ -270,7 +301,22 @@ export default function ProgressPage() {
         ) : (
           <AsyncBlock
             state={reportState(fifty, fiftyRows)}
-            empty={`No yuvak has reached ${REMEMBERED_THRESHOLD} yet${subZone ? ` in ${subZoneNameEn(subZone)}` : ''}. The list fills as they go.`}
+            emptyTitle="Nobody is on this list yet"
+            /*
+             * The empty state reports the scan, not just its verdict.
+             *
+             * "No yuvak has reached 50 yet" reads as a broken report to anyone who expects
+             * names, and it is the identical sentence when the scan saw nothing at all —
+             * an RLS read denial returns zero rows and no error. Naming the highest count
+             * found, and how many યુવકો were checked to find it, makes the three cases
+             * legible: nobody is close, somebody is nearly there, or nothing was read and
+             * the number to question is the zero.
+             */
+            empty={
+              (fifty.data?.scanned ?? 0) === 0
+                ? `No learning records were readable${subZone ? ` in ${subZoneNameEn(subZone)}` : ''}. Nothing has been submitted yet, or this account may not be permitted to read them.`
+                : `No yuvak has reached ${gu(REMEMBERED_THRESHOLD)} yet${subZone ? ` in ${subZoneNameEn(subZone)}` : ''}. The highest so far is ${gu(fifty.data?.best ?? 0)}, out of ${gu(fifty.data?.scanned ?? 0)} yuvaks checked. The list fills as they go.`
+            }
             onRetry={fifty.retry}
             skeleton={<TableSkeleton cols={6} />}
           >
@@ -283,10 +329,10 @@ export default function ProgressPage() {
                     label: 'User',
                     render: (r) => <Link to={`/users/${r.uid}`}>{r.name || r.uid.slice(0, 8)}</Link>,
                   },
-                  { key: 'smk', label: 'SMK', render: (r) => <span className="mono">{r.smk || '—'}</span> },
+                  { key: 'smk', label: 'SMK', render: (r) => <span className="mono">{r.smk || '-'}</span> },
                   { key: 'subZone', label: 'Subzone', render: (r) => subZoneNameEn(r.subZoneId) },
                   { key: 'remembered', label: 'Remembered', align: 'right', render: (r) => <span className="mono">{r.remembered}</span> },
-                  { key: 'total', label: 'Out of', align: 'right', render: (r) => <span className="mono">{r.total || '—'}</span> },
+                  { key: 'total', label: 'Out of', align: 'right', render: (r) => <span className="mono">{r.total || '-'}</span> },
                   { key: 'stage', label: 'Stage', render: (r) => STAGE_LABEL[r.currentStage] || r.currentStage },
                   { key: 'updatedAt', label: 'Last activity', render: (r) => dateTimeGu(r.updatedAt) },
                 ]}
@@ -299,11 +345,15 @@ export default function ProgressPage() {
               <p className="card-note">
                 {gu(fiftyRows.length)} of {gu(fifty.data?.scanned ?? 0)} yuvaks checked.
                 {fifty.data?.truncated
-                  ? ` Only the first ${fifty.data.cap} were read — choose one subzone for a complete list.`
+                  ? ` Only the first ${fifty.data.cap} were read - choose one subzone for a complete list.`
                   : ''}
               </p>
 
-              <div className="filters">
+              {/* .toolbar, not .filters: this row acts on the list rather than narrowing
+                  it, and .filters would stretch the hint into a 220px column beside the
+                  button. The hint stays *next to* the button that writes the file, because
+                  what the file leaves out is worth reading before it is written (§13). */}
+              <div className="toolbar">
                 <button
                   className="btn"
                   type="button"
@@ -318,7 +368,7 @@ export default function ProgressPage() {
                 >
                   Export to Excel (CSV)
                 </button>
-                <span className="hint">Names and progress only — no mobile numbers (§13)</span>
+                <span className="hint grow">Names and progress only - no mobile numbers (§13)</span>
               </div>
             </>
           </AsyncBlock>
@@ -336,11 +386,11 @@ export default function ProgressPage() {
         <h2>Subzone comparison · મંડળ</h2>
         <p className="card-note">
           How many yuvaks of each subzone submitted at least one round between these dates,
-          out of everyone registered there. It compares how regularly a મંડળ comes — not how
+          out of everyone registered there. It compares how regularly a મંડળ comes - not how
           well anyone scored.
         </p>
 
-        <div className="filters">
+        <div className="filters" role="group" aria-label="Date range for the subzone comparison">
           <div className="field">
             <label htmlFor="cf">From</label>
             <input id="cf" type="date" value={cFrom} max={cTo || undefined} onChange={(e) => setCFrom(e.target.value)} />
@@ -350,6 +400,9 @@ export default function ProgressPage() {
             <input id="ct" type="date" value={cTo} min={cFrom || undefined} onChange={(e) => setCTo(e.target.value)} />
             <span className="hint">Both days included, counted in India (IST)</span>
           </div>
+          {/* The button leaves the bar once the report is on screen: from then on the two
+              dates re-run it on their own, and a button that no longer does anything new
+              is one more thing to read past. */}
           {!showCompare && (
             <button className="btn" type="button" onClick={() => setShowCompare(true)}>
               Compare subzones
@@ -360,6 +413,7 @@ export default function ProgressPage() {
         {showCompare && (
           <AsyncBlock
             state={reportState(compare, compareRows)}
+            emptyTitle="Nothing to compare"
             empty="No subzone is set up yet."
             onRetry={compare.retry}
             skeleton={<TableSkeleton cols={5} />}
@@ -378,7 +432,14 @@ export default function ProgressPage() {
                     // identity against the sorted list rather than by an index it does not
                     // pass.
                     render: (r) => (
-                      <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          gap: 'var(--sp-2)',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                        }}
+                      >
                         {subZoneNameEn(r.subZoneId)}
                         {r.submitters > 0 && r.id === compareRows[0]?.id && (
                           <span className="pill pill-ok">Most regular</span>
@@ -399,13 +460,13 @@ export default function ProgressPage() {
 
               <p className="card-note">
                 Based on {gu(compare.data?.scanned ?? 0)} rounds submitted in this range.
-                {compare.data?.truncated ? ` Only the first ${compare.data.cap} were read — choose a shorter range.` : ''}
+                {compare.data?.truncated ? ` Only the first ${compare.data.cap} were read - choose a shorter range.` : ''}
                 {compare.data?.unknownRounds
                   ? ` ${compare.data.unknownRounds} round(s) belong to a subzone this panel does not know and are not counted above.`
                   : ''}
               </p>
 
-              <div className="filters">
+              <div className="toolbar">
                 <button
                   className="btn"
                   type="button"
@@ -420,7 +481,7 @@ export default function ProgressPage() {
                 >
                   Export to Excel (CSV)
                 </button>
-                <span className="hint">Totals only — no yuvak is named in this file</span>
+                <span className="hint grow">Totals only - no yuvak is named in this file</span>
               </div>
             </>
           </AsyncBlock>
@@ -447,8 +508,8 @@ export default function ProgressPage() {
         <h2>Day-by-day scores</h2>
         <p>
           There is no daily score report yet, because no daily score is being saved yet.
-          Levels 3 and 4 — the ticks that produce a day's score, and the midnight reset that
-          files it into history — are still to be built.
+          Levels 3 and 4 - the ticks that produce a day's score, and the midnight reset that
+          files it into history - are still to be built.
         </p>
         <p className="card-note">
           Until then, the date ranges in this panel report what is genuinely recorded: when a
@@ -468,8 +529,18 @@ export default function ProgressPage() {
       */}
       <div className="card">
         <h2>Hardest Darshan</h2>
+        {/* The caveat is said before the numbers as well as after them. What follows is a
+            sample of recent rounds, not an organisation-wide fact, and a reader who takes
+            the top row to a meeting must have met that sentence before he met the row —
+            the exact sample size is stated under the table, where the figure it qualifies
+            actually is. */}
+        <p className="card-note">
+          Which દર્શન are most often still remaining, measured from a sample of the most
+          recent rounds - not from every round ever submitted.
+        </p>
         <AsyncBlock
           state={{ ...hot, isEmpty: !hot.loading && !hot.error && !hot.data?.rows?.length }}
+          emptyTitle="Nothing to compare yet"
           empty="No round has been submitted yet, so there is nothing to compare."
           onRetry={hot.retry}
           skeleton={<TableSkeleton cols={4} />}
@@ -481,16 +552,20 @@ export default function ProgressPage() {
             <DataTable
               caption="Hardest Darshan"
               columns={[
-                { key: 'id', label: 'Darshan', render: (r) => <Link to={`/darshan/${r.id}`}>{r.id}</Link> },
-                { key: 'rememberedPct', label: 'Remembered', align: 'right', render: (r) => `${r.rememberedPct}%` },
-                { key: 'missed', label: 'Remaining', align: 'right', render: (r) => <span className="mono">{r.missed}</span> },
-                { key: 'seen', label: 'Total sessions', align: 'right', render: (r) => <span className="mono">{r.seen}</span> },
+                // Every label is written to survive on its own, because below 900px the
+                // row becomes a card and each label is read next to one value with no
+                // header row above it to give it context. "Rounds in sample" says what
+                // the last column counts; "Total sessions" read like an org-wide figure.
+                { key: 'id', label: 'Darshan', render: (r) => <Link className="mono" to={`/darshan/${r.id}`}>{r.id}</Link> },
+                { key: 'rememberedPct', label: 'Remembered %', align: 'right', render: (r) => <span className="mono">{r.rememberedPct}%</span> },
+                { key: 'missed', label: 'Still remaining', align: 'right', render: (r) => <span className="mono">{r.missed}</span> },
+                { key: 'seen', label: 'Rounds in sample', align: 'right', render: (r) => <span className="mono">{r.seen}</span> },
               ]}
               rows={hot.data?.rows?.slice(0, 10) || []}
               rowKey={(r) => r.id}
             />
             <p className="card-note">
-              Based on a sample of the last {gu(hot.data?.sample ?? 0)} sessions. No user's name appears here — the totals are enough.
+              Based on a sample of the last {gu(hot.data?.sample ?? 0)} sessions. No user's name appears here - the totals are enough.
             </p>
           </>
         </AsyncBlock>

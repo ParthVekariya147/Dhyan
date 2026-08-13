@@ -6,6 +6,7 @@ import {
   searchScenes,
   summarise,
 } from '../../../../../shared/domain/level4-selection.js';
+import { Empty } from '../../../components/StateBlocks';
 import { gu } from '../../../lib/format';
 
 /**
@@ -25,6 +26,15 @@ import { gu } from '../../../lib/format';
  * are shown, and searchable, and they select nothing. The two diverge the moment one Darshan
  * is withheld, and a picker that quietly used the sheet's numbering would hand the સંચાલક a
  * range that reads right and selects the wrong pictures.
+ *
+ * **Why the count and the two whole-list buttons sit in their own sticky bar.** This is the
+ * densest control in the panel and it is used on a phone: the list is as long as the
+ * collection, so a Select All that lived above it would be a screenful away from the row
+ * being ticked, and the count that tells him whether the sub-level is finished would be
+ * off-screen the entire time he is filling it. They belong to the list, so they travel with
+ * it. They are also the same two buttons in both modes now — which of them is offered used
+ * to depend on whether Range or Individual was showing, and that is a tool choice, not a
+ * scope choice.
  *
  * Every rule about what the selection *means* — duplicates across sub-levels, gaps, unknown
  * ids, ordering, what counts as a match — belongs to shared/domain/level4-selection.js. This
@@ -88,19 +98,25 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
     apply(value.filter((id) => !drop.has(id)));
   };
 
+  /** How many of the rows currently on screen are already in this sub-level. */
+  const shownPicked = useMemo(() => shown.reduce((n, s) => n + (selected.has(s.id) ? 1 : 0), 0), [shown, selected]);
+
   return (
     <>
+      {/* Three readings of the same selection, because "how many" is only one of the
+          questions a સંચાલક has about it — whether it is a clean block, and where it starts
+          and ends, are the other two, and they are what a bad range looks wrong in. */}
       <div className="l4-summary">
         <div>
           <strong>{gu(summary.count)} of {gu(numbered)}</strong>
           <span>Darshan selected</span>
         </div>
         <div>
-          <strong>{summary.count ? `${gu(summary.fromIndex)} – ${gu(summary.toIndex)}` : '—'}</strong>
+          <strong>{summary.count ? `${gu(summary.fromIndex)} – ${gu(summary.toIndex)}` : '-'}</strong>
           <span>Numbered as users see them</span>
         </div>
         <div>
-          <strong>{summary.count ? (summary.contiguous ? 'Unbroken' : 'Has gaps') : '—'}</strong>
+          <strong>{summary.count ? (summary.contiguous ? 'Unbroken' : 'Has gaps') : '-'}</strong>
           <span>Run of numbers</span>
         </div>
       </div>
@@ -119,11 +135,11 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
           <div className="l4-tools">
             <div className="field">
               <label htmlFor="l4-from">From</label>
-              <input id="l4-from" type="number" min="1" max={numbered || undefined} value={from} onChange={(e) => setFrom(e.target.value)} disabled={disabled} />
+              <input id="l4-from" type="number" min="1" max={numbered || undefined} value={from} onChange={(e) => setFrom(e.target.value)} disabled={disabled} aria-describedby="l4-range-help" />
             </div>
             <div className="field">
               <label htmlFor="l4-to">To</label>
-              <input id="l4-to" type="number" min="1" max={numbered || undefined} value={to} onChange={(e) => setTo(e.target.value)} disabled={disabled} />
+              <input id="l4-to" type="number" min="1" max={numbered || undefined} value={to} onChange={(e) => setTo(e.target.value)} disabled={disabled} aria-describedby="l4-range-help" />
             </div>
             <button className="btn" type="button" onClick={addRange} disabled={disabled || !from || !to}>
               Add Range
@@ -132,42 +148,35 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
               Remove Range
             </button>
           </div>
-          <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
+          {/* Helper text for both boxes, not a caption on one of them: the pair is a single
+              instruction, and the thing worth saying is which of the two numberings it is
+              counted in (§31). */}
+          <p className="hint l4-help" id="l4-range-help">
             {gu(1)} – {gu(numbered)}, counted the way users count them. The grey number on each
             row is the one printed on the artwork; it is there to find a Darshan by, not to
             select by.
           </p>
         </>
       ) : (
-        <div className="l4-tools">
-          <div className="field grow">
-            <label htmlFor="l4-q">Search</label>
-            <input
-              id="l4-q"
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Number, sheet number, or description…"
-            />
+        <>
+          <div className="l4-tools">
+            <div className="field grow">
+              <label htmlFor="l4-q">Search</label>
+              <input
+                id="l4-q"
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Number, sheet number, or description…"
+                aria-describedby="l4-q-help"
+              />
+            </div>
           </div>
-          {/* Select All acts on what is on screen, never on the whole collection. A button
-              whose effect depends on a filter you can see is predictable; one that quietly
-              reaches past it is not. */}
-          <button
-            className="btn btn-quiet"
-            type="button"
-            disabled={disabled || !shown.length}
-            onClick={() => {
-              const have = new Set(value);
-              apply([...value, ...shown.map((s) => s.id).filter((id) => !have.has(id))]);
-            }}
-          >
-            Select All Shown
-          </button>
-          <button className="btn btn-quiet" type="button" disabled={disabled || !value.length} onClick={() => apply([])}>
-            Clear All
-          </button>
-        </div>
+          <p className="hint l4-help" id="l4-q-help">
+            Matches the number users see, the number printed on the artwork, or any word in
+            the description.
+          </p>
+        </>
       )}
 
       <div className="l4-tools">
@@ -178,20 +187,76 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
             <option value="all">All Darshan</option>
           </select>
         </div>
-        <button
-          className="btn btn-quiet"
-          type="button"
-          disabled={disabled || value.length < 2}
-          onClick={() => apply(orderSceneIds(value, collection))}
-          title="Put the selected Darshan back into the order users meet them in"
-        >
-          Sort into order
-        </button>
-        <span className="hint" style={{ paddingBottom: 9 }}>
+        <span className="hint">
           Showing {gu(shown.length)} of {gu(collection.length)}
         </span>
       </div>
 
+      {/* The three whole-list actions and the count, pinned to the top of the list they act
+          on. Select All still means *what is on screen* and never the whole collection: a
+          button whose effect depends on a filter you can see is predictable; one that
+          quietly reaches past it is not — which is why the count beside it names both
+          numbers. */}
+      <div className={`l4-selbar ${summary.count ? 'is-picked' : ''}`}>
+        <span className="l4-selbar-count" aria-live="polite">
+          <strong>{gu(summary.count)}</strong> selected · {gu(shownPicked)} of {gu(shown.length)} shown
+        </span>
+        <div className="l4-selbar-btns">
+          <button
+            className="btn btn-quiet"
+            type="button"
+            disabled={disabled || !shown.length}
+            onClick={() => {
+              const have = new Set(value);
+              apply([...value, ...shown.map((s) => s.id).filter((id) => !have.has(id))]);
+            }}
+          >
+            Select all shown
+          </button>
+          <button
+            className="btn btn-quiet"
+            type="button"
+            disabled={disabled || value.length < 2}
+            onClick={() => apply(orderSceneIds(value, collection))}
+            title="Put the selected Darshan back into the order users meet them in"
+          >
+            Sort into order
+          </button>
+          <button className="btn btn-quiet" type="button" disabled={disabled || !value.length} onClick={() => apply([])}>
+            Clear all
+          </button>
+        </div>
+      </div>
+
+      {/* §35 — an empty result is an offer, not a blank box, and it replaces the list rather
+          than sitting inside it: an empty state framed by the list's own border reads as a
+          row that failed to render. Which offer is made depends on which of the two filters
+          emptied it, because "clear the search" is useless advice to someone who never
+          typed one. */}
+      {!shown.length ? (
+        <Empty
+          icon="🔍"
+          title={q.trim() ? 'Nothing matches this search' : 'Nothing to show'}
+          message={
+            q.trim()
+              ? 'No Darshan matches that number or description.'
+              : onlyAvailable
+                ? 'No Darshan in the collection is ready to learn yet - each one needs a picture and a description.'
+                : 'The collection is empty.'
+          }
+          action={
+            q.trim() ? (
+              <button className="btn btn-quiet" type="button" onClick={() => setQ('')}>
+                Clear the search
+              </button>
+            ) : onlyAvailable ? (
+              <button className="btn btn-quiet" type="button" onClick={() => setOnlyAvailable(false)}>
+                Show all Darshan
+              </button>
+            ) : null
+          }
+        />
+      ) : (
       <div className="l4-list">
         {shown.map((row) => {
           const taken = takenBy?.get(row.id);
@@ -201,16 +266,38 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
           // `47` finds both the forty-seventh Darshan and the one printed 47, and after a
           // single withholding those are two different pictures.
           const why = q.trim() ? matchKind(row, q.trim()) : '';
+          const pick = selected.has(row.id);
           return (
-            <label className="l4-row" key={row.id}>
+            <label className={`l4-row ${pick ? 'is-picked' : ''}`} key={row.id}>
               <input
                 type="checkbox"
-                checked={selected.has(row.id)}
+                checked={pick}
                 onChange={() => toggle(row.id)}
                 disabled={disabled}
               />
-              <span className="l4-row-n" title={display === null ? 'Withheld — users never reach it, so it has no number' : 'The number users see'}>
-                {display === null ? '—' : gu(display)}
+              {/*
+                `loading="lazy"` and `decoding="async"` so a collection of any size costs one
+                screenful of requests, and `alt=""` because the row's own text already names
+                the દ્રશ્ય — a second announcement of the same thing is noise to a screen
+                reader. The box is sized by aspect-ratio in CSS, so it holds its place before
+                the bytes land and the list does not reflow under a scrolling thumb.
+              */}
+              {row.thumbUrl || row.imageUrl ? (
+                <img
+                  className="l4-row-thumb"
+                  src={row.thumbUrl || row.imageUrl}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  /* Load-bearing: lh3 throttles per referrer — see driveImageUrl in shared/domain/drive.js. */
+                  referrerPolicy="no-referrer"
+                  alt=""
+                />
+              ) : (
+                <span className="l4-row-thumb is-empty" aria-hidden="true">-</span>
+              )}
+              <span className="l4-row-n" title={display === null ? 'Withheld - users never reach it, so it has no number' : 'The number users see'}>
+                {display === null ? '-' : gu(display)}
               </span>
               <span className="l4-row-src" title="The number printed on the artwork">
                 {Number.isInteger(source) ? `#${gu(source)}` : ''}
@@ -223,8 +310,8 @@ export default function SceneSelector({ collection, value, onChange, takenBy, wi
             </label>
           );
         })}
-        {!shown.length && <p className="hint" style={{ padding: 14 }}>Nothing matches this search.</p>}
       </div>
+      )}
     </>
   );
 }

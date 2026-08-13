@@ -43,7 +43,7 @@
  */
 const xlsxFail = (why) =>
   new Error(
-    `cannot read this .xlsx (${why}) — open it in Excel and "Save As → CSV UTF-8", then upload that file instead`
+    `cannot read this .xlsx (${why}) - open it in Excel and "Save As → CSV UTF-8", then upload that file instead`
   );
 
 /** One decoder, reused. Every part of an .xlsx is UTF-8 XML, and so are the ZIP names. */
@@ -64,7 +64,7 @@ function bytesOf(input) {
   if (input instanceof Uint8Array) return input;
   if (input instanceof ArrayBuffer) return new Uint8Array(input);
   if (ArrayBuffer.isView(input)) return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
-  throw xlsxFail('that was not file data — expected an ArrayBuffer from File.arrayBuffer()');
+  throw xlsxFail('that was not file data - expected an ArrayBuffer from File.arrayBuffer()');
 }
 
 /**
@@ -75,11 +75,11 @@ function bytesOf(input) {
  * every path end at `xlsxFail`, which tells him what to do instead.
  */
 const u16 = (view, at) => {
-  if (at + 2 > view.byteLength) throw xlsxFail('the file ends mid-record — it is truncated');
+  if (at + 2 > view.byteLength) throw xlsxFail('the file ends mid-record - it is truncated');
   return view.getUint16(at, true);
 };
 const u32 = (view, at) => {
-  if (at + 4 > view.byteLength) throw xlsxFail('the file ends mid-record — it is truncated');
+  if (at + 4 > view.byteLength) throw xlsxFail('the file ends mid-record - it is truncated');
   return view.getUint32(at, true);
 };
 
@@ -144,7 +144,7 @@ function zipIndex(bytes) {
  */
 async function inflateRaw(bytes, name) {
   if (typeof DecompressionStream !== 'function') {
-    throw xlsxFail('this browser cannot unzip files — it has no DecompressionStream');
+    throw xlsxFail('this browser cannot unzip files - it has no DecompressionStream');
   }
 
   const stream = new DecompressionStream('deflate-raw');
@@ -255,7 +255,7 @@ export async function readXlsx(arrayBuffer) {
   const zip = zipIndex(bytes);
 
   const workbook = await zipRead(bytes, zip, 'xl/workbook.xml');
-  if (!workbook) throw xlsxFail('no xl/workbook.xml — is this really an Excel file?');
+  if (!workbook) throw xlsxFail('no xl/workbook.xml - is this really an Excel file?');
 
   const first = workbook.match(/<sheet\b[^>]*\/?>/);
   if (!first) throw xlsxFail('the workbook declares no sheets');

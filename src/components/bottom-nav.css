@@ -1,0 +1,270 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   THE BOTTOM BAR — five cells, 320px, one thumb
+   ────────────────────────────────────────────────────────────────────────────
+
+   Co-located with the component and imported by it, the way dhun.css and gallery.css are.
+
+   Every number below is measured against 320px, which is the width tokens.css designs to
+   and the width §21's acceptance run decides on: the iPhone SE and every cheap Android in
+   portrait. At 320px a bar of five cells gives each of them 64px, which is a tap target
+   above the published 44px floor with room for a 24px picture and one short Gujarati word
+   underneath. Six cells would be 53px, under the floor with the label already clipped —
+   which is why MOBILE_NAV_MAX is 5 in shared/domain/navigation.js and why this file can
+   assume it.
+
+   Nothing here invents a colour. The palette is index.css's @theme — --color-gold,
+   --color-gold-soft, --color-panel, --color-ink, --color-muted — and the sizes are
+   tokens.css's scale. A bar that picked its own gold would be a second design system
+   standing at the bottom of every page in the app. */
+
+:root {
+  /* ────────────────────────────────────────────────────────────────────────
+     --bnav-h — the bar's height INCLUDING the safe-area inset
+     ────────────────────────────────────────────────────────────────────────
+
+     The one number, written once. The bar reads it to size itself and the shell reads it
+     to reserve room; if the two were spelled out separately then every change to the bar's
+     height would have to be made twice, and the visit where somebody made it once is a
+     visit where the last thing on the page sits permanently under the last row of buttons.
+
+     58px of bar. That is above the 56px floor a bar of stacked icon-and-label cells needs
+     — 24px picture, 4px gap, one line of 12.5px Gujarati at --lh-tight (~19px), and 5px of
+     padding top and bottom — and it keeps each cell's tappable area at 58 x 64px on the
+     narrowest phone, comfortably past 44 in both dimensions.
+
+     `env(safe-area-inset-bottom)` is added rather than accounted for inside the 58: on an
+     iPhone in standalone mode the home indicator occupies the bottom ~34px of the screen,
+     and a bar that ended at the physical edge would put its labels under it. Folding the
+     inset into the height means the buttons stay 58px tall and the bar simply grows a
+     cushion beneath them — and on every device without an inset the `0px` fallback makes
+     this exactly 58px. index.html carries `viewport-fit=cover`, without which `env()`
+     resolves to zero on iOS and this whole line silently does nothing. */
+  --bnav-h: calc(58px + env(safe-area-inset-bottom, 0px));
+
+  /* The bar's own label size. Named here rather than written into the rule below because
+     the 12px floor it is chosen against is a rule about the whole app, not about this file:
+     tokens.css's header explains that Gujarati loses its matras at a size where Latin is
+     still legible, and verify-mobile.mjs fails any text under 12px anywhere. --fs-helper
+     (12.5px) is the smallest size the app already has a name for, and this is it. */
+  --bnav-label: var(--fs-helper);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   MOBILE ONLY — and by a media query, never by JavaScript
+   ────────────────────────────────────────────────────────────────────────────
+
+   The bar is `display: none` by default and switched on below the breakpoint, rather than
+   the other way round, so that a build with no CSS applied yet cannot flash a bar across
+   the middle of a desktop page.
+
+   A JS width check was the alternative and is wrong three ways: it is stale on rotation
+   until a resize handler fires, it re-renders the tree for something that is purely
+   presentational, and it has to guess a width before layout on the first paint. A media
+   query is evaluated by the engine before the first frame is painted and re-evaluated by
+   it on rotate, for free.
+
+   768px is the breakpoint: above it the screen is a tablet in landscape or a desktop, both
+   of which have room for navigation that is not a strip along the bottom edge. On those
+   screens the bar is simply not drawn, and the pages navigate exactly as they do today —
+   the મુખપૃષ્ઠ's tiles, the links inside each level. That is not an omission: this app has
+   no desktop sidebar, and the brief's rule that mobile visibility must not be applied to
+   one is satisfied by there being nothing to apply it to. The day a desktop surface is
+   wanted it belongs in the same settings row under a `desktopSidebar` key, resolved by a
+   function of its own that shares NAV_REGISTRY and nothing else — which is precisely why
+   the key this bar reads is called `mobileBottom` and not `nav`. */
+.bnav {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .bnav {
+    position: fixed;
+    /* Pinned to all three edges rather than given a width, so nothing about the bar can
+       be one pixel wider than the viewport — the failure verify-mobile.mjs measures every
+       element for. */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+
+    display: flex;
+    align-items: stretch;
+    height: var(--bnav-h);
+    /* The inset again, as padding this time: the height above reserves the room and this
+       is what keeps the buttons out of it. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+
+    background: var(--color-panel);
+    /* A hairline rather than a shadow. The page behind is near-black and a drop shadow on
+       #100d0a is invisible; a 1px gold line at low alpha is the only thing that separates
+       the bar from the content scrolling under it. */
+    border-top: 1px solid rgba(240, 199, 120, 0.22);
+    /* The page's own background is a radial gradient, so a translucent bar would show the
+       content sliding underneath the labels. Opaque, with the panel colour every card in
+       the app already uses. */
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.45);
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+     The content above must never sit behind the bar
+     ────────────────────────────────────────────────────────────────────────
+
+     Inside this media query, with the same custom property the bar is sized from, so the
+     reserved room and the thing it is reserved for cannot disagree — and so that a desktop,
+     where the bar is not drawn, does not carry 58px of empty space at the foot of every
+     page.
+
+     On the shell's own element rather than on `body`, because `body` also carries the
+     fixed-position chrome (#bar, #top, the ધૂન control) and padding on it would move
+     nothing that is positioned. */
+  .app-shell-content {
+    padding-bottom: var(--bnav-h);
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+     One cell
+     ────────────────────────────────────────────────────────────────────────
+
+     `flex: 1` with `min-width: 0` is the whole layout. Equal cells whatever the count, and
+     — this is the part that matters — cells that are allowed to be NARROWER than their own
+     text. A flex child defaults to `min-width: auto`, which refuses to shrink below its
+     content, so one long Gujarati label would widen the bar past the screen and take the
+     whole page sideways with it. tokens.css's header makes this exact point; here it is
+     the difference between a truncated word and a horizontally scrolling app. */
+  .bnav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    /* The positioning context for the active indicator below, and nothing else — the
+       cell's own layout is the flex column. */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+    text-decoration: none;
+    color: var(--color-muted);
+    /* The tap flash that Android draws is a grey rectangle over a gold-on-black bar. The
+       :active rule below replaces it with something that belongs to this design. */
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s ease;
+  }
+
+  .bnav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Fixed, so the label sits on the same baseline in every cell no matter which drawing
+       is above it — an icon whose outline happens to be a pixel shorter must not lift its
+       own word. */
+    height: 24px;
+  }
+  .bnav-icon svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+     The label TRUNCATES. It never wraps.
+     ────────────────────────────────────────────────────────────────────────
+
+     This is the rule shared/domain/navigation.js's NAV_LABEL_MAX note points at, and it is
+     worth stating twice: a bar whose height depends on the સંચાલક's wording is a bar that
+     moves the page under a thumb. Let one label wrap to two lines and every cell grows,
+     the bar grows, --bnav-h no longer describes it, and the content the shell reserved room
+     for is covered by the extra line — all because somebody typed one word too long in a
+     panel on a different continent. Twelve characters is refused at Save; anything that
+     still does not fit is cut here with an ellipsis, on one line, at a height this file
+     decides. */
+  .bnav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--bnav-label);
+    line-height: var(--lh-tight);
+    letter-spacing: normal;
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+     Where you are — said three ways, because colour alone is not one of them
+     ────────────────────────────────────────────────────────────────────────
+
+     §43: an active state carried by colour alone is invisible to a red-green colour
+     deficiency and very nearly invisible to anybody holding a phone in the sun. So the
+     active cell is brighter, its word is bolder, and a 2px gold indicator sits along the
+     top edge of the cell — a difference in position and weight that survives both.
+
+     The indicator is drawn on the cell rather than as a separate element so there is
+     nothing in the markup that exists only to be coloured in. */
+  .bnav-item.is-active {
+    color: var(--color-gold-soft);
+  }
+  .bnav-item.is-active .bnav-label {
+    font-weight: 700;
+  }
+  .bnav-item.is-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    /* Centred with a negative margin rather than a transform: this is a static 26px bar,
+       and a transform on it would be one more thing for a reduced-motion or a
+       GPU-compositing quirk to have an opinion about. `left: 50%` plus half the width is
+       arithmetic the engine does at layout time. */
+    left: 50%;
+    margin-left: -13px;
+    width: 26px;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: var(--color-gold);
+  }
+
+  /* Pressed. A fill rather than a transform: the cells are pinned to the bottom edge and
+     a scaling button at the edge of the screen reads as the page moving. */
+  .bnav-item:active {
+    background: rgba(240, 199, 120, 0.08);
+  }
+
+  /* Keyboard focus, visible on its own terms — the same outline every control in
+     forms.css takes, inset so it is not clipped by the bar's own edge. */
+  .bnav-item:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: -3px;
+    color: var(--color-gold-soft);
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+     The two round buttons that were already living in this corner
+     ────────────────────────────────────────────────────────────────────────
+
+     The ધૂન control (src/components/dhun.css) is fixed at bottom-left and the back-to-top
+     button (#top, index.css) at bottom-right, both 18px above the bottom edge — which is
+     now inside the bar. Both sit at a higher z-index than this bar does and would be drawn
+     on top of the first and last cells: a gold disc over the મુખપૃષ્ઠ button, one mis-tap
+     away from stopping the dhun when he meant to go home.
+
+     Lifted from here rather than in their own files, because the bar is what created the
+     constraint: on a desktop, and on any page outside the shell, they belong exactly where
+     they are and this rule must not reach them. `:has()` is what expresses that — the
+     offset applies only while a bar is actually on the page, which is what "outside the
+     shell" means, and it needs no class on <body> that some future route could forget to
+     set. On an engine without `:has()` the selector simply never matches and the two
+     buttons sit where they have always sat, which is today's behaviour rather than a new
+     failure. */
+  body:has(.bnav) .dhun,
+  body:has(.bnav) #top {
+    bottom: calc(18px + var(--bnav-h));
+  }
+}
+
+/* §1's reduced-motion contract, restated locally rather than relied upon.
+   index.css already kills every transition globally under this query; this is here so that
+   the rule survives a future narrowing of that blanket `!important`, and so a reader of
+   this file can see that the bar's only animation is accounted for. */
+@media (prefers-reduced-motion: reduce) {
+  .bnav-item {
+    transition: none;
+  }
+}

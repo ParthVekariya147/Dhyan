@@ -52,23 +52,16 @@ export const ENTRY_ROUTE = {
   HOME: '/',
 };
 
-/**
- * Where a returning યુવક may be put back down.
- *
- * Front doors only. A યુવક who closed the app inside a લેવલ ૪ કસોટી is NOT dropped back
- * into that કસોટી on his next login: an attempt is a thing he sits down to on purpose
- * (and, since 0016, one he may only have once), and resuming him into it would be the app
- * making that decision for him. The level's own list is as deep as a resume goes.
- *
- * /welcome is in the set because a યુવક who has passed the gate can legitimately be
- * re-watching the વિડિયો — the questions are asked once, the વિડિયો is not.
- */
-export const RESUMABLE_ROUTES = new Set([
-  ENTRY_ROUTE.LEVEL1,
-  '/darshan',
-  '/level/3',
-  '/level/4',
-]);
+/*
+  RESUMABLE_ROUTES lived here — the set of front doors a returning યુવક could be put back
+  down at, read from localStorage on his next sign-in (§7, §25).
+
+  The whole mechanism is gone, not just disconnected: signing in lands on the મુખપૃષ્ઠ, so
+  nothing was left that read the recorded route, and src/lib/entryRoute.js's readLastRoute /
+  writeLastRoute and App.jsx's <RouteMemory> went with it. Nothing else in the app consumed
+  the set. Worth knowing if the resume is ever wanted back — it was four routes and one
+  localStorage key, and RouteMemory was the only writer.
+*/
 
 /**
  * The routes a યુવક may reach without a session. Everything else is protected (§11).
@@ -120,30 +113,40 @@ export function resolveEntryState({ user, profile, profileError = false } = {}) 
  * been here before: he asked for a protected page by its URL (so he knows it exists), or
  * he asked for /login himself.
  *
- * `lastRoute` is the resume of §7/§25. It is a front door he actually stood at, recorded
- * on this device; anything unrecognised falls back to the મુખપૃષ્ઠ, so a stale or hand-
- * edited value can never send him somewhere that does not exist.
+ * There is no `lastRoute` any more, and its absence is the point.
+ *
+ * This used to be the resume of §7/§25: the last front door he stood at was recorded on the
+ * device and handed back to him on his next sign-in. Two things retired it. The first is
+ * simply what was asked for — signing in should land on the મુખપૃષ્ઠ, every time, and a
+ * resume is by definition the thing that stops that happening. The second is what made the
+ * old behaviour hard to even recognise as a feature: /welcome was a resumable route, so a
+ * યુવક who had once opened the વિડિયો was returned to it at every login from then on, and
+ * from the outside that is indistinguishable from the app ignoring where he asked to go.
+ *
+ * Two states, two answers, nothing remembered: signed out he gets a door (§4), signed in he
+ * gets the મુખપૃષ્ઠ and picks for himself.
  */
 export function resolveEntryRoute({
   user,
   profile,
   profileError = false,
-  lastRoute = null,
   returning = false,
 } = {}) {
   const state = resolveEntryState({ user, profile, profileError });
 
-  switch (state) {
-    case ENTRY_STATE.UNAUTHENTICATED:
-      return returning ? ENTRY_ROUTE.LOGIN : ENTRY_ROUTE.REGISTER;
-
-    // §6 — straight to લેવલ ૧, never to a મુખપૃષ્ઠ where he has to find it himself.
-    case ENTRY_STATE.NEW_USER:
-      return ENTRY_ROUTE.LEVEL1;
-
-    default:
-      return RESUMABLE_ROUTES.has(lastRoute) ? lastRoute : ENTRY_ROUTE.HOME;
+  if (state === ENTRY_STATE.UNAUTHENTICATED) {
+    return returning ? ENTRY_ROUTE.LOGIN : ENTRY_ROUTE.REGISTER;
   }
+
+  /*
+    Every signed-in state — NEW_USER, IN_PROGRESS, COMPLETED — lands here.
+
+    NEW_USER used to be its own case returning LEVEL1 (§6's "straight to લેવલ ૧, never to a
+    મુખપૃષ્ઠ where he has to find it himself"), and the other two used to consult the resume.
+    All three now agree, which is why the switch is gone: there is one answer for anybody
+    the app knows, and લેવલ ૧ is the first tile waiting on it.
+  */
+  return ENTRY_ROUTE.HOME;
 }
 
 /**
@@ -177,9 +180,20 @@ export function guardRoute({ path, user, profile, profileError = false } = {}) {
     };
   }
 
-  if (state === ENTRY_STATE.NEW_USER && path !== ENTRY_ROUTE.LEVEL1) {
-    return { allow: false, state, to: ENTRY_ROUTE.LEVEL1 };
-  }
+  /*
+    Rule 2 used to live here: a યુવક who had not passed the પ્રવેશદ્વાર was refused every
+    page except લેવલ ૧ and redirected there. It is gone, and its removal is the whole
+    point — sending him to the મુખપૃષ્ઠ while this rule still stood would have bounced him
+    straight back to /welcome, so relaxing resolveEntryRoute() alone would have changed
+    nothing at all.
 
+    What that costs: the પ્રવેશદ્વાર is no longer a wall. A signed-in યુવક can now open
+    /darshan or /level/3 with the વિડિયો still unwatched. That is the intended trade —
+    he is trusted to find his own way — and it takes nothing away from the levels' own
+    checks, which are the ones that actually matter: લેવલ ૪'s gate is still the published
+    configuration's business and `level4_submit` still re-checks it server-side (§37),
+    and `profiles.level4_unlocked` is still written only by a database trigger. Routing
+    never granted any of that and still does not.
+  */
   return { allow: true, state, to: path };
 }

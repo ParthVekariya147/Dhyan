@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLevels } from '../../lib/useSettings';
 import { useScenes } from '../../lib/useScenes';
 import { useDailyProgress } from '../../lib/progress';
 import { useLevel4Gate } from '../../lib/level4';
+/* નોંધાવો — see the submit section at the foot of this file. Ticking is unchanged and still
+   saves itself; this records the day's answer as an attempt that keeps its own ક્રમાંક. */
+import { ACTIVITY_KEY, ATTEMPT_STATUS, newToken, submitActivity } from '../../lib/activity';
+/* The two outcome words, from the module both this page and મારી પ્રગતિ render them with —
+   one wording for one fact, and never `નિષ્ફળ` (§1 rule 4). */
+import { STATUS_LABEL } from '../../lib/history';
 import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 /* The two things this page says when something is finished — a day of ધ્યાન, and the day
    લેવલ ૪ is earned. Both live with the app's other finishing moments so they read as one
@@ -38,19 +44,23 @@ const LEVEL = 3;
  * Input          useScenes() (number + વર્ણન), useDailyProgress() (today's ticks),
  *                useLevel4Gate() (what opens લેવલ ૪, in the સંચાલક's own number).
  * Visible        Today's ring, the instruction, and 1 → N rows of number + વર્ણન + tick.
- * Actions        Tick and untick. Look at the દર્શન. Go on to લેવલ ૪ once it is open.
+ * Actions        Tick and untick. નોંધાવો, which records the day's answer as an attempt.
+ *                Look at the દર્શન. Go on to લેવલ ૪ once it is open.
  * Persisted      `progress` — today's ticks and today's score, written to the phone at
- *                once and flushed to Postgres within the minute.
+ *                once and flushed to Postgres within the minute. `activity_attempts` —
+ *                one append-only row per નોંધાવો, written by the server and never by this
+ *                page. The two are independent: the score does not wait on a submission and
+ *                a submission does not change the score.
  * Completion     None, and deliberately: this level is done again every day. Crossing the
  *                configured threshold **in a single day** opens લેવલ ૪ permanently.
  * Next           /level/4 — and only once the gate is open. A link to a locked level is an
  *                invitation to be turned away.
- * Previous       /darshan — લેવલ ૨, which is also the 'દર્શન જુઓ' door in the bar.
+ * Previous       /darshan — લેવલ ૨, which is also the 'દર્શન કરો' door in the bar.
  * Excluded       The image (§1 rule 1 — `s.url` is never touched here, so not one image
- *                byte is requested), right-and-wrong, sorting or filtering, a 'પૂરું કરો'
- *                button, streaks, and any count of what is missing.
+ *                byte is requested), right-and-wrong, sorting or filtering, streaks, and
+ *                any count of what is missing.
  * Loading        Three dots under the bar, with the bar already navigable.
- * Empty          No વર્ણન published yet → said plainly, with 'દર્શન જુઓ' as the way on.
+ * Empty          No વર્ણન published yet → said plainly, with 'દર્શન કરો' as the way on.
  * Error          A failed flush is quiet: the ticks are on the phone, it retries by itself,
  *                and 'અત્યારે મોકલો' is offered for whoever would rather not wait.
  * Source of truth  દર્શન collection for the વર્ણન; `progress` for the day; the published
@@ -85,11 +95,23 @@ const LEVEL = 3;
  * * **No image.** લેવલ ૩ is the stage where the picture goes away (§1 rule 1). Nothing on
  *   this page touches `s.url`, so no image byte is even requested — the removal is real,
  *   not a CSS trick.
- * * **No 'પૂરું કરો' button** (§9). There is nothing to submit: each tick is already
- *   saved to the phone and the day's score is already on its way. Closing the app mid-way
- *   loses nothing, so a button whose only job is to promise that would be a lie about how
- *   this works. (લેવલ ૪ does have one, and for the opposite reason: an attempt there is a
- *   single event that has not happened until it is sent.)
+ * * **નોંધાવો is not a save button**, and the distinction is the whole of §9.
+ *
+ *   This page had no button at all, and the reason given was sound: each tick is already on
+ *   the phone and the day's score is already on its way, so a button whose only job is to
+ *   promise that would be a lie about how this works. **That is still true and nothing about
+ *   it has changed** — closing the app mid-way still loses nothing, and a યુવક who never
+ *   presses નોંધાવો still has his full day counted, still opens લેવલ ૪ at the threshold, and
+ *   still appears on the સંચાલક's dashboard exactly as before.
+ *
+ *   What the button does is a different thing: it takes a *reading* of the day and keeps it,
+ *   with its own ક્રમાંક and the દ્રશ્યો it held. A day's score is one number that moves all
+ *   day; an attempt is a sentence about a moment — ૮૨/૧૦૮ at eleven o'clock, ૯૬ at four —
+ *   and §7 asks for the second without giving up the first. So the two live side by side and
+ *   neither waits on the other.
+ *
+ *   (લેવલ ૪'s 'પૂરું કરો' is a third thing again: there, the attempt is the only record of
+ *   anything, and until it is sent nothing has happened at all.)
  * * **No sorting, no filtering, no "hide the ones you've done".** ક્રમ કદી તૂટે નહીં
  *   (§1 rule 2): 1 → N, always, at every level, on every visit.
  * * **Nothing red, nothing scolding, no count of what is missing** (§1 rule 4). An
@@ -154,6 +176,69 @@ export default function LevelPage() {
      not have to be found and edited the day that changes. */
   const unlocked = levelUnlocked(gu(LEVEL + 1));
 
+  // ---------------------------------------------------------------- નોંધાવો
+  /*
+    One attempt is one *answer*, and the token is what tells an answer from a retry.
+
+    `signature` is the ticked set, sorted and joined — a value that is equal whenever the
+    answer is the same, which is precisely the question idempotency has to ask. Sorted because
+    a Set has no order and the same ૮૨ દ્રશ્યો must not look like a different answer for having
+    been ticked in a different sequence.
+
+    From it, one rule, and both halves of it are load-bearing:
+
+      the answer changed since the last send  →  mint a new token. This is attempt #2, and it
+                                                 must not be swallowed as a retry of #1.
+      the answer is the same                  →  keep the token. A second press, a timed-out
+                                                 request the browser replayed, a યુવક who was
+                                                 not sure the first one landed: all of them
+                                                 reach `activity_submit` carrying the token it
+                                                 has already seen, and it returns the original
+                                                 result without writing anything.
+
+    The consequence worth stating: pressing નોંધાવો twice without changing a tick records one
+    attempt, not two. That is the honest reading — nothing about the day changed between the
+    presses — and it is what makes the button safe to press on a signal that gives no feedback.
+
+    Held in refs rather than state because neither value is rendered and a re-render for them
+    would be a re-render of a list ૧૦૯ rows long.
+  */
+  const signature = useMemo(() => [...P.ticked3].sort().join(','), [P.ticked3]);
+  const tokenRef = useRef(null);
+  const sentSigRef = useRef(null);
+
+  const [saving, setSaving] = useState(false);
+  const [outcome, setOutcome] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+
+  const onSubmit = useCallback(async () => {
+    if (saving) return;
+    if (sentSigRef.current !== signature || !tokenRef.current) tokenRef.current = newToken();
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await submitActivity({
+        activity: ACTIVITY_KEY.REVISION,
+        selected: [...P.ticked3],
+        // The total comes from useScenes(), never a literal (§62), and never from the ring —
+        // `P.score3` carries the load-time floor, which is a score and not a count of what
+        // this કસોટી asked for.
+        total,
+        token: tokenRef.current,
+      });
+      sentSigRef.current = signature;
+      setOutcome(res);
+    } catch (err) {
+      // `err.gu` is already a Gujarati sentence (src/lib/activity.js). Never red, never
+      // phrased as his mistake, and the ticks are untouched either way — nothing was lost by
+      // this failing, which is what the wording says.
+      setSaveError(err?.gu || 'ફરી પ્રયત્ન કરો.');
+    } finally {
+      setSaving(false);
+    }
+  }, [saving, signature, P.ticked3, total]);
+
   // ---------------------------------------------------------------- states
   if (loading || !P.ready) {
     return (
@@ -172,7 +257,7 @@ export default function LevelPage() {
         <LevelBar />
         <section className="level-empty">
           <p>દર્શન હજુ તૈયાર થઈ રહ્યાં છે. થોડા વખતમાં અહીં આવશે.</p>
-          <Link to="/darshan" className="btn-quiet btn-inline">દર્શન જુઓ</Link>
+          <Link to="/darshan" className="btn-quiet btn-inline">દર્શન કરો</Link>
         </section>
       </div>
     );
@@ -207,17 +292,20 @@ export default function LevelPage() {
         <PageIntro spec={spec} />
 
         {/*
-          The one state where the ring and the boxes honestly disagree: today's score
-          arrived partly from somewhere else (another phone, or storage this browser
-          cleared). Explained rather than hidden — a ring reading ૫૦ above fifty empty
-          boxes with no word about it is the confusion §1 asks us not to create.
+          `P.carried3` is deliberately NOT rendered.
+
+          There was a note here — "આજનાં N દ્રશ્યો બીજેથી ગણતરીમાં લેવાયાં છે" — for the one
+          state where the ring and the boxes honestly disagree: today's score arrived partly
+          from another phone, or from storage this browser cleared. The reasoning was that
+          explaining it beats hiding it.
+
+          The સંચાલક's answer is that it should not be on screen at all: it is a sentence
+          about how the app syncs, addressed to a યુવક who is here to do his ધ્યાન, and on the
+          rare morning it appears it raises a question he had not asked. The ring is still
+          right — `P.carried3` is still counted into `P.score3` and still opens લેવલ ૪ — and
+          nothing about the day's arithmetic changed with this line's removal. Only the
+          explanation is gone.
         */}
-        {P.carried3 > 0 && (
-          <p className="level-note level-carried">
-            આજનાં {gu(P.carried3)} દ્રશ્યો બીજેથી ગણતરીમાં લેવાયાં છે. અહીં એ ટિક થયેલાં નહીં દેખાય,
-            પણ ગણતરીમાં છે.
-          </p>
-        )}
 
         {/*
           Quiet, and never an error (§1 rule 4). The ticks are on the phone and the write
@@ -264,8 +352,72 @@ export default function LevelPage() {
           and a full stop here reads as a thing finished rather than a thing kept up. The
           wording is shared/domain/milestones.js, with the app's five other such moments. */}
       <p className="level-foot" aria-live="polite">
-        {complete ? dayComplete(gu(P.score3)) : `આજ સુધી ટિક: ${gu(P.score3)} / ${gu(total)}`}
+        {complete ? dayComplete(gu(P.score3)) : `આજની ટિક: ${gu(P.score3)} / ${gu(total)}`}
       </p>
+
+      {/*
+        ────────────────────────────────────────────────────────────────────────
+        નોંધાવો — taking a reading of the day
+        ────────────────────────────────────────────────────────────────────────
+
+        Placed after the list and after the day's line, because that is where a યુવક is when
+        he has finished going through it. Before the લેવલ ૪ door, because recording the day is
+        part of this level and the door is the way out of it.
+
+        Three states and no fourth, in the wording §31 asks for by name:
+
+          idle     નોંધાવો, with the day's figure under it so he can see what he is recording
+          saving   સાચવીએ છીએ… — the button is disabled, and this is the whole of the
+                   defence a યુવક sees. The defence that matters is the token above him.
+          settled  either 'તમારી આજની નોંધ સચવાઈ ગઈ' with the attempt's own ક્રમાંક, or
+                   ફરી પ્રયત્ન કરો — and in the failing case the reassurance that nothing
+                   was lost, which
+                   is true: the ticks are on the phone and the day's score never went near
+                   this button.
+
+        The result line names the attempt number because that number is the point of the
+        feature — 'પ્રયાસ ૨' is what tells this reading from this morning's. It is the
+        server's number, from the row it wrote, and is never counted here (§30).
+      */}
+      <section className="level-submit">
+        <button
+          type="button"
+          className="btn-gold btn-inline"
+          onClick={onSubmit}
+          disabled={saving}
+        >
+          {saving ? 'સાચવીએ છીએ…' : 'નોંધાવો'}
+        </button>
+
+        <p className="level-note" aria-live="polite">
+          {saveError
+            ? saveError
+            : outcome
+              ? `પ્રયાસ ${gu(outcome.attemptNumber)} - ${gu(outcome.completedItems)} / ${gu(outcome.totalItems)} - ${STATUS_LABEL[outcome.status]}`
+              : `આજની ટિક નોંધીને રાખો. ${gu(P.score3)} / ${gu(total)}`}
+        </p>
+
+        {/*
+          Said only when it actually happened. `pointsAwarded` is 0 both when the સંચાલક has
+          not switched points on and when today's ગુણ for this level are already earned, and
+          in neither case is there anything to announce — a '+૦ ગુણ' would be the app drawing
+          attention to a number that means nothing to him. The award itself is the server's:
+          this line reports it and never computes it (§19).
+        */}
+        {outcome?.pointsAwarded > 0 && (
+          <p className="level-note level-points">+{gu(outcome.pointsAwarded)} ગુણ</p>
+        )}
+
+        {outcome && !saveError && (
+          <p className="level-note">તમારી આજની નોંધ સચવાઈ ગઈ.</p>
+        )}
+
+        {saveError && (
+          <p className="level-note">
+            તમારી ટિક ફોનમાં એમ ને એમ જ છે. કંઈ ખોવાયું નથી.
+          </p>
+        )}
+      </section>
 
       {/*
         ────────────────────────────────────────────────────────────────────────
@@ -318,7 +470,7 @@ export default function LevelPage() {
               લેવલ ૩ માં {gu(gate.gateThreshold)} પૂરાં કરો, પછી લેવલ ૪ ખૂલશે
             </p>
             <p className="level-note">
-              એક જ દિવસમાં {gu(gate.gateThreshold)} દ્રશ્યો — પછી એ લેવલ કાયમ ખુલ્લું રહેશે.
+              એક જ દિવસમાં {gu(gate.gateThreshold)} દ્રશ્યો યાદ કરો - પછી એ લેવલ કાયમ માટે ખુલ્લું રહેશે.
             </p>
             {/*
               The way back to the દર્શન, at the end of the list rather than only at the top.
@@ -331,7 +483,7 @@ export default function LevelPage() {
               no attempt to redo, because nothing was submitted — the ticks are already saved
               and tomorrow simply starts again.
             */}
-            <Link to="/darshan" className="btn-gold btn-inline">દર્શન ફરી જુઓ</Link>
+            <Link to="/darshan" className="btn-gold btn-inline">ફરી દર્શન કરો</Link>
           </section>
         ) : null
       )}
@@ -352,7 +504,7 @@ function LevelBar({ level4 = false }) {
         away on purpose: a યુવક who cannot place a number should be able to go and look,
         not sit stuck. Nothing records that he went.
       */}
-      <Link className="linklike" to="/darshan">દર્શન જુઓ</Link>
+      <Link className="linklike" to="/darshan">દર્શન કરો</Link>
       {level4 && <Link className="linklike" to="/level/4">લેવલ ૪</Link>}
     </header>
   );

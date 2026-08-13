@@ -1,8 +1,16 @@
-/* દર્શન — arranging the order of the collection, and editing it in handfuls.
+/* દર્શન — arranging the collection, editing one દ્રશ્ય, and filling them all in from a sheet.
  *
- * Loaded only by DarshanListPage, so it rides that page's chunk and costs nothing on any
- * other screen (§51). Every colour is a token from admin.css: this is the same console, and
- * a section with its own palette reads as a different product.
+ * Loaded by the three દર્શન pages that have shapes of their own — the grid, one દ્રશ્ય, and the
+ * importer — and by nothing else, the same arrangement level4.css has, so it rides those
+ * chunks and costs nothing on સેટિંગ્સ or the audit log (§51). The તપાસ report is built
+ * entirely from the panel's shared classes and pulls none of this.
+ *
+ * Every colour, gap, radius and shadow here is a token from admin.css. That is not tidiness:
+ * the panel moved from a dark slate console to a light one, and the three hard-coded values
+ * this file used to carry — a near-black thumbnail bed and two near-black checkbox discs —
+ * became black holes punched through a white page the moment the theme flipped. A section
+ * with its own palette reads as a different product, and a section with its own *stale*
+ * palette reads as a bug.
  */
 
 /* ---------------------------------------------------------------- the spreadsheet buttons */
@@ -17,7 +25,7 @@
  */
 .dsel-tools {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-2);
   flex-wrap: wrap;
   margin-inline-start: auto;
 }
@@ -28,53 +36,97 @@
  * Sticky for the same reason .dro-bar is: the grid is as long as the collection, and a બલ્ક
  * action that scrolls away is one he has to scroll back for after every tick.
  *
+ * It sticks *below the topbar*, not to the top of the viewport. `top: 0` parked it underneath
+ * a chrome bar that sits at z-index 20 and is opaque, so the bar with the count and the four
+ * bulk buttons in it disappeared behind the page title exactly when it was needed.
+ *
  * It is on screen with nothing selected. A bar that appeared on the first tick would push
  * the grid down under the pointer at the exact moment he was aiming at it, and nothing would
  * have said beforehand that the tiles could be ticked at all.
  */
 .dsel {
   position: sticky;
-  top: 0;
+  top: var(--topbar-h);
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-3);
   flex-wrap: wrap;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  font-size: 13px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-table);
 }
 /* A selection is live state, marked the way an unsaved arrangement is — the stripe and the
    count beside it say the same thing, so neither depends on a colour being noticed (§56). */
-.dsel.is-picked { border-inline-start: 3px solid var(--accent); }
+.dsel.is-picked { border-inline-start: 3px solid var(--brand-500); }
 
-.dsel-all { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
-.dsel-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.dsel-all {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  cursor: pointer;
+  user-select: none;
+  /* The label is the tick target as much as the box is, so it carries the tap floor too. */
+  min-height: var(--tap);
+}
+.dsel-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 /* Pushed to the far end, so the buttons are always in the same place whatever the count in
    the middle grows to. */
-.dsel-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-inline-start: auto; }
+.dsel-btns { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-inline-start: auto; }
 
-.dsel-denied { margin: -6px 0 12px; }
+.dsel-denied { margin: calc(var(--sp-2) * -1) 0 var(--sp-3); }
 .dsel-report p { margin: 0; }
+.dsel-report p + p { margin-top: var(--sp-2); }
 
 /*
  * The checkbox itself. 16px rather than the browser's ~13, because this one is pressed a
  * hundred times in a row on the way to a bulk publish, and `accent-color` is what stops it
- * rendering as a white Windows box on a slate console.
+ * rendering as an unstyled box in the middle of an otherwise amber console.
  */
 .dsel input[type="checkbox"],
 .dg-pick input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  min-height: 0;
+  accent-color: var(--brand-500);
   cursor: pointer;
   margin: 0;
 }
 .dsel input[type="checkbox"]:disabled,
 .dg-pick input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .5; }
+
+/* ---------------------------------------------------------------- the tiles */
+
+/*
+ * §19 — a hundred finished paintings in one grid, and the two rules that keep it cheap.
+ *
+ * `--dg-aspect` is a *reservation*, not a crop. The tile's box is drawn at this ratio before
+ * a single byte of artwork has arrived, so the grid is laid out once and the rows do not
+ * shuffle downward as the images decode one by one — the reflow that makes a long grid
+ * impossible to click into. `object-fit: contain` is what keeps it a reservation: whatever
+ * shape the file actually is, all of it is shown inside the reserved box rather than having
+ * its edges cut off, and the artwork carries its printed number and its વર્ણન in those edges
+ * (§23), so cropping would delete content.
+ *
+ * The other half of the rule is in the page: the grid asks for `thumbUrl`, Google's ~400px
+ * encode, never the master. The detail page still shows the full-width file, so nothing about
+ * the quality a સંચાલક actually inspects is downgraded.
+ */
+.dg, .preview { --dg-aspect: 16 / 9; }
+
+.dg-item img {
+  aspect-ratio: var(--dg-aspect);
+  object-fit: contain;
+}
+.dg-empty { aspect-ratio: var(--dg-aspect); }
+
+/* The tiles' loading shape: the same grid, at the same tile height, so the real thing lands
+   where the placeholder stood instead of pushing it aside (§33). */
+.dg-loading .sk-cards { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.dg-loading .sk-card { height: 152px; }
 
 /* ---------------------------------------------------------------- ticking a tile */
 
@@ -83,86 +135,94 @@
  * used to be the `.dg-item` links themselves; this sits between them and changes nothing
  * about the grid, because the link is the cell's only other child and fills it.
  */
-.dg-cell { position: relative; border-radius: 10px; }
+.dg-cell { position: relative; border-radius: var(--r-lg); }
 
 /*
  * Selected, and visible without reading the checkbox — a ring the tile's own hover state
  * cannot be confused with, drawn outside the border so it does not move the artwork by a
  * pixel. `outline` and not a border for exactly that reason.
  */
-.dg-cell.is-picked { outline: 2px solid var(--accent); outline-offset: 1px; }
+.dg-cell.is-picked { outline: 2px solid var(--brand-500); outline-offset: 1px; }
 
 /*
- * The corner target. A 34px pad — the same target .icon-btn and .dro-move use — around a
- * 16px box, because this is pressed on a phone as often as with a mouse.
+ * The corner target. `--tap` wide, which is 34px under a mouse and 44px under a finger by
+ * itself (admin.css raises the token on `pointer: coarse`), because this is pressed on a
+ * phone as often as with a pointer.
  *
- * The disc behind it is not decoration: the artwork underneath is a finished painting in
- * whatever colours it happens to use, and a checkbox on top of a pale sky is a checkbox
- * nobody can find.
+ * The card behind it is not decoration: the artwork underneath is a finished painting in
+ * whatever colours it happens to use, and a checkbox floating on a pale sky is a checkbox
+ * nobody can find. It is the panel's own card surface with a border and a lift, rather than
+ * the near-black disc this used to be — that read as a hole in the tile once the console
+ * turned white.
  */
 .dg-pick {
   position: absolute;
-  inset-block-start: 6px;
-  inset-inline-start: 6px;
+  inset-block-start: var(--sp-2);
+  inset-inline-start: var(--sp-2);
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: rgba(11, 15, 20, .72);
-  border: 1px solid var(--line);
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--sh-2);
   cursor: pointer;
 }
-.dg-pick:hover { background: rgba(11, 15, 20, .9); }
+.dg-pick:hover { background: var(--surface-sunken); }
+.dg-pick:focus-within { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 
 /* ---------------------------------------------------------------- the unsaved bar */
 
 /*
  * Sticky, because the list is as long as the collection is: a Save Order button at the
  * bottom of a thousand rows is a button nobody finds, and one at the top is a button he
- * has scrolled past by the time he has moved anything.
+ * has scrolled past by the time he has moved anything. Below the topbar, not under it —
+ * see .dsel above.
  */
 .dro-bar {
   position: sticky;
-  top: 0;
+  top: var(--topbar-h);
   z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--sp-3);
   flex-wrap: wrap;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  font-size: 13px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-table);
 }
 /* Unsaved work is stated in words as well as in colour (§56) — the strong text beside the
    stripe says the same thing the stripe does. */
-.dro-bar.is-dirty { border-inline-start: 3px solid var(--warn); }
-.dro-bar-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.dro-bar.is-dirty { border-inline-start: 3px solid var(--warn-ink); background: var(--warn-tint); border-color: var(--warn-line); }
+.dro-bar-text { min-width: 0; flex: 1 1 260px; }
+.dro-bar-btns { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
 
 /* ---------------------------------------------------------------- the rows */
 
 .dro {
   list-style: none;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-card);
+  box-shadow: var(--sh-1);
   overflow: hidden;
 }
 
 .dro-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-  background: var(--panel);
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-table);
+  background: var(--surface-card);
   /* A drag that begins on the વર્ણન must move the row, not select the text. */
   user-select: none;
 
@@ -182,23 +242,23 @@
   contain-intrinsic-size: auto 52px;
 }
 .dro-row:last-child { border-bottom: 0; }
-.dro-row:hover { background: var(--panel-2); }
+.dro-row:hover { background: var(--surface-hover); }
 
 /* Being dragged. Kept visible rather than hidden: the row is live-reordered under the
    pointer, so it is the thing whose new place is being read. */
-.dro-row.is-dragging { opacity: .45; background: var(--panel-2); }
+.dro-row.is-dragging { opacity: .45; background: var(--surface-sunken); }
 
-/* Withheld, and still listed — it is listed precisely so it can be brought back. Dashed
-   as well as pale, so it does not depend on a colour being noticed (§56). */
-.dro-row.is-off { opacity: .78; box-shadow: inset 3px 0 0 var(--line); }
+/* Withheld, and still listed — it is listed precisely so it can be brought back. The inset
+   rule is a second, non-colour marker beside the dash in the number column (§56). */
+.dro-row.is-off { background: var(--surface-hover); box-shadow: inset 3px 0 0 var(--border-strong); }
 
 .dro-grip {
   flex: 0 0 auto;
-  color: var(--muted);
+  color: var(--text-faint);
   cursor: grab;
   font-size: 15px;
   line-height: 1;
-  padding: 4px 2px;
+  padding: var(--sp-1) 2px;
   user-select: none;
 }
 .dro-row.is-static .dro-grip { cursor: default; opacity: .4; }
@@ -209,50 +269,242 @@
   flex: 0 0 84px;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--sp-1);
   font-variant-numeric: tabular-nums;
 }
-.dro-display { font-size: 14px; font-weight: 650; }
-.dro-display.is-none { color: var(--muted); font-weight: 400; }
-.dro-src { color: var(--muted); font-size: 11.5px; }
+.dro-display { font-size: var(--fs-body); font-weight: var(--fw-semi); color: var(--text-strong); }
+.dro-display.is-none { color: var(--text-faint); font-weight: var(--fw-normal); }
+.dro-src { color: var(--text-muted); font-size: var(--fs-micro); }
 
+/*
+ * Fixed width *and* fixed height, so a row is the same height before its picture arrives as
+ * after — the list is dragged through while it is still loading, and a row that grows under
+ * the pointer drops what is being dragged somewhere else.
+ */
 .dro-thumb {
   flex: 0 0 auto;
   width: 56px;
   height: 34px;
   object-fit: cover;
-  border-radius: 4px;
-  background: #0b0f14;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-sunken);
 }
 .dro-thumb.is-empty { display: block; }
 
 .dro-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.dro-id { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
-.dro-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dro-id { color: var(--text-muted); font-size: var(--fs-micro); font-variant-numeric: tabular-nums; }
+.dro-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-body); }
 
-.dro-moves { flex: 0 0 auto; display: flex; gap: 4px; }
+.dro-moves { flex: 0 0 auto; display: flex; gap: var(--sp-1); }
 /*
- * 34px, the same target .icon-btn uses. These are not a fallback for the drag: HTML5
+ * `--tap` square, the same target .icon-btn uses, and the same token — so a finger gets 44px
+ * without this file knowing the number. These are not a fallback for the drag: HTML5
  * drag-and-drop does not fire on a touchscreen at all, and the સંચાલક is often on a phone,
  * so on that device these buttons *are* the reorder. They are also the keyboard path.
  */
 .dro-move {
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--text);
-  border-radius: 6px;
-  width: 34px;
-  height: 34px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  color: var(--text-body);
+  border-radius: var(--r-sm);
+  width: var(--tap);
+  height: var(--tap);
+  font-size: var(--fs-help);
   cursor: pointer;
 }
+.dro-move:hover:not(:disabled) { background: var(--surface-sunken); }
 .dro-move:disabled { opacity: .4; cursor: not-allowed; }
 
-@media (max-width: 720px) {
-  /* The caption is the first thing to go: the number, the picture and the two arrows are
-     what a reorder needs, and a wrapped three-line row makes the list twice as long to
-     drag through. */
+/* ---------------------------------------------------------------- one દ્રશ્ય */
+
+/*
+ * The edit card is five separate saves in one column — link, શીર્ષક, વર્ણન, order, and the
+ * on/off switch — and each is confirmed on its own. They were divided by bare <hr>s carrying
+ * an inline border colour; a rule with a heading above it says what the next box is for
+ * before it is typed into, and one class replaces five copies of the same inline style.
+ */
+.d-block + .d-block {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
+.d-block h3 {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semi);
+  color: var(--text-strong);
+  margin-bottom: var(--sp-2);
+}
+/* The last field in a block sits right above its own button, so the field's own bottom
+   margin is the whole of the gap. */
+.d-block .field:last-of-type { margin-bottom: var(--sp-3); }
+
+/*
+ * The artwork stays put while the edit column scrolls. Only where there are two columns to
+ * begin with: below 900px `.detail-cols` is one column and a sticky preview would pin the
+ * picture over the boxes being typed into.
+ */
+@media (min-width: 1200px) {
+  .detail-cols > .preview {
+    position: sticky;
+    top: calc(var(--topbar-h) + var(--sp-4));
+  }
+}
+
+/* ---------------------------------------------------------------- the import steps */
+
+/*
+ * §24 — the importer is one long screen, and its state machine already knows exactly where
+ * the સંચાલક is in it. This is that machine drawn: a rail of six steps at the top, and each
+ * card below numbered to match. Nothing here decides anything — every state is read from the
+ * plan the page had already computed.
+ */
+.dsteps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  list-style: none;
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-2);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+}
+.dsteps li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--ctl-h-sm);
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-help);
+  color: var(--text-muted);
+  min-width: 0;
+}
+/* Where he is, said three ways at once — the tint, the ring, and the word "now" read out to
+   a screen reader by aria-current (§43, §56). */
+.dsteps li.is-now { background: var(--brand-50); color: var(--brand-700); font-weight: var(--fw-semi); }
+.dsteps li.is-done { color: var(--ok-ink); }
+.dsteps li.is-skip { color: var(--text-faint); }
+
+/* The rail's discs are smaller than a step card's — they sit inside a pill rather than beside
+   a heading — but they take their state from the same three rules. */
+.dsteps .dstep-n { width: 20px; height: 20px; font-size: var(--fs-micro); }
+.dsteps li.is-now .dstep-n { background: var(--brand-500); border-color: var(--brand-500); color: var(--text-invert); }
+.dsteps li.is-done .dstep-n { background: var(--ok-tint); border-color: var(--ok-line); color: var(--ok-ink); }
+
+.dstep-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+}
+.dstep-head h2 { margin-bottom: 0; flex: 1 1 auto; min-width: 0; }
+.dstep-n {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--fs-help);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.dstep.is-now .dstep-n { background: var(--brand-500); border-color: var(--brand-500); color: var(--text-invert); }
+.dstep.is-done .dstep-n { background: var(--ok-tint); border-color: var(--ok-line); color: var(--ok-ink); }
+/* A step that is still waiting is dimmed but never hidden: the whole point of the rail is
+   that he can see what is still ahead of him before he commits to any of it. */
+.dstep.is-wait { opacity: .72; }
+.dstep-state { flex: 0 0 auto; }
+
+/* A question the preview raised, or the result it produced, ruled off from the step's own
+   heading. Never a card of its own: a card inside a card is a frame around a frame. */
+.dstep .d-block {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
+
+/* The rows a step's buttons sit on. Replaces four copies of the same inline flex style, and
+   on a phone the primary action goes full width instead of hiding at one end of the row. */
+.d-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; margin-bottom: var(--sp-4); }
+.d-actions:last-child { margin-bottom: 0; }
+
+/* The mode radios and the duplicate answers: a label with a control on its baseline and a
+   paragraph of explanation under it. */
+.d-choice { display: flex; gap: var(--sp-2); align-items: flex-start; margin-bottom: var(--sp-3); min-height: var(--tap); }
+.d-choice input { margin-top: 5px; flex: 0 0 auto; accent-color: var(--brand-500); }
+.d-choice.is-off { opacity: .6; }
+.d-choice > span { min-width: 0; }
+
+.d-inline-choices { display: flex; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-2); }
+.d-inline-choices label { display: flex; gap: var(--sp-2); align-items: center; min-height: var(--tap); }
+.d-inline-choices input { accent-color: var(--brand-500); }
+
+/* Current value struck through, new value after it. Not colour alone — the strike is what
+   says "this goes away" for anyone who cannot see the grey (§43). */
+.d-was { color: var(--text-faint); text-decoration: line-through; }
+.d-change + .d-change { margin-top: var(--sp-1); }
+
+.d-progress { width: 100%; margin-top: var(--sp-2); }
+
+/* A line of explanation that owns the gap under itself, instead of five copies of the same
+   inline margin scattered through the JSX. */
+.d-note { margin-bottom: var(--sp-3); }
+
+/* ---------------------------------------------------------------- responsive */
+
+/* 900px is where admin.css turns every table into a stack of cards; the import preview's own
+   columns are already labelled for that, so nothing more is needed here. 640px is the phone. */
+
+@media (max-width: 640px) {
+  /* The tools stop hugging the far end — there is no far end left on one column. */
+  .dsel-tools { margin-inline-start: 0; width: 100%; }
+  .dsel-tools .btn { flex: 1 1 auto; }
+
+  /* The bulk bar becomes three stacked rows: what is ticked, how many, what to do about it.
+     The buttons share the width evenly so none of them ends up a thumbnail-sized target. */
+  .dsel { gap: var(--sp-2); padding: var(--sp-2); }
+  .dsel-btns { margin-inline-start: 0; width: 100%; }
+  .dsel-btns .btn { flex: 1 1 auto; }
+  .dsel-count { width: 100%; }
+
+  .dro-bar { padding: var(--sp-3); }
+  .dro-bar-btns { width: 100%; }
+  .dro-bar-btns .btn { flex: 1 1 auto; }
+
+  /*
+    The reorder row, kept on one line at 320px.
+
+    The caption is the first thing to go: the number, the picture and the two arrows are what
+    a reorder needs, and a wrapped three-line row makes the list twice as long to drag
+    through. What is left is measured to fit — grip, 56px of numbers, a 40px thumbnail, the
+    id (which is allowed to shrink to nothing), the status pill and two 44px arrows.
+  */
   .dro-caption { display: none; }
-  .dro-n { flex-basis: 72px; }
-  .dro-thumb { width: 44px; height: 28px; }
+  .dro-row { gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); }
+  .dro-n { flex-basis: 56px; }
+  .dro-thumb { width: 40px; height: 26px; }
+  .dro-id { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .dsteps { gap: 0; padding: var(--sp-1); }
+  .dsteps li { padding: 0 var(--sp-2); }
+
+  .d-actions .btn { flex: 1 1 auto; }
+  .d-inline-choices { gap: var(--sp-3); }
+}
+
+@media (max-width: 380px) {
+  /* Tighter padding only, never a different layout. */
+  .dsel, .dro-bar { padding: var(--sp-2); }
+  .dro-n { flex-basis: 48px; }
 }

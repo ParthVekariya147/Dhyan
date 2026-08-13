@@ -6,6 +6,10 @@ import {
   resolveLevel4Gate,
   resolveLevels,
 } from '../../../../../shared/domain/settings.js';
+/* Point values share the `levels` row - they are a property of the ladder, not of a viewing
+   surface, and 0014's argument for moving the લેવલ ૪ gate here applies to them unchanged. */
+import { POINTS_KEY } from '../../../../../shared/domain/points.js';
+import { LEADERBOARD_KEY } from '../../../../../shared/domain/leaderboard.js';
 
 /**
  * §34 — controlled configuration instead of settings scattered through source files.
@@ -65,6 +69,26 @@ export async function getLevelsConfig() {
   return {
     levels: resolveLevels(stored?.levels),
     gate: resolveLevel4Gate(stored?.[LEVEL4_GATE_KEY]),
+    /*
+      The third thing in this row, and the one that is handed back **raw**.
+
+      `levels` and `gate` are resolved here because their callers render them and a screen must
+      never be handed a value it has to make sense of itself. `points` is different: PointsCard
+      is the only caller, and it needs the *stored* slice rather than the resolved one to
+      answer a question the resolver has thrown away — "has anybody ever configured this?".
+      resolvePoints() maps an absent key and a deliberate all-zeroes to the same object, and
+      the card offers to pre-fill the brief's ૧૦૦/૨૦૦/૩૦૦ only in the first case. Resolving it
+      here would make a સંચાલક who had deliberately set every level to zero be offered a
+      pre-fill that undid it.
+
+      It resolves the slice itself, through the same shared resolvePoints() the server mirrors,
+      so nothing about that rule is duplicated — only the decision about emptiness is local,
+      and it is a question about the row rather than about the values in it.
+    */
+    points: stored?.[POINTS_KEY],
+    // Raw for the same reason `points` is: LeaderboardCard has to tell "never configured"
+    // from "deliberately switched off", and resolveLeaderboard() maps both to `enabled: false`.
+    leaderboard: stored?.[LEADERBOARD_KEY],
   };
 }
 

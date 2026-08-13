@@ -160,7 +160,7 @@ export default function Home() {
             layout does not jump while the chunk arrives — and a યુવક on a slow connection
             sees the page, not a spinner (§14).
           */}
-          <Suspense fallback={<><div className="ring-num">—</div><div className="ring-label">આજની પ્રગતિ</div></>}>
+          <Suspense fallback={<><div className="ring-num">-</div><div className="ring-label">આજની પ્રગતિ</div></>}>
             <HomeRing />
           </Suspense>
         </div>

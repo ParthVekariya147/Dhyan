@@ -1,14 +1,9 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, guError } from '../lib/auth';
 import { EMAIL_RE, MOBILE_RE, normaliseMobile } from '../lib/constants';
 import { PasswordField, TextField } from '../components/Field';
-import {
-  PUBLIC_ROUTES,
-  guardRoute,
-  readLastRoute,
-  resolveEntryRoute,
-} from '../lib/entryRoute';
+import { ENTRY_ROUTE } from '../lib/entryRoute';
 import '../styles/forms.css';
 
 /**
@@ -16,13 +11,13 @@ import '../styles/forms.css';
  * PAGE CONTRACT — લોગિન (/login)
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Purpose        Let a યુવક who already has an account back into his સાધના, and put him
- *                down where he left off (§7, §25) — never at the beginning.
+ * Purpose        Let a યુવક who already has an account back into his સાધના.
  * Visible        Two fields, one primary button, the password-reset button, and one quiet
  *                sentence pointing at નોંધણી (§19).
  * Actions        Sign in. Ask for a reset mail. Go to નોંધણી.
  * Persisted      Nothing this page writes. The session is Supabase's.
- * Next           resolveEntryRoute() decides, once, after the profile has loaded.
+ * Next           / — the મુખપૃષ્ઠ, every time. It used to be "put him down where he left
+ *                off (§7, §25)"; that resume is gone, and he chooses from the tiles.
  * Excluded       Any level content, any progress figure, anything that scolds.
  *
  * This page and નોંધણી are ONE design (§2). Every size, height and gap comes from
@@ -31,30 +26,29 @@ import '../styles/forms.css';
  * inputs than the other.
  */
 export default function Login() {
-  const { login, resetPassword } = useAuth();
+  const { login } = useAuth();
   const nav = useNavigate();
-  const loc = useLocation();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errs, setErrs] = useState({});
   const [formError, setFormError] = useState('');
-  const [sent, setSent] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const looksLikeEmail = EMAIL_RE.test(identifier.trim());
+  /*
+    `resetPassword`, `sent` and `looksLikeEmail` were pulled with the handler below them.
+    All three existed only to send a recovery mail from this form, and leaving any of them
+    behind would leave a second, unused path to a flow that now has one entrance - which is
+    how two copies of one rule start.
+  */
 
-  /**
-   * The page he was actually trying to reach, if a guard sent him here (§12).
-   *
-   * Checked against PUBLIC_ROUTES so that a bounce off /login or /register — which should
-   * not happen, but is one router change away from happening — can never become a
-   * destination that bounces him straight back here.
-   */
-  const from =
-    typeof loc.state?.from === 'string' && !PUBLIC_ROUTES.has(loc.state.from)
-      ? loc.state.from
-      : null;
+  /*
+    `from` — the page a guard bounced him off, read from loc.state and checked against
+    PUBLIC_ROUTES — stood here and decided where he went after signing in. It is gone with
+    the resume: the destination is the મુખપૃષ્ઠ in every case now, so there is nothing left
+    to read the state with. The guards still SET `state.from` on their redirects, which
+    costs nothing and leaves the deep-link destination recoverable if it is ever wanted.
+  */
 
   /** Clearing as he types is what keeps the message slot honest — see components/Field. */
   const clear = (k) => {
@@ -65,7 +59,6 @@ export default function Login() {
   async function submit(ev) {
     ev.preventDefault();
     setFormError('');
-    setSent('');
 
     // An email is passed through untouched; anything else is read as a number and put into
     // the one spelling `profiles.mobile` stores. Without this, the yuvak whose phone
@@ -90,26 +83,25 @@ export default function Login() {
     setBusy(true);
     try {
       /*
-        §15 — one decision, after the state it depends on has loaded.
+        Signing in lands on the મુખપૃષ્ઠ. Always, and with nothing to work out first.
 
-        login() now returns the profile it has already read, so the destination is worked
-        out here and navigated to once. It used to navigate to '/' unconditionally and let
-        the મુખપૃષ્ઠ's own guard sort it out, which showed a યુવક who had not passed the
-        પ્રવેશદ્વાર a page he was not entitled to on the way past.
+        This was two rules deep: a `from` set by whichever guard bounced him here won if he
+        was now allowed it, and otherwise he was resumed at the last front door recorded on
+        the device. Both are gone. What that fixed is worth stating, because the resume was
+        not obviously misbehaving — /welcome was a resumable route, so a યુવક who had opened
+        the વિડિયો once was returned to it on every login afterwards, which from the outside
+        looks exactly like the app ignoring where he asked to be.
 
-        Two rules, in order: if a guard sent him here from somewhere, that somewhere wins —
-        provided he is now allowed it, which guardRoute() answers. Otherwise he resumes
-        where he last was (§7), falling back to the મુખપૃષ્ઠ when nothing is recorded.
+        `login()` is still awaited before navigating, and that part is unchanged and still
+        load-bearing (§15): it adopts the session and reads the profile, so the મુખપૃષ્ઠ
+        mounts already knowing who he is instead of rendering against a context that does
+        not yet, and the guard behind '/' has its answer on the first frame.
       */
-      const { user, profile } = await login(id, password);
-
-      const dest = from
-        ? guardRoute({ path: from, user, profile }).to
-        : resolveEntryRoute({ user, profile, lastRoute: readLastRoute(user?.id) });
+      await login(id, password);
 
       // `replace`, so the browser's back gesture leaves the app rather than returning to
       // a લોગિન page that would immediately redirect forward again (§16).
-      nav(dest, { replace: true });
+      nav(ENTRY_ROUTE.HOME, { replace: true });
     } catch (err) {
       // The Netlify Function returns its own Gujarati message; Supabase errors get mapped.
       // This one genuinely belongs in a banner: "મોબાઈલ નંબર/ઈમેલ કે પાસવર્ડ બરાબર નથી" is
@@ -120,43 +112,46 @@ export default function Login() {
     }
   }
 
-  /** Reset mail can only go to the email address — there is no OTP fallback. */
-  async function forgot() {
-    setFormError('');
-    setSent('');
-    const id = identifier.trim();
-    if (!looksLikeEmail) {
-      // Beside the field he has to change. It used to say "ઉપર … લખો", which is a banner
-      // at the bottom of the form pointing back up at a field it could not indicate.
-      setErrs((s) => ({
-        ...s,
-        identifier: 'નવો પાસવર્ડ મેળવવા માટે અહીં તમારું ઈમેલ સરનામું લખો.',
-      }));
-      return;
-    }
-    setBusy(true);
-    try {
-      await resetPassword(id);
-      setSent('નવો પાસવર્ડ બનાવવાની લિંક તમારા ઈમેલ પર મોકલી છે. ઈનબોક્સ અને સ્પામ બંને જુઓ.');
-    } catch (err) {
-      setFormError(guError(err));
-    } finally {
-      // Missing before, so a failed reset left the whole form disabled with no way back.
-      setBusy(false);
-    }
-  }
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    પાસવર્ડ ભૂલી ગયા? is now a page, not a button on this one
+    ────────────────────────────────────────────────────────────────────────────
+
+    A `forgot()` handler stood here and sent the mail in place, reusing whatever was in the
+    identifier field. Three things were wrong with that, and all three are requirements
+    rather than taste:
+
+      * **It could only work for half the યુવકો who need it.** The field accepts a mobile
+        number or an email, and most sign in with the number - so the commonest way to
+        arrive at "I have forgotten my password" was to be told, at the moment of asking,
+        to go and find something else to type. The dedicated page asks for the one thing
+        recovery needs and says so before he types anything.
+      * **It leaked, quietly.** The success line said "લિંક તમારા ઈમેલ પર મોકલી છે" - a
+        claim about that address - while an unknown address took the same path and produced
+        the same sentence only by accident of Supabase's API. §3 wants that to be a decided
+        property, and it now is: shared/domain/recovery.js returns one outcome and
+        scripts/test-recovery.mjs holds it.
+      * **It had no cooldown**, so the button could be tapped into Supabase's own per-address
+        limit, after which he was locked out of recovery for far longer than any screen had
+        warned him.
+
+    What stays is the position and the wording: same place under the primary button, same
+    `btn-quiet`, same Gujarati. From here it is a navigation, so it is a <Link> - and being
+    a link rather than a `type="button"` also settles the phone keyboard question the old
+    comment below worried about.
+  */
 
   return (
     <div className="auth-wrap">
       <div className="auth-card">
         <h1 className="auth-title">લોગિન</h1>
-        <p className="auth-sub">જય સ્વામિનારાયણ — ધ્યાન શરૂ કરવા લોગિન કરો</p>
+        <p className="auth-sub">જય સ્વામિનારાયણ - ધ્યાન શરૂ કરવા લોગિન કરો</p>
 
         <form onSubmit={submit} noValidate>
           <TextField
             id="identifier"
-            label="મોબાઈલ નંબર "
-            hint="મોબાઈલ નંબર લોગિન થઈ શકે છે."
+            label="મોબાઈલ નંબર અથવા ઈમેલ"
+            hint="મોબાઈલ નંબરથી પણ લોગિન થઈ શકશે."
             error={errs.identifier}
             value={identifier}
             onChange={(e) => {
@@ -191,24 +186,26 @@ export default function Login() {
           />
 
           {formError && <div className="notice warn">{formError}</div>}
-          {sent && <div className="notice">{sent}</div>}
 
           <button className="btn" type="submit" disabled={busy}>
             {busy ? 'લોગિન થાય છે…' : 'લોગિન કરો'}
           </button>
 
           {/*
-            Moved INSIDE the form, and typed `button` rather than `submit`.
+            Kept INSIDE the form, closed up under the primary button.
 
             Outside it, this control sat after </form> with a 24px .btn margin above it,
             which is what made the foot of this page read as two unrelated buttons floating
-            apart. Inside, it is the secondary action of the same form, closed up under the
-            primary one — and the explicit type is what stops the phone keyboard's "go" key
-            firing a password reset instead of a login.
+            apart. Inside, it is the secondary action of the same form.
+
+            It is a <Link> now rather than a `type="button"`, which also retires the hazard
+            the old comment here described: a control inside a form that is not a link has to
+            declare `type` or the phone keyboard's "go" key fires it instead of the login. A
+            link cannot be submitted, so there is nothing left to get wrong.
           */}
-          <button className="btn btn-quiet" type="button" onClick={forgot} disabled={busy}>
+          <Link className="btn btn-quiet" to="/forgot-password">
             પાસવર્ડ ભૂલી ગયા?
-          </button>
+          </Link>
         </form>
 
         {/* §19 — obvious, but never louder than લોગિન કરો above it. */}

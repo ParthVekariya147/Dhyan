@@ -366,7 +366,7 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
       issue(
         'duplicate-activity-key',
         `${gu(repeatedKeys.length)} પ્રવૃત્તિ બે વાર આવે છે.`,
-        `${s(repeatedKeys.length, 'activity')} appear more than once — each must be listed once.`,
+        `${s(repeatedKeys.length, 'activity')} appear more than once - each must be listed once.`,
         { activityKeys: repeatedKeys }
       )
     );
@@ -379,7 +379,7 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
       issue(
         'duplicate-scene',
         `${gu(duplicates.length)} દ્રશ્ય એક કરતાં વધુ પ્રવૃત્તિમાં છે. દરેક દ્રશ્ય એક જ પ્રવૃત્તિમાં હોવું જોઈએ.`,
-        `${s(duplicates.length, 'scene')} assigned to more than one activity — each scene belongs to exactly one.`,
+        `${s(duplicates.length, 'scene')} assigned to more than one activity - each scene belongs to exactly one.`,
         {
           sceneIds: duplicates.map((d) => d.sceneId),
           activityKeys: [...new Set(duplicates.flatMap((d) => d.activityKeys))],
@@ -409,8 +409,8 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
     errors.push(
       issue(
         'unpublished-scene',
-        `${gu(withheld.length)} દ્રશ્ય પ્રકાશિત નથી — ચિત્ર કે વર્ણન નથી, અથવા છુપાવેલું છે.`,
-        `${s(withheld.length, 'scene')} not published — no image, no description, or withheld from the collection, so they carry no number a yuvak has ever seen.`,
+        `${gu(withheld.length)} દ્રશ્ય પ્રકાશિત નથી - ચિત્ર કે વર્ણન નથી, અથવા છુપાવેલું છે.`,
+        `${s(withheld.length, 'scene')} not published - no image, no description, or withheld from the collection, so they carry no number a yuvak has ever seen.`,
         { sceneIds: withheld }
       )
     );
@@ -425,8 +425,8 @@ export function validateAssignment({ assignments, collection, requireFullCoverag
     errors.push(
       issue(
         'empty-activity',
-        `${gu(emptyKeys.length)} પ્રવૃત્તિમાં એકપણ દ્રશ્ય નથી — ખાલી પ્રવૃત્તિ કદી પૂરી થઈ શકે નહીં.`,
-        `${s(emptyKeys.length, 'activity')} have no scenes — an empty activity can never be completed, and it locks every activity after it.`,
+        `${gu(emptyKeys.length)} પ્રવૃત્તિમાં એકપણ દ્રશ્ય નથી - ખાલી પ્રવૃત્તિ કદી પૂરી થઈ શકે નહીં.`,
+        `${s(emptyKeys.length, 'activity')} have no scenes - an empty activity can never be completed, and it locks every activity after it.`,
         { activityKeys: emptyKeys }
       )
     );

@@ -498,7 +498,7 @@ export function rowToPatch(cells = [], columns = {}) {
     const raw = cellOf(key);
     if (raw === undefined || !raw.trim()) continue;
     const n = toPositiveInteger(raw);
-    if (n === null) fail(key, `${label} must be a positive whole number — “${raw.trim()}” is not.`);
+    if (n === null) fail(key, `${label} must be a positive whole number - “${raw.trim()}” is not.`);
     else patch[key] = n;
   }
 
@@ -536,7 +536,7 @@ export function rowToPatch(cells = [], columns = {}) {
   }
 
   if (fromId && fromUrl && fromId !== fromUrl) {
-    warn('driveUrl', `The Drive file id and the Drive link name different files — the id (${fromId}) was used.`);
+    warn('driveUrl', `The Drive file id and the Drive link name different files - the id (${fromId}) was used.`);
   }
   if (fromId || fromUrl) patch.driveId = fromId || fromUrl;
 
@@ -764,19 +764,19 @@ export function buildExcelPlan({
         conflict.resolution = CONFLICT_RESOLUTIONS.SKIP;
         action = 'skip';
         note('info', 'index', asked === CONFLICT_RESOLUTIONS.UPDATE
-          ? `Skipped — updating ${owner.id} is not possible in ${importMode}.`
-          : `Skipped — ${owner.id} was left as it is.`);
+          ? `Skipped - updating ${owner.id} is not possible in ${importMode}.`
+          : `Skipped - ${owner.id} was left as it is.`);
       }
     } else if (target) {
       action = canUpdate ? 'update' : 'skip';
-      if (!canUpdate) note('info', 'id', `Skipped — ${target.id} already exists and this import creates only.`);
+      if (!canUpdate) note('info', 'id', `Skipped - ${target.id} already exists and this import creates only.`);
     } else {
       action = canCreate ? 'create' : 'skip';
-      if (!canCreate) note('info', 'id', 'Skipped — this row is a new દ્રશ્ય and this import updates only.');
+      if (!canCreate) note('info', 'id', 'Skipped - this row is a new દ્રશ્ય and this import updates only.');
     }
 
     if (action === 'create' && raw.index === undefined) {
-      note('error', 'index', 'A new દ્રશ્ય needs an Index Number (ક્રમ) — leave Item ID blank, but not the number.');
+      note('error', 'index', 'A new દ્રશ્ય needs an Index Number (ક્રમ) - leave Item ID blank, but not the number.');
       action = 'error';
     }
 
@@ -795,7 +795,7 @@ export function buildExcelPlan({
           // દ્રશ્ય ships with an empty title by decision, DARSHAN_DATA_CONTRACT §2), which is
           // how a preview full of real warnings becomes a preview nobody reads.
           const label = field === 'title' ? 'Title (શીર્ષક)' : 'Description (વર્ણન)';
-          if (action === 'create') note('warning', field, `${label} is empty — the new દ્રશ્ય starts without one.`);
+          if (action === 'create') note('warning', field, `${label} is empty - the new દ્રશ્ય starts without one.`);
           else if (currentValue(applyTo, field)) {
             note('warning', field, `${label} is empty, so it was left as it is. Clear it on the દ્રશ્ય's own page instead.`);
           }
@@ -813,7 +813,7 @@ export function buildExcelPlan({
 
     if (action === 'update' && !Object.keys(patch).length) {
       action = 'skip';
-      note('info', '', 'Nothing to change — this row already matches the દ્રશ્ય.');
+      note('info', '', 'Nothing to change - this row already matches the દ્રશ્ય.');
     }
 
     entries.push({
@@ -883,7 +883,7 @@ export function templateRows() {
       // New: Item ID blank. This is the row that says "leave the id empty and give a ક્રમ".
       id: '',
       index: '901',
-      title: 'ઉદાહરણ — આ પંક્તિ કાઢી નાખો',
+      title: 'ઉદાહરણ - આ પંક્તિ કાઢી નાખો',
       caption: 'નવા દ્રશ્યનું વર્ણન અહીં લખો. નવા દ્રશ્ય માટે Item ID ખાલી રાખો.',
       driveId: '1AnOf5K9Ab0kjmOs2gd_arx9CAqYxdK9a',
       driveUrl: '',
@@ -894,7 +894,7 @@ export function templateRows() {
       // Existing: the id is filled in and the cells he does not want to change are empty.
       id: 'darshan-902',
       index: '902',
-      title: 'ઉદાહરણ — હાલના દ્રશ્યનું શીર્ષક બદલવું',
+      title: 'ઉદાહરણ - હાલના દ્રશ્યનું શીર્ષક બદલવું',
       caption: '',
       driveId: '',
       driveUrl: '',
@@ -904,7 +904,7 @@ export function templateRows() {
     {
       id: '',
       index: '903',
-      title: 'ઉદાહરણ — ડ્રાઈવ લિંક વડે',
+      title: 'ઉદાહરણ - ડ્રાઈવ લિંક વડે',
       caption: 'ફાઈલ આઈડીને બદલે આખી ડ્રાઈવ લિંક પણ ચાલે છે.',
       driveId: '',
       driveUrl: 'https://drive.google.com/file/d/1AnOf5K9Ab0kjmOs2gd_arx9CAqYxdK9a/view',
@@ -933,17 +933,17 @@ export const INSTRUCTIONS_FILENAME = 'darshan-instructions.txt';
  */
 export function instructionsText() {
   const columnLines = IMPORTABLE_COLUMNS.map(
-    (c) => `  ${c.en} (${c.gu})${c.required ? '   — required for a new દ્રશ્ય' : ''}`
+    (c) => `  ${c.en} (${c.gu})${c.required ? '   - required for a new દ્રશ્ય' : ''}`
   ).join('\n');
 
-  return `દર્શન — how to fill in this file
+  return `દર્શન - how to fill in this file
 ================================
 
 THE COLUMNS
 ${columnLines}
 
 Column order does not matter: each column is found by its heading, not by its position, and
-either language works. Extra columns of your own are ignored, not rejected — keep them.
+either language works. Extra columns of your own are ignored, not rejected - keep them.
 
 Four more columns appear in an export and are ignored when you upload it back:
 ${EXCEL_COLUMNS.filter((c) => !c.importable).map((c) => `  ${c.en} (${c.gu})`).join('\n')}
@@ -952,8 +952,8 @@ WHICH દ્રશ્ય A ROW MEANS
   · If your file HAS an Item ID column, that column decides:
       - a filled-in Item ID means that દ્રશ્ય,
       - an empty Item ID means a NEW દ્રશ્ય.
-  · If your file has NO Item ID column at all — the સંચાલક's own sheet, with ક્રમ, ફોટો ફાઈલ
-    and દ્રશ્ય-વર્ણન — then the Index Number decides, and a row whose ક્રમ already exists
+  · If your file has NO Item ID column at all - the સંચાલક's own sheet, with ક્રમ, ફોટો ફાઈલ
+    and દ્રશ્ય-વર્ણન - then the Index Number decides, and a row whose ક્રમ already exists
     simply updates that દ્રશ્ય. Nothing extra is needed; upload the sheet as it is.
     One thing to know: in such a file, changing a row's ક્રમ makes that row update a
     different દ્રશ્ય. The preview shows you exactly that before anything is saved.
@@ -969,11 +969,11 @@ INDEX NUMBER AND DISPLAY ORDER ARE NOT THE SAME THING
   · Index Number (ક્રમ) is the number printed inside the artwork. It belongs to the picture.
   · Display Order (ક્રમાંક) is the position the દ્રશ્ય appears in. It is yours to arrange.
   · The number a યુવક actually sees is derived from the order of the published દ્રશ્યો and is
-    not in this file — you cannot set it, and nothing you type here will.
+    not in this file - you cannot set it, and nothing you type here will.
 Both must be positive whole numbers. Gujarati digits (૧૨૩) are fine.
 
 THE PICTURE
-  Give either the Google Drive File ID or the Google Drive URL — not both, unless they name
+  Give either the Google Drive File ID or the Google Drive URL - not both, unless they name
   the same file. If they disagree, the File ID is used and you are told so.
   A share link looks like  https://drive.google.com/file/d/<id>/view
 
@@ -991,10 +991,10 @@ DUPLICATES
   darshan-027" and asked, per row, whether to skip it, update that દ્રશ્ય instead, or cancel
   the whole upload. Skipping is the default.
   (This can only happen in a file that has an Item ID column. Without one, the Index Number
-  is simply which દ્રશ્ય the row is about — see above.)
+  is simply which દ્રશ્ય the row is about - see above.)
 
 BEFORE ANYTHING IS SAVED
-  You always see a preview first — how many rows are new, how many change, how many are
+  You always see a preview first - how many rows are new, how many change, how many are
   skipped and how many have errors, and what each one would change. Nothing is written until
   you confirm it.
 

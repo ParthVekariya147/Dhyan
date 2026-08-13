@@ -43,7 +43,7 @@ export default function SubmitResult({
         <div className="notice notice-warn" role="status">
           <p>તમારી પ્રગતિ ખોવાઈ નથી.</p>
           <p className="notice-sub">
-            નેટ ન હોવાથી હમણાં સાચવી શકાયું નથી. નેટ આવે એટલે આપોઆપ સચવાઈ જશે.
+            નેટ ન હોવાથી હમણાં સચવાયું નથી. નેટ આવે એટલે આપોઆપ સચવાઈ જશે.
           </p>
           <button type="button" className="btn-quiet" onClick={onRetry} disabled={saving}>
             {saving ? 'સાચવાય છે…' : 'ફરી પ્રયત્ન કરો'}
@@ -54,7 +54,7 @@ export default function SubmitResult({
       <nav className="runner-nav runner-nav-single">
         {pendingCount > 0 ? (
           <button type="button" className="btn-gold" onClick={onReview}>
-            બાકી {gu(pendingCount)} દર્શન જુઓ
+            બાકીનાં {gu(pendingCount)} દર્શન કરો
           </button>
         ) : (
           <button type="button" className="btn-gold" onClick={onSkipToRecall}>

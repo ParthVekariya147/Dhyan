@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useScenes } from '../../lib/useScenes';
 /*
@@ -6,7 +6,13 @@ import { useScenes } from '../../lib/useScenes';
   a Gujarati sentence — the identifiers (`level4_locked`, `level4_gate_closed`, …) are told
   apart there, once, so no screen has to guess and no Postgres string can reach a યુવક.
 */
-import { L4_ACTIVITY_STATUS, guLevel4Error, submitAttempt, useLevel4 } from '../../lib/level4';
+import {
+  L4_ACTIVITY_STATUS,
+  guLevel4Error,
+  newClientToken,
+  submitAttempt,
+  useLevel4,
+} from '../../lib/level4';
 /*
   The page's description — text only, and that is worth stating on this screen of all of
   them. shared/domain/journey.js holds sentences; it holds no દ્રશ્ય, no વર્ણન and no way to
@@ -60,8 +66,8 @@ import './level4.css';
  * Previous       /level/4 — the કસોટી list.
  * Excluded       **The image. The title. The વર્ણન. The answer.** Not hidden — absent, and
  *                enforced in three places (see below). Also excluded: any count of what is
- *                missing, any red, any word that reads as a failure, and a 'દર્શન જુઓ' link
- *                in the bar — the honest door is [દર્શન ફરી જુઓ] and there is only one.
+ *                missing, any red, any word that reads as a failure, and a 'દર્શન કરો' link
+ *                in the bar — the honest door is [ફરી દર્શન કરો] and there is only one.
  * Loading        Three dots inside the frame, with the way back to the list still there.
  * Error          A submit that never landed: one Gujarati line, the ticks left on screen,
  *                and 'ફરી મોકલો'. Nothing of his is lost.
@@ -172,6 +178,12 @@ export default function ActivityTestPage() {
   const [outcome, setOutcome] = useState(null);
   /** A submit that never landed, as one Gujarati sentence. Never a code, never red. */
   const [sendError, setSendError] = useState(null);
+  /**
+   * The idempotency key for the answer currently being sent (0025). A ref and not state,
+   * deliberately: it must not cause a render, and it must be readable synchronously by the
+   * second tap that arrives before React has processed the first. See onSubmit().
+   */
+  const tokenRef = useRef(null);
 
   /*
     'હવે પછીની કસોટી' navigates from /level/4/<a> to /level/4/<b> — the same route with a
@@ -230,11 +242,30 @@ export default function ActivityTestPage() {
   const onSubmit = useCallback(async () => {
     setSending(true);
     setSendError(null);
+    /*
+      §31/0025 — the key for THIS answer, minted once and held until the server has accepted it.
+
+      `disabled={sending}` above is a courtesy and is not the guarantee: it does not survive a
+      second tap that lands in the same frame, a `fetch` the browser retries after a lost
+      response, or the યુવક pressing નોંધાવો again because nothing appeared to happen on a weak
+      signal. All three arrive at `level4_submit` carrying this same token, and 0025 records the
+      first and replays it to the rest — so his history says he sat the કસોટી once, because he
+      did.
+
+      Cleared in the success path and NOT in the failure path, which is the whole distinction:
+      a failure means the answer has not been recorded and the next press is still the same
+      submission, while a success means the next press is a new sitting — and 0017 is explicit
+      that he may have one. Two tabs hold two refs and so submit twice; that is correct, because
+      two deliberate presses in two tabs are two attempts, and nothing about them is lost or
+      double-counted (the day's score is counted, not incremented, and the ledger pays once).
+    */
+    if (!tokenRef.current) tokenRef.current = newClientToken();
     try {
       // The only write this screen makes, and it is not ours: src/lib/level4.js owns every
       // RPC on the યુવક side. `level4_submit` re-checks the gate, the lock and the item set
       // server-side — this page's ૧૦૦% is a courtesy, never the authority (§37).
-      setOutcome(await submitAttempt(activityId, [...checked]));
+      setOutcome(await submitAttempt(activityId, [...checked], tokenRef.current));
+      tokenRef.current = null;
       /*
         Re-read rather than patch. The attempt has changed a status — this કસોટી's, and
         possibly the next one's, which has just opened — and the authority on that is the
@@ -318,7 +349,7 @@ export default function ActivityTestPage() {
           <p className="l4-panel-line">{words.line}</p>
           <p className="l4-panel-grow">{words.grow}</p>
           <Link to={`/level/4/${activity.id}/revision`} className="btn-gold btn-inline">
-            દર્શન ફરી જુઓ
+            ફરી દર્શન કરો
           </Link>
         </section>
       </Frame>
@@ -341,7 +372,7 @@ export default function ActivityTestPage() {
         {/* The sentence is `error` itself — src/lib/level4.js has already chosen the words. */}
         <section className="level-empty">
           <p>{error}</p>
-          <button type="button" className="btn-quiet btn-inline" onClick={retry}>ફરી પ્રયાસ કરો</button>
+          <button type="button" className="btn-quiet btn-inline" onClick={retry}>ફરી પ્રયત્ન કરો</button>
         </section>
       </Frame>
     );
@@ -356,7 +387,7 @@ export default function ActivityTestPage() {
     return (
       <Frame>
         <section className="level-empty">
-          <p>આ કસોટી અત્યારે નથી. લેવલ ૪ ની યાદી અહીં છે.</p>
+          <p>આ કસોટી અત્યારે મળતી નથી. લેવલ ૪ ની યાદી અહીં છે.</p>
           <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪</Link>
         </section>
       </Frame>
@@ -399,7 +430,7 @@ export default function ActivityTestPage() {
           <p className="locked-line">
             {previous
               ? `લેવલ ${gu(previous.code)} પૂરું થાય, પછી આ ખૂલશે`
-              : 'આગળની કસોટી પૂરી થાય, પછી આ ખૂલશે'}
+              : 'આ પહેલાંની કસોટી પૂરી થાય, પછી આ ખૂલશે'}
           </p>
           <Link to="/level/4" className="btn-gold btn-inline">લેવલ ૪ ની યાદી</Link>
         </section>
@@ -453,7 +484,8 @@ export default function ActivityTestPage() {
         */}
         {activity.requiredCount > 0 && activity.requiredCount < items.length && (
           <p className="level-note l4-banner">
-            આ કસોટી પૂરી કરવા માટે {gu(activity.requiredCount)} દ્રશ્યો યાદ હોવાં જરૂરી છે.
+            આ કસોટી પૂરી કરવા માટે ઓછામાં ઓછી {gu(activity.requiredCount)} ટિક જરૂરી છે. જે લીલા
+            ખરેખર યાદ આવે એની જ ટિક કરજો.
           </p>
         )}
 
@@ -467,8 +499,8 @@ export default function ActivityTestPage() {
         */}
         {activity.status === L4_ACTIVITY_STATUS.COMPLETED && (
           <p className="level-note l4-banner">
-            આ કસોટી તમે પૂરી કરી લીધી છે. ફરી આપવી હોય તો જેટલી વાર જોઈએ તેટલી વાર આપી શકાય —
-            કોઈ મર્યાદા નથી. પૂરી થયેલી ગણતરી કાયમ તમારી જ રહેશે, ફરી આપો તો પણ.
+            આ કસોટી તમે પૂરી કરી લીધી છે. ફરી આપવી હોય તો જેટલી વાર મન થાય એટલી વાર આપી શકશો -
+            કોઈ મર્યાદા નથી. પૂરી થયેલી કસોટી કાયમ તમારી જ રહેશે, ફરી આપો તો પણ.
           </p>
         )}
       </header>
@@ -554,7 +586,7 @@ export default function ActivityTestPage() {
         ) : (
           <>
             <Link to={`/level/4/${activity.id}/revision`} className="btn-gold btn-inline">
-              દર્શન ફરી જુઓ
+              ફરી દર્શન કરો
             </Link>
             {checked.size > 0 && (
               <button
@@ -647,9 +679,9 @@ const NumberRow = memo(function NumberRow({ id, n, ticked, onToggle }) {
 /**
  * The page frame.
  *
- * The bar carries one link, back to the list — and deliberately *not* 'દર્શન જુઓ'. લેવલ ૩
+ * The bar carries one link, back to the list — and deliberately *not* 'દર્શન કરો'. લેવલ ૩
  * keeps the pictures one tap away because nothing there is being attempted; here an attempt
- * is in progress and the way to the pictures is [દર્શન ફરી જુઓ], which is the same journey
+ * is in progress and the way to the pictures is [ફરી દર્શન કરો], which is the same journey
  * said honestly and counted as revision (§16). Two doors to the same room, one of them
  * unlabelled, would only make the honest one look like a punishment.
  */

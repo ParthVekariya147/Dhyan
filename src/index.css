@@ -134,4 +134,11 @@ footer { text-align: center; padding: 16px 16px 54px; color: #7b6b5a; font-size:
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .card { opacity: 1 !important; transform: none !important; }
   .frame img { transform: none !important; }
+  /* Insurance rather than repair: the fullscreen viewer's shown states ARE its base styles
+     and its entrances are keyframes, so killing the animation above already leaves it
+     correct (see the header of src/modules/darshan/gallery.css). Deliberately narrow —
+     .gv-chrome is NOT listed, because its faded state is an auto-hide mode rather than
+     motion, and forcing it visible would delete the feature. */
+  .gv { opacity: 1 !important; }
+  .gv-desc { opacity: 1 !important; transform: none !important; }
 }

@@ -16,10 +16,9 @@
                                    than the prose around it
      (buttons)    →  --fs-button   from .btn in forms.css, shared with every other page
 
-   The line-height is the Gujarati one and stays that way even while this page's wording is
-   English: body text still renders in --font-gu, and the moment any of these strings goes
-   back to Gujarati the matras need the room. Latin at 1.65 is loose but correct; Gujarati
-   at a Latin 1.4 collides. */
+   The line-height is the Gujarati one, and it was already the Gujarati one while this page
+   was still written in English — which is why translating the page needed nothing here but
+   the deletion of a font-family. Gujarati at a Latin 1.4 collides; the matras need 1.65. */
 .gate-wrap {
   /* Wider than the form pages' 460px, and the video is the reason: this is the one auth
      surface with a 16:9 picture in it, and a wider column means a bigger picture on a
@@ -29,10 +28,6 @@
   --gate-text: var(--fs-body);
   --gate-q: var(--fs-input);
   --gate-line: var(--lh-body);
-
-  /* This page's wording is English — see --font-latin in index.css for why the whole
-     app cannot simply be told to prefer Latin. */
-  font-family: var(--font-latin);
 }
 
 /* `pretty` is what stops a centred two-line greeting from dropping its last word alone

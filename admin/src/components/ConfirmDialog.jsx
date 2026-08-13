@@ -43,8 +43,11 @@ export default function ConfirmDialog({
         <button className="btn btn-quiet" type="button" onClick={onCancel} disabled={busy}>
           {cancelLabel}
         </button>
+        {/* is-busy carries the spinner and blocks the pointer, so a slow publish cannot be
+            fired twice by an impatient second click. `disabled` stays as well: the class is
+            presentation and must not be the only thing preventing the second submit. */}
         <button
-          className={`btn ${danger ? 'btn-danger' : ''}`}
+          className={`btn ${danger ? 'btn-danger' : ''} ${busy ? 'is-busy' : ''}`}
           type="button"
           onClick={onConfirm}
           disabled={busy}

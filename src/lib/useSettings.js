@@ -5,9 +5,11 @@ import {
   APP_SETTINGS_DOC,
   LEVELS_SETTINGS_DOC,
   LEVEL4_GATE_KEY,
+  SLIDESHOW_KEY,
   TICK_WORD_KEY,
   resolveLevel4Gate,
   resolveLevels,
+  resolveSlideshow,
   resolveTickWord,
 } from '../../shared/domain/settings.js';
 import { JOURNEY_SETTINGS_DOC, resolveJourney } from '../../shared/domain/journey.js';
@@ -178,6 +180,48 @@ export function useTickWord() {
   const { settings, loading } = useSettingsRow(APP_SETTINGS_DOC);
   const word = useMemo(() => resolveTickWord(settings?.[TICK_WORD_KEY]), [settings]);
   return { tickWord: loading || !word.show ? '' : word.text, loading };
+}
+
+/**
+ * settings.app.slideshow → how long લેવલ ૨'s fullscreen આપોઆપ holds each દ્રશ્ય, in
+ * milliseconds ready for `setTimeout`.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Where this is called, and why it matters that it is called there
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * **In DarshanFeed, which is mounted once for the whole page — never in GalleryViewer.**
+ *
+ * GalleryViewer is mounted on open and unmounted on close, by design: unmount is what clears
+ * its timers, listeners and preloads. Reading a settings row from inside it would therefore
+ * mean one network request every single time a યુવક tapped a દ્રશ્ય, and the delivery suite
+ * opens and closes the viewer twenty times in a row. Read once per visit to /darshan and
+ * passed down as a prop, opening the gallery a hundred times costs nothing at all.
+ *
+ * That is the same rule the collection itself follows: the viewer receives `items` from the
+ * feed rather than fetching them, so nothing about opening fullscreen re-asks the server a
+ * question it has already answered.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Milliseconds out, seconds stored
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The row holds seconds — the unit the સંચાલક types and the unit the 1–60 bound is written
+ * in — and the conversion happens here, at the one boundary between the setting and the
+ * timer that consumes it. Storing milliseconds would mean a row holding 8000 that somebody
+ * later read as seconds is a two-and-a-quarter-hour slideshow.
+ *
+ * @returns {{ slideshowMs: number, loading: boolean }}
+ *   Never null, never NaN, on the very first paint: resolveSlideshow() falls back to the
+ *   shared six-second default. Unlike `useTickWord` this does **not** blank itself while
+ *   loading, because nothing is rendered from it — it is only read at the moment આપોઆપ is
+ *   started, which a યુવક cannot do in the width of one round trip. `loading` is returned
+ *   for a caller that would rather wait; the feed does not.
+ */
+export function useSlideshow() {
+  const { settings, loading } = useSettingsRow(APP_SETTINGS_DOC);
+  const slideshow = useMemo(() => resolveSlideshow(settings?.[SLIDESHOW_KEY]), [settings]);
+  return { slideshowMs: slideshow.seconds * 1000, loading };
 }
 
 /** Accepts a full YouTube URL or a bare id, since the admin may paste either. */

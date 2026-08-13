@@ -34,11 +34,16 @@ import {
   withDisplayIndex,
 } from '../shared/domain/darshan.js';
 import {
+  DEFAULT_SLIDESHOW,
   DEFAULT_TICK_WORD,
+  SLIDESHOW_MAX_SECONDS,
+  SLIDESHOW_MIN_SECONDS,
   TICK_WORD_MAX,
   resolveLevel4Gate,
+  resolveSlideshow,
   resolveTickWord,
   validateLevel4Gate,
+  validateSlideshow,
   validateTickWord,
 } from '../shared/domain/settings.js';
 import { nextLevelAfter } from '../shared/domain/journey.js';
@@ -531,6 +536,49 @@ group('Drive matching — a filename with no extension against the real folder')
   eq('two files with one name resolve to neither', matchDriveFile(drive, 'Varni(5)').file, null);
   eq('…and say why', matchDriveFile(drive, 'Varni(5)').how, 'ambiguous');
 }
+{
+  /*
+    A THIRD spelling of an already-ambiguous name.
+
+    `Varni (1).png`, `Varni(1).png` and `Varni_(1).png` are three distinct strict keys that
+    all reduce to the one loose key `varni(1)` — the ordinary residue of a folder that has
+    been re-uploaded and renamed a few times. indexDriveFiles() marked the key ambiguous on
+    the second file, then dereferenced that null on the third and threw `Cannot read
+    properties of null (reading 'id')`.
+
+    The cost was the whole feature, not one row: this runs while the folder is being indexed,
+    before any row is planned, so the import screen died with a raw TypeError and no Gujarati
+    sentence for a folder the સંચાલક could see was fine. The assertion is therefore first that
+    it *returns at all*, and only then what it returns.
+  */
+  const drive = indexDriveFiles([
+    { id: 'a', name: 'Varni (1).png' },
+    { id: 'b', name: 'Varni(1).png' },
+    { id: 'c', name: 'Varni_(1).png' },
+  ]);
+  eq('a third spelling of an ambiguous name does not throw', drive.count, 3);
+  eq('…and the loose key stays ambiguous rather than resolving to the last file',
+    matchDriveFile(drive, 'Varni  (1)').how, 'ambiguous');
+  eq('…while each exact spelling still resolves to its own file',
+    matchDriveFile(drive, 'Varni_(1)').file.id, 'c');
+
+  // Six spellings, to prove the guard is not a one-deep patch.
+  const many = indexDriveFiles(
+    ['Varni (1).png', 'Varni(1).png', 'Varni_(1).png', 'Varni-(1).png', 'Varni  (1).png', 'varni.(1).jpg']
+      .map((name, i) => ({ id: `f${i}`, name }))
+  );
+  eq('six spellings of one loose name do not throw either', many.count, 6);
+  eq('…and none of them is guessed at', matchDriveFile(many, 'Varni   (1)').file, null);
+}
+{
+  // The same file listed twice is not an ambiguity — it is one file. The loose branch has
+  // always compared ids for this; the strict branch is what actually decides an exact name.
+  const drive = indexDriveFiles([
+    { id: 'same', name: 'Varni(7).png' },
+    { id: 'same', name: 'Varni(7).png' },
+  ]);
+  eq('one file listed twice still resolves to itself', matchDriveFile(drive, 'Varni(7)').file?.id, 'same');
+}
 
 group('buildImportPlan — preview before write');
 {
@@ -762,6 +810,113 @@ group('validateTickWord — refuses exactly what the resolver would have replace
   }
 }
 
+// ==================================================================== the slideshow
+
+/*
+  `resolveSlideshow()` — how long લેવલ ૨'s fullscreen આપોઆપ holds each દ્રશ્ય.
+
+  Same shape of problem as the લેવલ ૪ gate above and the same reason for testing every branch
+  rather than the happy path: this is `value -> 'slideshow'` out of a jsonb column, and the
+  number it produces is handed straight to `setTimeout`. Two failures matter and neither
+  announces itself —
+
+    * a value that resolves to 0 or NaN makes `setTimeout` fire immediately, so ૧૦૯ દ્રશ્યો
+      flicker past as fast as they decode. That is not a fast slideshow, it is a broken one,
+      and it is what a coercing check would produce from `null`, `''` or `[]`.
+    * a value that resolves to something enormous looks exactly like an આપોઆપ that has hung.
+
+  `settings_slideshow_seconds()` in 0018 mirrors these branch for branch, and the trigger in
+  the same migration refuses on write what this corrects on read. If the two disagree, this
+  one is wrong.
+*/
+group('resolveSlideshow — a settings row that could say anything');
+{
+  const s = (stored) => resolveSlideshow(stored);
+  const D = DEFAULT_SLIDESHOW.seconds;
+
+  eq('nothing configured', s(undefined), { seconds: D });
+  eq('null', s(null), { seconds: D });
+  eq('not an object', s(8), { seconds: D });
+  eq('the ordinary case', s({ seconds: 10 }), { seconds: 10 });
+
+  // Both bounds are inclusive and both are real settings, not edge cases to be nudged off.
+  eq('the floor', s({ seconds: SLIDESHOW_MIN_SECONDS }), { seconds: 1 });
+  eq('the ceiling', s({ seconds: SLIDESHOW_MAX_SECONDS }), { seconds: 60 });
+
+  /*
+    Every one of these would be 0 under `Number()`, and 0 is the flicker. They must reach the
+    default instead — which is what testing with `typeof` buys, and the only reason the
+    resolver is written the way it is.
+  */
+  eq('seconds absent', s({}), { seconds: D });
+  eq('seconds null', s({ seconds: null }), { seconds: D });
+  eq('seconds an empty string', s({ seconds: '' }), { seconds: D });
+  eq('seconds a numeric string', s({ seconds: '10' }), { seconds: D });
+  eq('seconds an array', s({ seconds: [] }), { seconds: D });
+  eq('seconds a boolean', s({ seconds: true }), { seconds: D });
+
+  // NaN survives Math.min and Math.max unchanged, so a clamp alone would let it through to
+  // setTimeout — which fires immediately. Refused before either clamp sees it.
+  eq('seconds NaN', s({ seconds: NaN }), { seconds: D });
+  eq('seconds Infinity', s({ seconds: Infinity }), { seconds: D });
+  eq('seconds -Infinity', s({ seconds: -Infinity }), { seconds: D });
+
+  // Out of range is clamped, not defaulted: a સંચાલક who wrote 0 was asking for "as fast as
+  // possible", and the fastest this is allowed to go is the honest answer to that.
+  eq('zero clamps up to the floor', s({ seconds: 0 }), { seconds: 1 });
+  eq('negative clamps up to the floor', s({ seconds: -30 }), { seconds: 1 });
+  eq('above the ceiling clamps down', s({ seconds: 600 }), { seconds: 60 });
+
+  // Rounded, not floored — 1.6s is nearer 2 than 1, and nothing here is safer either way.
+  eq('fractional rounds', s({ seconds: 8.4 }), { seconds: 8 });
+  eq('fractional rounds up', s({ seconds: 8.6 }), { seconds: 9 });
+  // …and rounding must not be able to land outside the bound it was clamped into.
+  eq('0.4 rounds to 0 and is then clamped to the floor', s({ seconds: 0.4 }), { seconds: 1 });
+  eq('60.4 rounds to 60', s({ seconds: 60.4 }), { seconds: 60 });
+
+  /*
+    The invariant that keeps the panel's field and the યુવક's dwell the same number: anything
+    validateSlideshow() accepts, resolveSlideshow() must return unchanged. If these ever
+    diverge, a સંચાલક is told "Saved" and the slideshow runs at a speed he did not choose.
+  */
+  let agree = true;
+  for (let n = SLIDESHOW_MIN_SECONDS; n <= SLIDESHOW_MAX_SECONDS; n++) {
+    if (!validateSlideshow({ seconds: n }).ok) agree = false;
+    if (resolveSlideshow({ seconds: n }).seconds !== n) agree = false;
+  }
+  eq('every accepted value survives the resolver untouched', agree, true);
+}
+
+group('validateSlideshow — refusing what the resolver would quietly correct');
+{
+  const v = (x) => validateSlideshow(x).ok;
+
+  eq('the ordinary case', v({ seconds: 8 }), true);
+  eq('the floor', v({ seconds: 1 }), true);
+  eq('the ceiling', v({ seconds: 60 }), true);
+
+  eq('missing', v(null), false);
+  eq('not an object', v(8), false);
+  eq('seconds absent', v({}), false);
+  // Refused rather than coerced, matching the resolver. A validator that accepted '8' while
+  // the resolver replaced it with the default is how a saved value silently becomes another.
+  eq('a numeric string', v({ seconds: '8' }), false);
+  eq('NaN', v({ seconds: NaN }), false);
+  eq('Infinity', v({ seconds: Infinity }), false);
+  eq('fractional', v({ seconds: 8.5 }), false);
+
+  // The bounds the brief names, refused on the wrong side of each.
+  eq('zero', v({ seconds: 0 }), false);
+  eq('negative', v({ seconds: -1 }), false);
+  eq('just over the ceiling', v({ seconds: 61 }), false);
+  eq('far over the ceiling', v({ seconds: 600 }), false);
+
+  // The message names the bound rather than saying only "invalid" — it is what the સંચાલક
+  // reads at the moment he is wrong about it.
+  const msg = validateSlideshow({ seconds: 90 }).gu;
+  eq('the refusal names both ends', msg.includes('1') && msg.includes('60'), true);
+}
+
 // ==================================================================== the way onward
 
 /*
@@ -872,41 +1027,32 @@ group('resolveEntryState / resolveEntryRoute / guardRoute — §10');
     ENTRY_ROUTE.LOGIN
   );
 
-  // §5/§6 — REGISTER → AUTO LOGIN → LEVEL ૧, never via the મુખપૃષ્ઠ.
-  eq('a new યુવક goes straight to લેવલ ૧', resolveEntryRoute(NEW), ENTRY_ROUTE.LEVEL1);
-
-  // §7/§25 — a returning યુવક resumes; the મુખપૃષ્ઠ is the fallback, not the rule.
-  eq('with nothing recorded he resumes at the મુખપૃષ્ઠ', resolveEntryRoute(GATED), ENTRY_ROUTE.HOME);
-  eq(
-    'he resumes at the level he last stood at',
-    resolveEntryRoute({ ...GATED, lastRoute: '/level/4' }),
-    '/level/4'
-  );
-  eq(
-    'a finisher resumes too',
-    resolveEntryRoute({ ...DONE, lastRoute: '/level/3' }),
-    '/level/3'
-  );
+  // §5 — REGISTER → AUTO LOGIN → મુખપૃષ્ઠ. This used to assert લેવલ ૧: a new યુવક was put
+  // on the વિડિયો and held there. He now lands on the મુખપૃષ્ઠ and chooses for himself.
+  eq('a new યુવક lands on the મુખપૃષ્ઠ', resolveEntryRoute(NEW), ENTRY_ROUTE.HOME);
 
   /*
-    A resume is a front door and nothing deeper. An attempt is something a યુવક sits down
-    to on purpose — since 0016 he may only have one — so being dropped back into one by
-    merely opening the app would be the routing making that decision for him.
+    The resume of §7/§25 is gone: signing in lands on the મુખપૃષ્ઠ, whoever he is.
+
+    This block used to assert the opposite — that a returning યુવક was put back at the last
+    front door recorded on the device, with the મુખપૃષ્ઠ only as the fallback. Every
+    signed-in state now gives the same answer, so that is what is asserted, including for a
+    `lastRoute` that is still passed in: a caller that has not been updated cannot resurrect
+    the old behaviour by accident.
   */
+  eq('a climber lands on the મુખપૃષ્ઠ', resolveEntryRoute(GATED), ENTRY_ROUTE.HOME);
+  eq('a finisher lands on the મુખપૃષ્ઠ', resolveEntryRoute(DONE), ENTRY_ROUTE.HOME);
+  for (const lastRoute of ['/level/4', '/level/3', '/darshan', '/welcome', '/nonsense', null]) {
+    eq(
+      `a recorded '${lastRoute}' no longer changes the answer`,
+      resolveEntryRoute({ ...GATED, lastRoute }),
+      ENTRY_ROUTE.HOME
+    );
+  }
   eq(
-    'a કસોટી is not a resume',
-    resolveEntryRoute({ ...GATED, lastRoute: '/level/4/a1' }),
-    ENTRY_ROUTE.HOME
-  );
-  eq(
-    'a stale or hand-edited value is not a resume',
-    resolveEntryRoute({ ...GATED, lastRoute: '/nonsense' }),
-    ENTRY_ROUTE.HOME
-  );
-  eq(
-    'a new યુવક is never resumed anywhere — લેવલ ૧ first',
+    'and a new યુવક is no exception',
     resolveEntryRoute({ ...NEW, lastRoute: '/level/4' }),
-    ENTRY_ROUTE.LEVEL1
+    ENTRY_ROUTE.HOME
   );
 
   // ---- §11 — knowing a URL has never been permission ------------------------
@@ -916,11 +1062,18 @@ group('resolveEntryState / resolveEntryRoute / guardRoute — §10');
     eq(`${path} sends him to લોગિન`, guardRoute({ path, ...NOBODY }).to, ENTRY_ROUTE.LOGIN);
   }
 
-  // ---- the pre-existing business rule, preserved exactly (§7, §23) ----------
-  eq('a યુવક who has not passed the ગેટ is held at લેવલ ૧',
-    guardRoute({ path: '/level/4', ...NEW }).to, ENTRY_ROUTE.LEVEL1);
-  eq('…but લેવલ ૧ itself is his to see',
+  /* ---- the પ્રવેશદ્વાર is no longer a wall --------------------------------
+     This block used to assert the opposite — that a યુવક without a gate stamp was
+     refused /level/4 and redirected to લેવલ ૧. Routing no longer holds him anywhere:
+     he lands on the મુખપૃષ્ઠ and goes where he likes. What still stops him reaching
+     લેવલ ૪'s કસોટી is the level's own gate and `level4_submit`'s server-side re-check
+     (§37) — never this function, which has never granted anything. */
+  eq('a યુવક who has not passed the ગેટ is not redirected',
+    guardRoute({ path: '/level/4', ...NEW }).allow, true);
+  eq('…and લેવલ ૧ is still his to see',
     guardRoute({ path: '/welcome', ...NEW }).allow, true);
+  eq('…and so is the મુખપૃષ્ઠ, which is where he now starts',
+    guardRoute({ path: ENTRY_ROUTE.HOME, ...NEW }).allow, true);
 
   // ---- §12 — a refresh must land where it started ---------------------------
   for (const path of ['/welcome', '/darshan', '/level/3', '/level/4', '/level/4/a1']) {

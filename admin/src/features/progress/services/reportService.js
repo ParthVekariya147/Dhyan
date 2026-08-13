@@ -91,11 +91,16 @@ export async function rememberedAtLeast({
   let scanned = 0;
   let offset = 0;
   let truncated = false;
+  // The highest count seen, whether or not it cleared the bar. An empty list is otherwise
+  // indistinguishable from a broken query — see the `best` note in the return value.
+  let best = 0;
 
   for (;;) {
     let q = supabase
       .from(LEARNING)
-      .select(`user_id, remembered_item_ids, total_at_submit, current_stage, updated_at, ${WITH_PROFILE}`);
+      // mastered_item_ids is read for the reason set out above the union below: a દ્રશ્ય a
+      // યુવક has mastered is one he has certainly remembered, and the list is wrong without it.
+      .select(`user_id, remembered_item_ids, mastered_item_ids, total_at_submit, current_stage, updated_at, ${WITH_PROFILE}`);
     // Filtering an embedded column narrows the top-level rows because the embed is
     // `!inner` — one query, and the browser never receives a મંડળ it did not ask for.
     if (subZoneId) q = q.eq('profiles.sub_zone_id', subZoneId);
@@ -113,7 +118,26 @@ export async function rememberedAtLeast({
     scanned += batch.length;
 
     for (const r of batch) {
-      const remembered = Array.isArray(r.remembered_item_ids) ? r.remembered_item_ids.length : 0;
+      /**
+       * Lifetime remembered, not the last round's tally — and this is a fix, not a
+       * refinement.
+       *
+       * `remembered_item_ids` is overwritten by every submit() with the selection made in
+       * *that* round (src/lib/learning.jsx). complete() then folds those ids into
+       * `mastered_item_ids` and leaves `remembered_item_ids` alone, so the two together are
+       * the honest record and either one alone is not. Counting only the former meant a
+       * યુવક who had mastered sixty દ્રશ્યો and then opened a fresh round — ticking eight so
+       * far — counted as eight, and dropped off a list he had plainly earned. The list a
+       * સંચાલક hands to a saint would have been shortest immediately after the round that
+       * did the most work.
+       *
+       * A union rather than a sum: the same id is in both arrays for anything mastered, so
+       * adding the lengths would double-count every one of them.
+       */
+      const rememberedIds = Array.isArray(r.remembered_item_ids) ? r.remembered_item_ids : [];
+      const masteredIds = Array.isArray(r.mastered_item_ids) ? r.mastered_item_ids : [];
+      const remembered = new Set([...rememberedIds, ...masteredIds]).size;
+      if (remembered > best) best = remembered;
       if (remembered < threshold) continue;
       rows.push({
         id: r.user_id,
@@ -143,7 +167,17 @@ export async function rememberedAtLeast({
   // name so the file is stable between runs.
   rows.sort((a, b) => b.remembered - a.remembered || a.name.localeCompare(b.name, 'gu'));
 
-  return { rows, threshold, scanned, truncated, cap };
+  /**
+   * `best` and `scanned` exist so an empty list can say *why* it is empty.
+   *
+   * "Nobody is on this list yet" is the same sentence whether the scan read two thousand
+   * યુવકો and the leader is on forty-nine, or read zero rows because the policy withheld
+   * them — an RLS read denial returns no rows and no error (admin/src/lib/errors.js). One
+   * of those is the report working and the other is the report lying, and the સંચાલક could
+   * not tell them apart. Reporting the highest count seen, next to how many rows produced
+   * it, distinguishes the two without anybody opening a console.
+   */
+  return { rows, threshold, scanned, truncated, cap, best };
 }
 
 /**

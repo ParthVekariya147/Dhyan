@@ -470,11 +470,45 @@ export function indexDriveFiles(files = []) {
     if (!f?.id || !f?.name) continue;
     const k = fileKey(f.name);
     if (!k) continue;
-    if (strict.has(k)) dupes.add(k);
+    /*
+      Two entries carrying the same id are one file listed twice, not an ambiguity — and the
+      loose branch below has always said so (`loose.get(l).id !== f.id`). The strict branch did
+      not, so a listing that repeated an entry poisoned that name and the દ્રશ્ય was reported as
+      having no Drive file at all. Since `strict` is what decides an *exact* name, that is the
+      branch it mattered most in. Same rule in both places now.
+    */
+    const prev = strict.get(k);
+    if (prev && prev.id !== f.id) dupes.add(k);
     strict.set(k, f);
+
+    /*
+      `null` in this map is a value, not an absence — it is how a loose key already known to
+      be ambiguous is recorded — so the third file that lands on one key must be tested for
+      it before its predecessor is dereferenced.
+
+      This read `loose.get(l).id !== f.id`, which threw `Cannot read properties of null` the
+      moment a *third* name reduced to a key two earlier names had already made ambiguous.
+      That is not an exotic folder: `Varni (1).png`, `Varni(1).png` and `Varni_(1).png` all
+      reduce to `varni(1)`, and a folder collects spellings like that from re-uploads and
+      renames. The failure was also the worst available shape — a raw TypeError out of a pure
+      domain module, thrown while *indexing the folder*, so it took down the whole import
+      screen before a single row was planned. Not one દ્રશ્ય mis-matched: no import at all, and
+      no Gujarati sentence anywhere to say why, for a folder the સંચાલક could see was fine.
+
+      The three outcomes are unchanged, and the ambiguity rule this function exists for is
+      unchanged: first file wins the key, a second *different* file poisons it to null, and a
+      poisoned key stays poisoned however many more arrive. matchDriveFile() already reads
+      that null as `how: 'ambiguous'` and reports it.
+    */
     const l = looseKey(f.name);
-    if (loose.has(l) && loose.get(l).id !== f.id) loose.set(l, null); // ambiguous → unusable
-    else if (!loose.has(l)) loose.set(l, f);
+    if (!loose.has(l)) {
+      loose.set(l, f);
+    } else {
+      const prev = loose.get(l);
+      // `prev === null` is already-ambiguous: leave it. Same id is the same file listed
+      // twice, which is not an ambiguity — the strict branch above says so too.
+      if (prev && prev.id !== f.id) loose.set(l, null);
+    }
   }
   for (const k of dupes) strict.set(k, null);
   return { strict, loose, count: files.length };
@@ -604,7 +638,7 @@ export function buildImportPlan({
     const item = byIndex.get(row.n) || byId.get(e.id) || null;
     if (!item) {
       e.status = 'no-scene';
-      e.notes.push(`There is no Darshan numbered ${row.n}. Nothing was created — add it from the Darshan list first.`);
+      e.notes.push(`There is no Darshan numbered ${row.n}. Nothing was created - add it from the Darshan list first.`);
       entries.push(e);
       continue;
     }

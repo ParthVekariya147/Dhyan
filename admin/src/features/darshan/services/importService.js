@@ -102,7 +102,7 @@ export async function listDriveFolder(folderId) {
   if (!type.includes('application/json')) {
     throw new Error(
       res.status === 404 || res.status === 200
-        ? 'The Drive listing service is not running. It only exists on the deployed site — locally, run `netlify dev` instead of `npm run dev:admin`.'
+        ? 'The Drive listing service is not running. It only exists on the deployed site - locally, run `netlify dev` instead of `npm run dev:admin`.'
         : `The Drive listing service replied unexpectedly (${res.status}).`
     );
   }
@@ -160,7 +160,7 @@ export async function readImportFile(file) {
   if (text.startsWith(ZIP_MAGIC)) {
     throw new Error(
       `“${name}” is an Excel workbook that has been renamed rather than saved as text. ` +
-      'Rename it back to .xlsx and choose it again — workbooks are read directly now.'
+      'Rename it back to .xlsx and choose it again - workbooks are read directly now.'
     );
   }
   return { kind: 'text', rows: null, text, name };

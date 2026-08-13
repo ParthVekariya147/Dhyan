@@ -113,8 +113,50 @@ console.log('\n[4] યુવક bundle budget');
  * whole app now measures ~495 KB and the old ceiling could no longer fail for any reason.
  * A budget nothing can breach is not a budget, so it is re-set against the new measured
  * total plus a margin for growth.
+ *
+ * Re-set again on 2026-08-12, for the same reason in the other direction: the app had
+ * grown past 620 KB and the check was failing on every build, which is just as useless as
+ * one that can never fail — a guard nobody can get green stops being read.
+ *
+ * Measured that day: **647.7 KB** over 27 chunks, of which **426.5 KB is vendor** (React
+ * 224 KB + Supabase 204 KB, both unchanged since the last re-set) and **221.3 KB is app
+ * code**, up from roughly 67 KB. The growth is entirely લેવલ ૪ and what came with it —
+ * Level4Page, ActivityTestPage, the level4 domain chunk and the progress/settings work —
+ * i.e. a whole learning level that did not exist when 620 KB was written. Nothing about
+ * the split regressed: the entry chunk is still app-code-only and both vendor SDKs are
+ * still their own cacheable chunks, which the three checks below this one assert
+ * independently of the total.
+ *
+ * The margin is deliberately tighter than last time (~11%, not ~25%): the app is past the
+ * stage of replacing its whole backend, so a jump of 70 KB now is worth a look rather than
+ * worth absorbing silently.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Re-set again on 2026-08-13, to 760 KB
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The 11% margin above did its job: the check went red on a 2 KB overage rather than
+ * letting a day's growth through unnoticed, which is exactly the "worth a look" it was
+ * tightened for. Looked at, and the growth is accounted for.
+ *
+ * Measured this day: **721.8 KB**, of which **427 KB is vendor** (React 224 KB + Supabase
+ * 208 KB — still unchanged, still their own cacheable chunks) and **294 KB is app code**,
+ * up from 221.3 KB. The 73 KB is four features that did not exist when 720 KB was written:
+ * ક્રમાંક, મારી પ્રગતિ, the points work, and પાસવર્ડ રીકવરી — the last of which is 7.8 KB
+ * across two lazy chunks and is the smallest of the four.
+ *
+ * Nothing about the split regressed, and one thing improved: the entry chunk measures 58 KB
+ * against its own 60 KB limit, down from the 122 KB it reached earlier in the day, because
+ * content/darshan.json is off the eager path. The recovery flow had to be split across two
+ * modules to keep it there — shared/domain/recovery-routes.js exists so that src/lib/auth.jsx,
+ * which is eager, can address the mail without pulling every Gujarati sentence of the two
+ * recovery screens into the entry bundle. That is the kind of thing this check catches.
+ *
+ * The margin goes back to ~5%. Tighter still than last time, and deliberately so: at this
+ * size the vendor half is fixed and every further KB is app code, so the next re-set should
+ * have to argue for itself rather than ride on headroom left over from this one.
  */
-const BUDGET = 620 * 1024;
+const BUDGET = 760 * 1024;
 const total = yuvak.reduce((s, f) => s + f.size, 0);
 console.log(`      યુવક js+css: ${kb(total)}   ·   સંચાલક js+css: ${kb(admin.reduce((s, f) => s + f.size, 0))}`);
 check(`યુવક bundle within ${kb(BUDGET)}`, total <= BUDGET, kb(total));
@@ -188,6 +230,37 @@ for (const [label, pattern] of SECRET_PATTERNS) {
   const hit = allBody.match(pattern);
   // Never print the match itself — this output goes to CI logs.
   check(`no ${label} in either bundle`, !hit, hit ? `matched ${hit[0].length} chars` : '');
+}
+
+console.log('\n[7] no founding સંચાલક mobile number in any browser bundle');
+/*
+  The three §3 numbers, and this check is why they are worth restating here rather than
+  imported.
+
+  They used to live in shared/domain/constants.js, which `src/lib/constants.js` re-exports
+  wholesale, so `src/lib/auth.jsx` pulled them in to decide whether to draw one link — and the
+  deployed site served all three to every visitor in a chunk `index.html` preloads. They have
+  moved to shared/domain/admin-bootstrap.js, which no client module imports;
+  `public.effective_role()` answers that question now.
+
+  Importing the list to test for it would defeat the test: this file would then be a module
+  that reads it, and a future bundler change that pulled scripts/ into a build would sail past
+  a check written in terms of its own import. Literals here mean the assertion is about the
+  *bytes on the CDN* and nothing else.
+
+  Nor is this covered by tree-shaking. Rolldown would probably drop an unused export from a
+  module imported for its other symbols — probably is not a guarantee, and it would regress
+  silently the first time somebody wrote `import * as C from './constants'`. This is what makes
+  it a guarantee.
+
+  If this fails: something under src/ or admin/src/ has imported admin-bootstrap.js, directly
+  or through a re-export. That import is the defect. Do not add the number to an allowlist.
+*/
+const FOUNDING_MOBILES = ['9601269715', '9601269009', '9925842081'];
+for (const [i, number] of FOUNDING_MOBILES.entries()) {
+  // Reported by position, never by value: this output goes to CI logs, and a check that
+  // prints the numbers it exists to keep private has defeated itself.
+  check(`founding number ${i + 1} of ${FOUNDING_MOBILES.length} is absent`, !allBody.includes(number));
 }
 
 console.log(`\n${failures === 0 ? 'SEPARATION HOLDS' : failures + ' CHECK(S) FAILED'}`);

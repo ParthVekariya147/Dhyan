@@ -39,13 +39,7 @@ export function useLevelSpec(levelId) {
   that had to load React to check which level comes after લેવલ ૪ would not get written.
 */
 
-/**
- * The English half of a page's description, where one exists (લેવલ ૧ only — see the note in
- * shared/domain/journey.js). Falls back to the Gujarati rather than to nothing: a sentence
- * in the wrong language is still an answer to "what am I meant to do here", and an empty
- * page is not.
- */
-export function inEnglish(spec) {
-  if (!spec) return null;
-  return spec.en ? { ...spec, ...spec.en } : spec;
-}
+/*
+  `inEnglish()` stood here while લેવલ ૧ was written in English. Every page is Gujarati now
+  (src/pages/EntryGate.jsx), so there is one wording per page and nothing to swap.
+*/

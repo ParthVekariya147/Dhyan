@@ -25,7 +25,7 @@ export const STAGE_LABEL_EN = {
   [STAGE.COMPLETED]: 'Complete',
 };
 
-export const stageLabelEn = (s) => STAGE_LABEL_EN[s] || s || '—';
+export const stageLabelEn = (s) => STAGE_LABEL_EN[s] || s || '-';
 
 /** Mirrors SUBZONES in shared/domain/constants.js, keyed by id. */
 export const SUB_ZONE_LABEL_EN = {
@@ -35,11 +35,11 @@ export const SUB_ZONE_LABEL_EN = {
 };
 
 /** Drop-in replacement for subZoneName() from shared/domain/constants.js. */
-export const subZoneNameEn = (id) => SUB_ZONE_LABEL_EN[id] || id || '—';
+export const subZoneNameEn = (id) => SUB_ZONE_LABEL_EN[id] || id || '-';
 
 /** Mirrors ZONES in shared/domain/constants.js, keyed by id. */
 export const ZONE_LABEL_EN = {
   surat: 'Surat',
 };
 
-export const zoneNameEn = (id) => ZONE_LABEL_EN[id] || id || '—';
+export const zoneNameEn = (id) => ZONE_LABEL_EN[id] || id || '-';

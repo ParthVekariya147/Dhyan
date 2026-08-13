@@ -58,11 +58,11 @@ export default function MemoryRecall({ indexes, onFinish }) {
 
       <div className="recall-card">
         <div className="recall-num">{gu(indexes[cur])}</div>
-        <p className="recall-ask">આ ક્રમનું દર્શન મનમાં લાવો</p>
+        <p className="recall-ask">આ ક્રમની લીલા મનમાં લાવો</p>
       </div>
 
       <p className="runner-hint recall-hint">
-        ચિત્ર અને એનું વર્ણન શાંતિથી સ્મરણમાં લાવો, પછી આગળ વધો.
+        ચિત્ર અને એનું વર્ણન શાંતિથી મનમાં લાવો, પછી આગળ વધો.
       </p>
 
       <nav className="runner-nav">

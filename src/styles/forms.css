@@ -30,15 +30,44 @@
 
 /* One container for all three screens. `width: 100%` before `max-width` so that at
    320px it is the screen minus the padding, and at 460px+ it stops growing and
-   centres — the same column either way, never a narrow strip on a phone. */
+   centres — the same column either way, never a narrow strip on a phone.
+
+   ────────────────────────────────────────────────────────────────────────────
+   Centred down the page as well as across it
+   ────────────────────────────────────────────────────────────────────────────
+
+   This column was only ever centred horizontally, which is right on a phone — the form is
+   about as tall as the screen, so it fills it — and wrong on anything taller. On a desktop
+   the card sat against the top edge with half a screen of empty ink beneath it: not a
+   layout, just a phone screen printed at the top of a monitor.
+
+   `100vh`, deliberately NOT `100dvh`, and this is the one decision in the block worth
+   keeping. `dvh` tracks the *dynamic* viewport, which is exactly what the on-screen
+   keyboard changes — so a card centred in `dvh` would re-centre the moment a યુવક focused
+   the મોબાઈલ નંબર field, moving the form under the finger that is already travelling
+   toward the next control. That is the failure this file's header sets out to prevent,
+   arriving from the height axis instead of the width one. `vh` is measured against the
+   layout viewport, which the keyboard leaves alone. (.spinner-page below uses `dvh` freely
+   — nothing there has a keyboard.) */
 .auth-wrap {
   width: 100%;
   max-width: var(--page-max);
+  min-height: 100vh;
+  display: flex;
   margin: 0 auto;
   padding: var(--page-top) var(--page-pad) var(--page-bottom);
 }
 
+/* `margin: auto` rather than `justify-content: center` on the parent, and the difference
+   only shows in the case that matters: નોંધણી on a small phone, where the card is TALLER
+   than the viewport. Centred by `justify-content`, the overflow escapes past both edges and
+   the top of the card — its heading, and the first field — becomes unreachable, because a
+   scroll container will not scroll to content above its start. Auto margins simply collapse
+   to zero when there is no free space, so the card falls back to the top of the page and
+   scrolls normally. Centred when there is room, unchanged when there is not. */
 .auth-card {
+  width: 100%;
+  margin: auto;
   background: var(--color-panel);
   border-radius: var(--radius-card);
   padding: var(--sp-5) var(--sp-4) var(--sp-6);
@@ -292,6 +321,55 @@
 /* A notice that carries its own way forward — §14's નોંધણી → લોગિન fallback. The button
    is closed up against the message it belongs to rather than floating below it. */
 .notice .btn { margin-top: var(--sp-3); }
+
+/* ---- password recovery ----------------------------------------------------- */
+
+/*
+   The two things to do after a reset mail is sent (§5).
+
+   A list rather than a paragraph because they are steps and he is about to leave the app to
+   perform them — read on the way out of the tab, not studied. Markers are removed and the
+   indent is rebuilt from the token scale so the text block lines up with .auth-sub above it;
+   a default disc would hang outside the card's padding on a 320px screen.
+
+   No max-height and no scroll: it holds two lines and must never become a scrolling region
+   inside a card that is already the page.
+*/
+.recovery-steps {
+  margin: var(--sp-4) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: #cbbba3;
+}
+.recovery-steps li {
+  position: relative;
+  padding-left: var(--sp-5);
+  margin-top: var(--sp-2);
+}
+.recovery-steps li::before {
+  content: '·';
+  position: absolute;
+  left: var(--sp-2);
+  color: var(--color-gold);
+}
+
+/*
+   A <Link> wearing .btn.
+
+   .btn is written for <button>, which is display:block and centres its own text; an <a> is
+   inline and would collapse to the width of its label and sit left. These four lines are
+   what make "લોગિન પર પાછા જાઓ" the same object as the button above it rather than a link
+   that happens to be nearby — the recovery screens use both in one column and any
+   difference in height or alignment between them reads as a rendering fault.
+*/
+a.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 
 /* §13 — must be stated plainly on the registration page. Same size as every other hint
    in the app; it used to be 12.8px, a size nothing else used. */

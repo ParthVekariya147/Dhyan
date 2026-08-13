@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { fetchAllUsers, listUsers, searchUsers } from '../services/userService';
 import DataTable, { Pager } from '../../../components/DataTable';
 import { AsyncBlock, TableSkeleton } from '../../../components/StateBlocks';
-import { PageHeader } from '../../../components/StatCard';
+import { PageHeader, StatusBadge } from '../../../components/StatCard';
 import { dateGu } from '../../../lib/format';
 import { dataError } from '../../../lib/errors';
 import { exportCsv, istDate, istRange, reportFilename } from '../../../lib/export';
@@ -12,7 +12,7 @@ import { SUBZONES, todayIST } from '../../../../../shared/domain/constants.js';
 import { SUB_ZONE_LABEL_EN, subZoneNameEn } from '../../../lib/labels';
 
 /**
- * §16, §17, §18 — the યુવક list. §11 — its date-range filter and its Excel export.
+ * §14, §16, §17, §18 — the યુવક list. §11 — its date-range filter and its Excel export.
  *
  * Paginated with a bounded `range()`, filtered and searched in the database. There is no
  * point at which this page holds more than one page of rows, which is the whole
@@ -28,6 +28,12 @@ import { SUB_ZONE_LABEL_EN, subZoneNameEn } from '../../../lib/labels';
  * holding only the twenty rows that happened to be on screen would be a report that lies.
  * fetchAllUsers() pages through the same predicate this table uses, capped, and says so
  * when the cap is reached.
+ *
+ * Layout: search and filters, then the export row, then the table. Below 900px DataTable
+ * turns every row into a card of label/value pairs, so each column here carries a real
+ * `label` — the label is the only thing a phone has to say what a value is. The name is
+ * additionally a link, because tapping the row is a mouse affordance and a keyboard has no
+ * row to tap (§56).
  *
  * What is deliberately absent
  * ---------------------------
@@ -45,12 +51,13 @@ import { SUB_ZONE_LABEL_EN, subZoneNameEn } from '../../../lib/labels';
  * they must not read as ACTIVE.
  *
  * DISABLED is grey rather than red: it is an administrative state, not a verdict on the
- * યુવક.
+ * યુવક. The tone only repeats what the word says, which is what keeps the badge readable
+ * to someone who cannot separate the tints (§43).
  */
 const ACCOUNT_STATUS = {
-  ACTIVE: { label: 'Active', tone: 'pill-ok' },
-  SUSPENDED: { label: 'Suspended', tone: 'pill-warn' },
-  DISABLED: { label: 'Disabled', tone: 'pill-off' },
+  ACTIVE: { label: 'Active', tone: 'ok' },
+  SUSPENDED: { label: 'Suspended', tone: 'warn' },
+  DISABLED: { label: 'Disabled', tone: 'off' },
 };
 
 /**
@@ -151,7 +158,7 @@ export default function UsersPage() {
         res.truncated
           ? {
               tone: 'notice-warn',
-              text: `Exported the first ${written} users. More match this filter than one file holds (limit ${res.cap}) — narrow the subzone or the date range and export again.`,
+              text: `Exported the first ${written} users. More match this filter than one file holds (limit ${res.cap}) - narrow the subzone or the date range and export again.`,
             }
           : { tone: 'notice-ok', text: `Exported ${written} users.` }
       );
@@ -173,6 +180,20 @@ export default function UsersPage() {
     setPage(0);
   };
 
+  // Whether anything at all is narrowing the list. Drives the empty state's offer: a page
+  // that says "nothing here" and hands back no way out of the filter that emptied it makes
+  // the સંચાલક hunt for which of four controls did it (§35).
+  const filtered = searching || !!subZoneId || !!from || !!to;
+
+  const clearAll = () => {
+    reset();
+    setTerm('');
+    setApplied('');
+    setSubZoneId('');
+    setFrom('');
+    setTo('');
+  };
+
   // The empty message names the સબઝોન filter when one is set, so nothing found is not read
   // as "nobody registered" when it means "nobody in Varachha matches". The date range is
   // named for exactly the same reason — an empty July must not read as an empty database.
@@ -185,25 +206,42 @@ export default function UsersPage() {
       : `No user registered${inSubZone} yet.`;
 
   const columns = [
-    { key: 'smk', label: 'SMK', render: (u) => <span className="mono">{u.smk || '—'}</span> },
-    { key: 'name', label: 'Name' },
-    { key: 'mobile', label: 'Mobile', render: (u) => <span className="mono">{u.mobile || '—'}</span> },
+    { key: 'smk', label: 'SMK', render: (u) => <span className="mono">{u.smk || '-'}</span> },
+    {
+      key: 'name',
+      label: 'Name',
+      /*
+        The row is clickable for a mouse; this is the same destination for a keyboard and
+        for a screen reader, which have no row to click. stopPropagation only so the two
+        do not both fire — they navigate to the same place, but one press should be one
+        navigation.
+      */
+      render: (u) => (
+        <Link to={`/users/${u.id}`} onClick={(e) => e.stopPropagation()}>
+          {u.name || '-'}
+        </Link>
+      ),
+    },
+    { key: 'mobile', label: 'Mobile', render: (u) => <span className="mono">{u.mobile || '-'}</span> },
     { key: 'email', label: 'Email' },
     { key: 'subZoneId', label: 'Subzone', render: (u) => subZoneNameEn(u.subZoneId) },
     { key: 'createdAt', label: 'Registered', render: (u) => dateGu(u.createdAt) },
     {
       key: 'status',
       label: 'Status',
-      // Two facts, two pills. The account's lifecycle came from the column that records
+      // Two facts, two badges. The account's lifecycle came from the column that records
       // it; "Entry gate pending" is §5's honour-system answer and is shown beside it
       // rather than instead of it, which is what made a SUSPENDED yuvak look Active.
       // Pending is a step not yet taken, never a mark against him.
       render: (u) => {
-        const s = ACCOUNT_STATUS[u.status] || { label: u.status || '—', tone: 'pill-off' };
+        const s = ACCOUNT_STATUS[u.status] || { label: u.status || '-', tone: 'off' };
         return (
-          <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
-            <span className={`pill ${s.tone}`}>{s.label}</span>
-            {!u.gatePassedAt && <span className="pill pill-warn">Entry gate pending</span>}
+          // Two pills need a wrapper that can wrap: in a narrow column, and again inside
+          // the card row below 900px, the second badge drops under the first instead of
+          // widening the page (§36).
+          <span style={{ display: 'inline-flex', gap: 'var(--sp-1)', flexWrap: 'wrap' }}>
+            <StatusBadge tone={s.tone}>{s.label}</StatusBadge>
+            {!u.gatePassedAt && <StatusBadge tone="warn">Entry gate pending</StatusBadge>}
           </span>
         );
       },
@@ -217,13 +255,17 @@ export default function UsersPage() {
         off it is open to everyone without anybody having earned anything, and a column
         reading "Unlocked" for all 2,000 would be describing the wrong thing.
       */
-      render: (u) => (u.level4GateOpen ? <span className="pill pill-ok">Open</span> : <span className="pill pill-off">Not yet</span>),
+      render: (u) =>
+        u.level4GateOpen ? <StatusBadge tone="ok">Open</StatusBadge> : <StatusBadge tone="off">Not yet</StatusBadge>,
     },
   ];
 
   return (
     <>
-      <PageHeader title="Users" sub="Search, filtering and pagination — all from database queries" />
+      <PageHeader
+        title="Users"
+        sub="Every registered yuvak. Search, filter and export - all answered by the database."
+      />
 
       <form
         className="filters"
@@ -241,8 +283,15 @@ export default function UsersPage() {
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Mobile, email, SMK or name"
+            // The panel is English and these are identifiers: an autocapitalised "Pgv"
+            // would not match an SMK, and a phone that offers to correct a name is
+            // offering to break the search.
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-describedby="q-hint"
           />
-          <span className="hint">Full mobile/email/SMK, or the beginning of a name</span>
+          <span className="hint" id="q-hint">Full mobile/email/SMK, or the beginning of a name</span>
         </div>
 
         <div className="field">
@@ -298,10 +347,11 @@ export default function UsersPage() {
               reset();
               setTo(e.target.value);
             }}
+            aria-describedby="rt-hint"
           />
           {/* Says what the reader would otherwise have to guess: the last day is inside
               the range, and the day is the Indian one (§9). */}
-          <span className="hint">Both days included, counted in India (IST)</span>
+          <span className="hint" id="rt-hint">Both days included, counted in India (IST)</span>
         </div>
 
         <button className="btn" type="submit">Search</button>
@@ -335,46 +385,62 @@ export default function UsersPage() {
 
       {/*
         §11 — Excel export. Its own row rather than a control inside the search form, so
-        pressing Enter in the search box cannot download a file.
+        pressing Enter in the search box cannot download a file. A toolbar rather than a
+        second `.filters` bar: the checkbox is not a filter on the table, it only decides
+        what the file carries, and putting it in a filter row said otherwise.
       */}
-      <div className="filters">
-        <div className="field">
-          <label htmlFor="wm" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="toolbar">
+        <div className="grow">
+          <label className="check" htmlFor="wm">
             <input
               id="wm"
               type="checkbox"
               checked={withMobile}
               onChange={(e) => setWithMobile(e.target.checked)}
-              style={{ width: 'auto' }}
+              aria-describedby="wm-hint"
             />
             Include mobile numbers
           </label>
           {/* §13, stated where the decision is made rather than in a policy nobody reads.
               Off by default; SMK already identifies a યુવક uniquely (§4). */}
-          <span className="hint">Off by default — some yuvaks are minors and the file leaves the panel</span>
+          <span className="hint" id="wm-hint">
+            Off by default - some yuvaks are minors and the file leaves the panel. Email addresses
+            are never included.
+          </span>
         </div>
 
-        <button className="btn" type="button" onClick={runExport} disabled={exporting}>
+        <button
+          className={`btn${exporting ? ' is-busy' : ''}`}
+          type="button"
+          onClick={runExport}
+          disabled={exporting}
+        >
           {exporting ? 'Preparing…' : 'Export to Excel (CSV)'}
         </button>
       </div>
 
       {/* One line, after the fact, saying what was written. Never a guess — the number is
-          the length of the file (§62). */}
-      {/* role="status" so a screen reader hears the result of a press that produced no
+          the length of the file (§62).
+          role="status" so a screen reader hears the result of a press that produced no
           visible change on the page itself — the file went to Downloads (§56). */}
       {exportNote && (
         <div className={`notice ${exportNote.tone}`} role="status">{exportNote.text}</div>
       )}
 
-      <p className="card-note">
-        The export covers every user matching the search, subzone and dates above — not
-        just this page. It opens in Excel. Email addresses are never included.
-      </p>
-
       <AsyncBlock
         state={{ ...state, isEmpty: !state.loading && !state.error && rows.length === 0 }}
+        emptyTitle={filtered ? 'Nothing matches these filters' : 'No users yet'}
+        emptyIcon="👤"
         empty={emptyMessage}
+        // The way out of the filter that emptied the list, offered where the emptiness is
+        // reported. Absent when nothing is filtered, because then there is nothing to undo.
+        emptyAction={
+          filtered ? (
+            <button className="btn btn-quiet" type="button" onClick={clearAll}>
+              Clear all filters
+            </button>
+          ) : null
+        }
         onRetry={state.retry}
         skeleton={<TableSkeleton cols={columns.length} />}
       >
@@ -400,7 +466,13 @@ export default function UsersPage() {
               busy={state.loading}
             />
           )}
-          {searching && <p className="card-note">Search results are not paginated — try a more specific search.</p>}
+          {/* The export covers the whole filtered set; this note is what stops the page
+              being read as "the file is what I can see". */}
+          <p className="card-note">
+            {searching
+              ? `Showing ${rows.length} search results - search is not paginated, so narrow the term if you expected more. The export covers every user matching the search, subzone and dates above.`
+              : 'The export covers every user matching the search, subzone and dates above - not just this page. It opens in Excel.'}
+          </p>
         </>
       </AsyncBlock>
     </>

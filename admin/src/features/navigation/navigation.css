@@ -1,0 +1,255 @@
+/* Navigation — the bottom-bar builder.
+ *
+ * Loaded only by NavigationPage, so it rides that page's chunk and costs nothing on any other
+ * screen (§51). Every colour, size, radius and gap below is a token from admin.css: this is
+ * the same console, and a section with a palette of its own reads as a different product.
+ * Nothing here invents a hex value — a stylesheet holding its own `#19222e` went on painting
+ * the old slate theme inside the new light one, which is the failure the rule was written
+ * from.
+ *
+ * Breakpoints are the four admin.css documents — 1200 / 900 / 640 / 380 — and no others.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * What is here and what deliberately is not
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Only the shapes admin.css has no class for: a reorderable row, a drag handle, a read-only
+ * destination, and a picture of a phone. Everything else on the page is `.card`, `.field`,
+ * `.check`, `.hint`, `.notice`, `.pill`, `.btn` and `.icon-btn` — reused rather than
+ * restyled, because a page that redefines the panel's form controls is a page that stops
+ * matching the panel the day one of them changes.
+ *
+ * The 320px floor is a hard requirement (§36) and it is what shapes the row: the row is a
+ * head line plus a wrapping control strip, never a fixed grid of columns. A grid of five
+ * columns that holds all the way down squeezes the Gujarati label box to a few characters
+ * and clips the matras — the fault verify-admin-mobile.mjs was written after finding on the
+ * Levels page.
+ */
+
+/* ---------------------------------------------------------------- the page's two columns */
+
+/* The rows and the preview side by side once there is genuinely room for both, and stacked
+ * before that. `1200px` is admin.css's own "content gets its side rails back" breakpoint,
+ * which is the width at which a 280px aside stops being taken out of the editing column.
+ * Below it the preview sits under the rows rather than beside them: a phone drawn 140px wide
+ * is not a preview of anything. */
+.navcfg-layout { display: grid; gap: var(--sp-4); align-items: start; }
+
+@media (min-width: 1201px) {
+  .navcfg-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  /* Sticky, because the whole value of the preview is that it answers a question raised by
+   * the row being edited — and with nine rows the bar scrolls off the top long before the
+   * last one. Offset by the topbar, which is fixed and opaque and would otherwise cover it. */
+  .navcfg-side { position: sticky; top: calc(var(--topbar-h) + var(--sp-4)); }
+}
+
+.navcfg-main { min-width: 0; }
+
+/* ---------------------------------------------------------------- the rows */
+
+.navcfg-rows { list-style: none; display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.navcfg-row {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--sh-1);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  min-width: 0;
+}
+
+/* An item that is not in the bar is still fully legible — it is dimmed by surface, never by
+ * opacity on the text, because a row whose label he is about to type into must not be harder
+ * to read than the one above it. The badge on the row says "Hidden" in words; this only
+ * repeats it (§43). */
+.navcfg-row.is-off { background: var(--surface-sunken); }
+
+/* The row being dragged stays visible and clearly lifted rather than being hidden: dragging
+ * something that disappears leaves a gap you have to guess the meaning of. */
+.navcfg-row.is-dragging { opacity: .55; border-style: dashed; border-color: var(--border-strong); }
+
+/* Where it would land. A whole-row highlight rather than a 2px insertion line: the drop
+ * target here is the row, not the space between two rows, so a line drawn between them would
+ * promise a precision the drop does not have. */
+.navcfg-row.is-over { border-color: var(--brand-500); box-shadow: var(--ring); }
+
+.navcfg-rowhead {
+  display: flex; align-items: center; gap: var(--sp-2);
+  flex-wrap: wrap; min-width: 0;
+}
+
+/* The drag handle. Sized to --tap so it is a real target on a mouse and 44px under
+ * `pointer: coarse` — even though a touch drag will not start, the handle is still what a
+ * finger lands on first and a 16px glyph would read as a decoration rather than as a control
+ * he has not managed to use. `grab` is the only cursor in the panel that promises a gesture,
+ * so it is worth setting. */
+.navcfg-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--tap); min-width: var(--tap); height: var(--tap);
+  color: var(--text-faint); font-size: 16px; line-height: 1;
+  border-radius: var(--r-sm);
+  cursor: grab;
+  /* The handle is the drag source and nothing else; letting a drag begin as a text selection
+   * puts a highlighted glyph under the cursor for the length of the gesture. */
+  user-select: none;
+}
+.navcfg-handle:active { cursor: grabbing; background: var(--surface-sunken); }
+
+.navcfg-pos {
+  min-width: 22px; text-align: center;
+  color: var(--text-muted); font-size: var(--fs-help); font-weight: var(--fw-semi);
+}
+
+/* The registry's name and the stored key, stacked, so a long Gujarati word wraps under
+ * itself instead of pushing the badges off the row. `flex: 1 1 …` gives it the slack and
+ * `min-width: 0` is what actually lets it shrink — without it a flex child refuses to go
+ * below its content width and takes the row past the screen edge. */
+.navcfg-name {
+  display: flex; flex-direction: column; line-height: 1.3;
+  flex: 1 1 120px; min-width: 0;
+}
+.navcfg-key { color: var(--text-faint); font-size: var(--fs-micro); }
+
+.navcfg-move-group { display: flex; gap: var(--sp-1); margin-inline-start: auto; }
+/* .icon-btn carries the size and the border; only the disabled state is missing from it,
+ * and an arrow at the end of the list has to look unavailable rather than merely do
+ * nothing. */
+.navcfg-move:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Why a row's switches will not move, on the row. Indented against the same brand rule the
+ * Levels page uses for the Level 4 gate, so it reads as a property of the row above it
+ * rather than as a notice about the page. */
+.navcfg-why {
+  border-inline-start: 3px solid var(--brand-200);
+  background: var(--surface-sunken);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/* The controls. Flex-wrap with per-field bases rather than a fixed grid: each control drops
+ * to its own line in order as the width runs out, which is what survives 320px without a
+ * media query of its own. */
+.navcfg-controls {
+  display: flex; gap: var(--sp-3) var(--sp-4);
+  flex-wrap: wrap; align-items: flex-start;
+}
+.navcfg-controls .field { margin-bottom: 0; min-width: 0; }
+.navcfg-f-icon { flex: 0 1 130px; }
+.navcfg-f-label { flex: 2 1 220px; }
+.navcfg-f-route { flex: 1 1 160px; }
+.navcfg-f-switch { flex: 0 0 auto; }
+
+/* "Goes to" is a label without a control under it, so it is a <span> and has to be told to
+ * look like the labels beside it. */
+.navcfg-route-label {
+  font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--text-body);
+}
+/* The destination as evidence, not as a field: a sunken box with no border, so it reads as
+ * something the app is telling him rather than as an input that has been disabled. That
+ * distinction is the whole of the rule behind it — this value is not editable by anyone,
+ * anywhere, and a greyed-out input would suggest it is editable by somebody. */
+.navcfg-route {
+  display: block;
+  font-family: var(--font-mono); font-size: var(--fs-help);
+  color: var(--text-muted); background: var(--surface-sunken);
+  border-radius: var(--r-sm); padding: var(--sp-1) var(--sp-2);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- the preview */
+
+.navcfg-preview {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+  padding: var(--sp-4);
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  min-width: 0;
+}
+.navcfg-preview-head h3 {
+  font-size: var(--fs-section); font-weight: var(--fw-semi); color: var(--text-strong);
+  margin-bottom: var(--sp-1);
+}
+
+/* A phone, drawn rather than photographed. It is deliberately small and plain: its job is to
+ * say "this is the bottom of a screen", and any more detail would be decoration competing
+ * with the five cells that are the actual content. `max-width` keeps it from stretching into
+ * a tablet when the aside is wide. */
+.navcfg-phone {
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-app);
+  padding: var(--sp-2);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  max-width: 260px; width: 100%; margin-inline: auto;
+}
+
+/* Three grey lines standing in for a page. Without them the bar floats in a box and stops
+ * reading as the bottom of anything. */
+.navcfg-screen {
+  flex: 1 1 auto; min-height: 92px;
+  display: flex; flex-direction: column; gap: var(--sp-2); justify-content: center;
+  padding: var(--sp-3);
+  background: var(--surface-card); border-radius: var(--r-sm);
+}
+.navcfg-screen-line { height: 8px; border-radius: var(--r-full); background: var(--surface-sunken); }
+.navcfg-screen-line.is-short { width: 60%; }
+
+/* The bar itself. `1fr` per cell is exactly what the app does — equal cells, whatever the
+ * count — so five buttons here crowd in the same way five buttons crowd on a phone, which is
+ * the reason the preview exists at all. */
+.navcfg-bar {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: var(--sp-1);
+  background: var(--surface-card);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+  padding: var(--sp-2) var(--sp-1);
+  min-height: 56px;
+}
+/* Over the limit, the frame says so as well as the sentence under it. Colour is never the
+ * only signal (§43) — the count below is the statement, this only agrees with it. */
+.navcfg-bar.is-over { border-top-color: var(--dang-ink); background: var(--dang-tint); }
+
+.navcfg-bar-empty {
+  grid-column: 1 / -1; text-align: center;
+  color: var(--text-faint); font-size: var(--fs-help); align-self: center;
+}
+
+.navcfg-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; min-width: 0;
+  color: var(--text-muted);
+}
+.navcfg-cell.is-active { color: var(--brand-500); }
+
+.navcfg-glyph { width: 20px; height: 20px; flex: 0 0 auto; }
+
+/* One line, clipped rather than wrapped. The domain file is explicit about why: a bar whose
+ * height depends on the સંચાલક's wording is a bar that moves the page under a thumb — so the
+ * app truncates, and a preview that wrapped instead would show him a layout the phone will
+ * never draw. --fs-micro is the panel's floor (11.5px) and verify-admin-mobile.mjs fails
+ * anything under it. */
+.navcfg-cell-label {
+  font-size: var(--fs-micro); line-height: 1.2;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.navcfg-count { font-size: var(--fs-help); color: var(--text-muted); }
+.navcfg-count.is-bad { color: var(--dang-ink); }
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 640px) {
+  /* The row loses its side padding first — the content inside it is already wrapping, and
+   * 16px either side of a 320px screen is 10% of the label field. */
+  .navcfg-row { padding: var(--sp-3); }
+  /* The arrows stop being pushed to the far end of a wrapped line, where they land under the
+   * badge and read as belonging to it. */
+  .navcfg-move-group { margin-inline-start: 0; }
+  /* At this width every control has the row to itself anyway; saying so explicitly stops the
+   * icon select and the switches from pairing up into two cramped half-columns. */
+  .navcfg-f-icon, .navcfg-f-label, .navcfg-f-route { flex: 1 1 100%; }
+}

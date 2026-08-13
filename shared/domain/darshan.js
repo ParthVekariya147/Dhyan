@@ -372,14 +372,14 @@ export function validateDarshanItems(items) {
     if (!Number.isInteger(it.order) || it.order < 1) add('error', 'invalid-order', it.id, 'Invalid order');
     if (!it.imageUrl) add('error', 'missing-image', it.id, 'No image link');
     // The gap that matters most: the picture is ready, the words are not.
-    if (!it.caption) add('warn', 'missing-caption', it.id, 'No caption written — the yuvak cannot learn this scene');
+    if (!it.caption) add('warn', 'missing-caption', it.id, 'No caption written - the yuvak cannot learn this scene');
     // `warn`, and never `error`, on purpose. A title is not part of the content gate
     // (DARSHAN_DATA_CONTRACT.md §2.1): a દ્રશ્ય with none is shown to યુવકો and taught exactly
     // as before, so it is a gap in the સંચાલક's own records rather than a defect in the
     // collection. Grading it `error` would also fold it into `invalid` below and report the
     // whole collection as broken on the day the column shipped, since every દ્રશ્ય starts
     // without one.
-    if (!it.title) add('warn', 'missing-title', it.id, 'No title written — lists show this scene by its number alone');
+    if (!it.title) add('warn', 'missing-title', it.id, 'No title written - lists show this scene by its number alone');
   }
 
   // Gaps in the printed numbering, e.g. 1…109 with 47 absent.

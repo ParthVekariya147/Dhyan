@@ -22,7 +22,7 @@ export default function VideoStage({ onContinue }) {
       </header>
 
       <p className="runner-hint">
-        શાંત ચિત્તે આ વિડિયો નિહાળો. પછી દર્શન શરૂ થશે.
+        શાંતિથી આ વિડિયો જુઓ. પછી દર્શન શરૂ થશે.
       </p>
 
       {loading ? (
@@ -64,7 +64,7 @@ export default function VideoStage({ onContinue }) {
         // Never a dead end: a missing link must not lock every yuvak out of the સાધના.
         <div className="notice">
           <p>વિડિયોની લિંક હજી ગોઠવાઈ નથી.</p>
-          <p className="notice-sub">સંચાલક લિંક મૂકશે એટલે અહીં દેખાશે. ત્યાં સુધી દર્શન ચાલુ રાખી શકો છો.</p>
+          <p className="notice-sub">સંચાલક લિંક મૂકશે એટલે અહીં દેખાશે. ત્યાં સુધી દર્શન ચાલુ રાખી શકશો.</p>
         </div>
       )}
 

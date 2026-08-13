@@ -193,7 +193,13 @@ console.log('\n[5c] the enlarged view asks for a wider file');
 await page2.click('.frame');
 await new Promise((r) => setTimeout(r, 1500));
 const lb = await page2.evaluate(() => {
-  const img = document.querySelector('.lb img');
+  /*
+    Found by the marker on the element, not by the class of whatever drew it. દર્શન now
+    opens the fullscreen viewer (GalleryViewer) and લેવલ ૪'s પુનરાવર્તન still opens the
+    older .lb overlay; both carry `data-full-image`, because what this test asserts is the
+    URL an enlarged દ્રશ્ય asks the CDN for — not which component is on screen.
+  */
+  const img = document.querySelector('img[data-full-image]');
   return img ? { src: img.currentSrc || img.src } : null;
 });
 /**

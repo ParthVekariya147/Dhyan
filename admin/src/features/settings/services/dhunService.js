@@ -45,7 +45,7 @@ const MAX_NAME = 60;
 
 export function validateDhunName(input) {
   const s = String(input || '').trim();
-  if (!s) return { ok: false, msg: 'Give the dhun a name — the yuvak chooses between the two by name.' };
+  if (!s) return { ok: false, msg: 'Give the dhun a name - the yuvak chooses between the two by name.' };
   if (s.length > MAX_NAME) return { ok: false, msg: `The name is too long (at most ${MAX_NAME} characters).` };
   return { ok: true, name: s };
 }
@@ -59,7 +59,7 @@ export function validateDhunFile(file) {
   if (file.size > MAX_DHUN_BYTES) {
     return {
       ok: false,
-      msg: `This file is ${(file.size / 1048576).toFixed(1)} MB. Keep the dhun under ${MAX_DHUN_BYTES / 1048576} MB — most yuvaks are on mobile data.`,
+      msg: `This file is ${(file.size / 1048576).toFixed(1)} MB. Keep the dhun under ${MAX_DHUN_BYTES / 1048576} MB - most yuvaks are on mobile data.`,
     };
   }
   if (!file.size) return { ok: false, msg: 'This file is empty.' };

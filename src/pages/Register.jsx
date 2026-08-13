@@ -30,8 +30,8 @@ import '../styles/forms.css';
  * Actions        Register. Go to લોગિન.
  * Persisted      auth.users (the account) and profiles (SMK, name, email, mobile, zone).
  * Completion     The account exists AND he is signed in.
- * Next           /welcome — લેવલ ૧, directly (§5, §6). REGISTER → AUTO LOGIN → LEVEL ૧,
- *                with no return trip through લોગિન and no મુખપૃષ્ઠ in between.
+ * Next           / — the મુખપૃષ્ઠ. REGISTER → AUTO LOGIN → મુખપૃષ્ઠ, with no return trip
+ *                through લોગિન. He picks લેવલ ૧ from there himself; it is the first tile.
  * Excluded       Any level content. Any progress. Anything that scolds (§1, §18).
  *
  * This page and લોગિન are ONE design (§2) — same tokens, same Field components, same
@@ -55,9 +55,9 @@ const EMPTY = {
 function validate(v) {
   const e = {};
   if (!v.smk.trim()) e.smk = 'SMK લખો.';
-  else if (!SMK_RE.test(v.smk.trim())) e.smk = '૩ અંગ્રેજી અક્ષર પછી ૩ અંક — દા.ત. PGV881';
+  else if (!SMK_RE.test(v.smk.trim())) e.smk = '૩ અંગ્રેજી અક્ષર પછી ૩ અંક લખો - દા.ત. PGV881';
   if (!v.name.trim()) e.name = 'નામ લખો.';
-  if (!EMAIL_RE.test(v.email.trim())) e.email = 'આખું ઈમેલ સરનામું લખો — દા.ત. naam@gmail.com';
+  if (!EMAIL_RE.test(v.email.trim())) e.email = 'આખું ઈમેલ સરનામું લખો - દા.ત. naam@gmail.com';
   if (v.password.length < MIN_PASSWORD) e.password = `ઓછામાં ઓછા ${gu(MIN_PASSWORD)} અક્ષર લખો.`;
   if (!MOBILE_RE.test(v.mobile.trim())) e.mobile = 'મોબાઈલ નંબર ૧૦ અંકનો લખો.';
   if (!v.subZoneId) e.subZoneId = 'સબઝોન પસંદ કરો.';
@@ -103,7 +103,7 @@ export default function Register() {
     setBusy(true);
     try {
       /*
-        §5 — REGISTER → AUTO LOGIN → LEVEL ૧, and the navigation is the last line of it.
+        §5 — REGISTER → AUTO LOGIN → મુખપૃષ્ઠ, and the navigation is the last line of it.
 
         register() signs him in, writes the profile and reads it back before it resolves,
         so by the time this runs the app knows who he is and that he has not passed the
@@ -111,8 +111,12 @@ export default function Register() {
         he chose thirty seconds ago, and not to a મુખપૃષ્ઠ where he would have to work out
         which of four levels he is supposed to start with.
 
-        The destination is ENTRY_ROUTE.LEVEL1 rather than a literal '/welcome', so this
-        page and the router cannot come to different conclusions about where લેવલ ૧ is.
+        The destination is ENTRY_ROUTE.HOME rather than a literal '/', so this page and
+        the router cannot come to different conclusions about where the મુખપૃષ્ઠ is.
+
+        It used to be ENTRY_ROUTE.LEVEL1 — નોંધણી dropped him on the વિડિયો and the guard
+        held him there until he answered the two questions. He now lands on the મુખપૃષ્ઠ
+        and goes on from there himself; લેવલ ૧ is the first tile on it.
 
         `replace`: the નોંધણી page must not be behind લેવલ ૧ in the history (§16). Pressing
         back from there would land on a form for an account that now exists, which the
@@ -128,7 +132,7 @@ export default function Register() {
         return;
       }
 
-      nav(ENTRY_ROUTE.LEVEL1, { replace: true });
+      nav(ENTRY_ROUTE.HOME, { replace: true });
     } catch (err) {
       // A duplicate SMK or mobile belongs beside that field, not in a general banner — it
       // is the one value the yuvak has to change and resubmit, and a banner at the foot of
@@ -161,7 +165,7 @@ export default function Register() {
 
           <div className="notice">
             તમારું ખાતું બની ગયું છે. હમણાં આપોઆપ લોગિન થઈ શક્યું નથી, એટલે એક વાર જાતે લોગિન
-            કરી લો — એ જ ઈમેલ અને એ જ પાસવર્ડથી.
+            કરી લો - એ જ ઈમેલ અને એ જ પાસવર્ડથી.
           </div>
 
           <Link className="btn" to="/login">લોગિન કરો</Link>
@@ -267,7 +271,7 @@ export default function Register() {
             onChange={set('subZoneId')}
             disabled={busy}
           >
-            <option value="">— પસંદ કરો —</option>
+            <option value="">- પસંદ કરો -</option>
             {SUBZONES.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}

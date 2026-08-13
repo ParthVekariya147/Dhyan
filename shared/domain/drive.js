@@ -54,7 +54,7 @@ export function parseDriveLink(input) {
   if (FOLDER_PATTERN.test(s)) {
     return {
       ok: false,
-      gu: 'That is a link to a Drive folder, not to one image. Open the image in Drive and copy the link from there — the folder itself goes in Settings.',
+      gu: 'That is a link to a Drive folder, not to one image. Open the image in Drive and copy the link from there - the folder itself goes in Settings.',
     };
   }
 
@@ -117,6 +117,26 @@ export function parseDriveFolderLink(input) {
  *
  * JPEG rather than WebP (`rw`, which is smaller again at 95 KB) on purpose: one `<img src>`
  * has no format negotiation, so the single URL has to be one every browser can decode.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Every element that renders one of these MUST carry `referrerPolicy="no-referrer"`
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * lh3 rate-limits **per referrer site**, and the two answers are night and day: the same
+ * URL, the same second, returns `200 image/jpeg` without a Referer header and `429` as an
+ * HTML error page with one, once that referrer's quota is spent. Chrome reports that HTML
+ * answer on an `<img>` as `ERR_BLOCKED_BY_ORB`, which looks nothing like what it is.
+ *
+ * The failure this produced in the field: every card in the દર્શન feed broken, while the
+ * fullscreen viewer showed the same દ્રશ્યો perfectly — because the viewer's copies were
+ * already in the browser's disk cache and the feed's widths were not, and every *fresh*
+ * request carried the throttled referrer. It also intermittently failed the delivery suite,
+ * whose localhost origin burns its own quota within a few runs.
+ *
+ * `no-referrer` takes these requests out of the per-referrer bucket altogether (and tells
+ * Google one thing less). It is set per element rather than by a page-wide meta tag so the
+ * app's other requests — Supabase, fonts — keep their ordinary behaviour, and so the next
+ * reader of any lh3 `<img>` sees the attribute and this note beside it.
  */
 export const driveImageUrl = (id, width = 1600) => `https://lh3.googleusercontent.com/d/${id}=w${width}-rj-v1`;
 

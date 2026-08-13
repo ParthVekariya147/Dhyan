@@ -175,7 +175,7 @@ const LEVEL4_ERRORS = [
   ['level4_publish_not_found', 'That configuration no longer exists. Reload the page.'],
   ['level4_clone_not_found', 'That configuration no longer exists. Reload the page.'],
   ['level4_config_frozen',
-    'A published or archived configuration cannot be edited — that is what protects the progress of every yuvak already working through it. Use "New Version" to make an editable copy.'],
+    'A published or archived configuration cannot be edited - that is what protects the progress of every yuvak already working through it. Use "New Version" to make an editable copy.'],
 ];
 
 function level4Error(e) {

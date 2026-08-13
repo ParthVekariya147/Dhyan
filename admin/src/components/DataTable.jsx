@@ -57,7 +57,7 @@ export default function DataTable({ columns, rows, rowKey, sort, onSort, caption
             >
               {columns.map((c) => (
                 <td key={c.key} data-label={c.label} className={c.align === 'right' ? 'ta-r' : ''}>
-                  {c.render ? c.render(row) : row[c.key] ?? '—'}
+                  {c.render ? c.render(row) : row[c.key] ?? '-'}
                 </td>
               ))}
             </tr>

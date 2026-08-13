@@ -59,7 +59,9 @@
   line-height: 1.85;
   color: #f4ead8;
 }
-.level-carried, .level-sync { color: var(--color-muted); }
+/* `.level-carried` stood beside this one, for the "N દ્રશ્યો બીજેથી ગણતરીમાં લેવાયાં" note
+   LevelPage no longer renders. */
+.level-sync { color: var(--color-muted); }
 
 /* ---------------------------------------------------------------- ring */
 
@@ -347,6 +349,40 @@
    in this block and would otherwise keep the list's left alignment. */
 .level-next .level-note { margin: 0 0 14px; text-align: center; }
 .level-next .btn-inline { margin-top: 10px; }
+
+/*
+  નોંધાવો, between the day's line and the લેવલ ૪ door.
+
+  Centred and separated the same way `.level-next` is, and deliberately *without* its top
+  rule: two rules a few centimetres apart would read as two endings to one page. The button
+  is the same gold as the door below it because both are ordinary ways on, and neither is
+  more important than the other — recording the day is not a duty and skipping it costs
+  nothing (see the page contract in LevelPage.jsx).
+
+  No red anywhere in this block, including the failing state. §1 rule 4: the app's own
+  trouble is not the યુવક's fault and is not dressed as an alarm.
+*/
+.level-submit {
+  margin: 22px auto 8px;
+  max-width: 560px;
+  text-align: center;
+}
+.level-submit .level-note { margin: 10px 0 0; text-align: center; }
+/* The one figure in this block that is good news, so it carries the gold rather than the
+   muted note colour. Sized with the note, not above it: an award is a remark, not a headline. */
+.level-submit .level-points {
+  color: var(--color-gold-soft);
+  font-weight: 600;
+}
+/*
+  44px, and not because of this button's own size.
+
+  `.btn-inline` is already comfortably above it on a phone. The floor is written here so that
+  it stays true if the button is ever given a shorter label — 'નોંધાવો' is four glyphs, and a
+  control that shrinks with its text is exactly how a tap target quietly falls under the line
+  on the one screen a યુવક uses most.
+*/
+.level-submit .btn-inline { min-height: 44px; }
 
 @media (max-width: 480px) {
   .tick-main { gap: 11px; padding: 13px 12px; }

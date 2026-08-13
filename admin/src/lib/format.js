@@ -24,7 +24,7 @@ export const num = gu;
 /** ISO timestamptz string | Date | null → "11 Aug 2026, 2:30 pm", in IST. */
 export function dateTimeGu(value) {
   const d = toDate(value);
-  if (!d) return '—';
+  if (!d) return '-';
   return new Intl.DateTimeFormat('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: 'numeric',
@@ -38,7 +38,7 @@ export function dateTimeGu(value) {
 /** ISO timestamptz string | Date | null → "11 Aug 2026", in IST. */
 export function dateGu(value) {
   const d = toDate(value);
-  if (!d) return '—';
+  if (!d) return '-';
   return new Intl.DateTimeFormat('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: 'numeric',

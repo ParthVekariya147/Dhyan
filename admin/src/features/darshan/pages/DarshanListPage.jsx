@@ -9,7 +9,7 @@ import {
   saveScene,
   validateNewScene,
 } from '../services/darshanService';
-import { AsyncBlock } from '../../../components/StateBlocks';
+import { AsyncBlock, CardSkeleton } from '../../../components/StateBlocks';
 import StatCard, { PageHeader } from '../../../components/StatCard';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useAdminAuth } from '../../../lib/adminAuth';
@@ -564,7 +564,7 @@ export default function DarshanListPage() {
     <>
       <PageHeader
         title="Darshan"
-        sub="Every image is fully finished — the description and number are inside the image itself"
+        sub="Every image is fully finished - the description and number are inside the image itself"
         actions={
           // While arranging there is deliberately nothing here to click. Every one of these
           // navigates away, and an unsaved arrangement does not survive that — the mode's own
@@ -591,7 +591,14 @@ export default function DarshanListPage() {
         }
       />
 
-      {msg && <div className={`notice notice-${msg.tone}`} role="status">{msg.text}</div>}
+      {/* A refusal is interrupted for; a confirmation is not. `alert` and `status` are the
+          two live regions that say which, and using `status` for both is how a failed bulk
+          write goes unread by anyone not watching the top of the page (§56). */}
+      {msg && (
+        <div className={`notice notice-${msg.tone}`} role={msg.tone === 'danger' ? 'alert' : 'status'}>
+          {msg.text}
+        </div>
+      )}
 
       {/*
         Adding a દ્રશ્ય without a rebuild (§12).
@@ -606,7 +613,8 @@ export default function DarshanListPage() {
         page. A tile with no picture is a dead end, and §1 says a યુવક is never handed one.
       */}
       {draft && !arranging && (
-        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <section className="card" aria-labelledby="new-darshan-h">
+          <h2 id="new-darshan-h">Add a Darshan</h2>
           <div className="filters">
             <div className="field">
               <label htmlFor="new-index">Number (ક્રમ)</label>
@@ -642,22 +650,22 @@ export default function DarshanListPage() {
               placeholder="આ દ્રશ્યનું વર્ણન લખો…"
             />
             <span className="hint">
-              Optional now, required before users see it. The new Darshan is created as a draft with no image — add a link to
+              Optional now, required before users see it. The new Darshan is created as a draft with no image - add a link to
               one on its page, and it stays hidden from users until you do.
             </span>
           </div>
 
-          {err && <div className="notice notice-danger" role="status">{err}</div>}
+          {err && <div className="notice notice-danger" role="alert">{err}</div>}
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn" type="button" disabled={busy} onClick={submit}>
+          <div className="form-actions">
+            <button className={`btn ${busy ? 'is-busy' : ''}`} type="button" disabled={busy} onClick={submit}>
               {busy ? 'Creating…' : 'Create Darshan'}
             </button>
             <button className="btn btn-quiet" type="button" disabled={busy} onClick={() => { setDraft(null); setErr(null); }}>
               Cancel
             </button>
           </div>
-        </div>
+        </section>
       )}
 
       <div className="grid-stats">
@@ -674,7 +682,7 @@ export default function DarshanListPage() {
           sub={
             numbered === active
               ? 'All numbered for users'
-              : `${gu(active - numbered)} of them carry no number yet — no description or image`
+              : `${gu(active - numbered)} of them carry no number yet - no description or image`
           }
           tone="ok"
           loading={state.loading}
@@ -745,7 +753,14 @@ export default function DarshanListPage() {
       */}
       {!arranging && !state.loading && !state.error && shown.length > 0 && (
         <>
-          <div className={`dsel ${selected.length ? 'is-picked' : ''}`}>
+          {/* A named group, so the four bulk buttons are announced as one set of actions
+              over the ticked દ્રશ્યો rather than as five loose buttons in the middle of a
+              grid of links (§56). */}
+          <div
+            className={`dsel ${selected.length ? 'is-picked' : ''}`}
+            role="group"
+            aria-label="Actions for the selected Darshan"
+          >
             <label className="dsel-all">
               <input
                 ref={allRef}
@@ -842,19 +857,19 @@ export default function DarshanListPage() {
                 </strong>{' '}
                 {checkedReport.errors.length === 0 && checkedReport.warns.length === 0
                   ? 'Nothing else to report on these.'
-                  : 'Nothing has been changed — this is a check, not an edit.'}
+                  : 'Nothing has been changed - this is a check, not an edit.'}
               </p>
               {checkedReport.errors.length > 0 && (
-                <p style={{ marginTop: 6 }}>
+                <p>
                   <strong>Blocking:</strong> {issueLines(checkedReport.errors)}
                 </p>
               )}
               {checkedReport.warns.length > 0 && (
-                <p style={{ marginTop: 6 }}>
+                <p>
                   <strong>Worth fixing:</strong> {issueLines(checkedReport.warns)}
                 </p>
               )}
-              <p style={{ marginTop: 8 }}>
+              <p>
                 <button className="linklike" type="button" onClick={() => setCheckedReport(null)}>
                   Dismiss
                 </button>
@@ -866,9 +881,32 @@ export default function DarshanListPage() {
         </>
       )}
 
+      {/*
+        §33, §35 — the four states of this grid, and why the empty one is two different
+        sentences. A collection that is genuinely empty is filled from the sheet; a grid
+        emptied by the Show filter is not empty at all, and offering an import there would
+        send the સંચાલક off to fix something that is not broken. The placeholder is the grid's
+        own shape rather than a spinner, so the tiles land where the boxes stood.
+      */}
       <AsyncBlock
         state={{ ...state, isEmpty: !state.loading && !state.error && !(arranging ? rows.length : shown.length) }}
-        empty="No Darshan found with this filter."
+        emptyIcon="❑"
+        emptyTitle={filter === 'all' ? 'No Darshan yet' : 'Nothing matches this filter'}
+        empty={
+          filter === 'all'
+            ? 'Bring the spreadsheet in to create the whole collection at once, or add a single Darshan by hand.'
+            : 'Every Darshan is hidden by the filter above. Show all of them to see the collection again.'
+        }
+        emptyAction={
+          filter === 'all' ? (
+            mayReorder ? <Link className="btn" to="/darshan/import">Import from sheet</Link> : null
+          ) : (
+            <button className="btn btn-quiet" type="button" onClick={() => setFilter('all')}>
+              Show all Darshan
+            </button>
+          )
+        }
+        skeleton={<div className="dg-loading"><CardSkeleton count={8} /></div>}
         onRetry={state.retry}
       >
         {arranging ? (
@@ -877,8 +915,8 @@ export default function DarshanListPage() {
               <div className="notice">You can look at the order but not change it.</div>
             )}
 
-            <div className={`dro-bar ${dirty ? 'is-dirty' : ''}`}>
-              <div>
+            <div className={`dro-bar ${dirty ? 'is-dirty' : ''}`} role="group" aria-label="Saving the order">
+              <div className="dro-bar-text">
                 {dirty ? (
                   <>
                     <strong>Not saved yet.</strong>{' '}
@@ -892,7 +930,7 @@ export default function DarshanListPage() {
                 )}
               </div>
               <div className="dro-bar-btns">
-                <button className="btn" type="button" disabled={!mayReorder || !dirty || busy} onClick={() => setConfirmSave(true)}>
+                <button className={`btn ${busy ? 'is-busy' : ''}`} type="button" disabled={!mayReorder || !dirty || busy} onClick={() => setConfirmSave(true)}>
                   {busy ? 'Saving…' : 'Save Order'}
                 </button>
                 <button className="btn btn-quiet" type="button" disabled={busy} onClick={cancelArranging}>
@@ -901,8 +939,8 @@ export default function DarshanListPage() {
               </div>
             </div>
 
-            <p className="hint" style={{ marginBottom: 10 }}>
-              Every Darshan is listed here, including the ones that are off — the whole order is
+            <p className="hint d-note">
+              Every Darshan is listed here, including the ones that are off - the whole order is
               saved in one go, so a filtered part of it would mean nothing. The big number is what
               users see; the grey one is the number printed inside the image, which never changes.
             </p>
@@ -930,7 +968,7 @@ export default function DarshanListPage() {
                     {/* A withheld દ્રશ્ય carries no display number, because it is not counted —
                         that is the contract, not a missing value (ORDERING.md §2). */}
                     <span className={`dro-display ${r.displayIndex == null ? 'is-none' : ''}`}>
-                      {r.displayIndex == null ? '—' : gu(r.displayIndex)}
+                      {r.displayIndex == null ? '-' : gu(r.displayIndex)}
                     </span>
                     <span className="dro-src" title="Number printed inside the image">
                       {r.sourceIndex == null ? '' : `#${gu(r.sourceIndex)}`}
@@ -942,7 +980,7 @@ export default function DarshanListPage() {
                       its picture, which is the obvious thing to do, would have dragged the
                       image URL instead of reordering anything. */}
                   {r.thumbUrl || r.imageUrl ? (
-                    <img className="dro-thumb" src={r.thumbUrl || r.imageUrl} loading="lazy" decoding="async" draggable={false} alt="" />
+                    <img className="dro-thumb" src={r.thumbUrl || r.imageUrl} loading="lazy" decoding="async" draggable={false} referrerPolicy="no-referrer" alt="" />
                   ) : (
                     <span className="dro-thumb is-empty" aria-hidden="true" />
                   )}
@@ -1005,7 +1043,7 @@ export default function DarshanListPage() {
                   </p>
                   <p style={{ marginTop: 8 }}>
                     The number printed inside each image is not touched, and neither is anything a
-                    user has already finished — Level 3 and Level 4 follow the Darshan itself, not
+                    user has already finished - Level 3 and Level 4 follow the Darshan itself, not
                     its position.
                   </p>
                 </>
@@ -1056,6 +1094,8 @@ export default function DarshanListPage() {
                       src={it.thumbUrl || it.imageUrl}
                       loading="lazy"
                       decoding="async"
+                      /* Load-bearing: lh3 throttles per referrer — see driveImageUrl in shared/domain/drive.js. */
+                      referrerPolicy="no-referrer"
                       alt={`Darshan ${it.index}`}
                     />
                   ) : (
@@ -1065,7 +1105,7 @@ export default function DarshanListPage() {
                     {/* The same two numbers the arrange list shows, so the grid and the order
                         never look like two different collections (decision #2). */}
                     <span className="dg-id">
-                      {it.displayIndex == null ? '—' : gu(it.displayIndex)}
+                      {it.displayIndex == null ? '-' : gu(it.displayIndex)}
                       <span className="dro-src"> #{gu(it.sourceIndex ?? it.index)}</span>
                     </span>
                     {it.active ? (
@@ -1136,7 +1176,7 @@ function BulkWarning({ bulk, numbered }) {
             <p style={{ marginTop: 8 }}>
               {gu(bulk.withheld)} of them {bulk.withheld === 1 ? 'has' : 'have'} no image or no
               description yet, so {bulk.withheld === 1 ? 'it stays' : 'they stay'} hidden until
-              that is filled in. Publishing {bulk.withheld === 1 ? 'it' : 'them'} does no harm —
+              that is filled in. Publishing {bulk.withheld === 1 ? 'it' : 'them'} does no harm -
               nothing is shown half-finished.
             </p>
           )}
@@ -1144,7 +1184,7 @@ function BulkWarning({ bulk, numbered }) {
       ) : (
         <>
           <p>
-            {many} will be turned off and stop being shown to users. Nothing is deleted — the
+            {many} will be turned off and stop being shown to users. Nothing is deleted - the
             same selection turns back on again at any time.
           </p>
           <p style={{ marginTop: 8 }}>
@@ -1157,7 +1197,7 @@ function BulkWarning({ bulk, numbered }) {
 
       <p style={{ marginTop: 8 }}>
         The number printed inside each image does not change, and nothing anyone has already
-        finished is affected — Level 3 and Level 4 follow the Darshan itself, not its number.
+        finished is affected - Level 3 and Level 4 follow the Darshan itself, not its number.
       </p>
     </>
   );
@@ -1186,7 +1226,7 @@ function issueLines(issues, cap = 8) {
       const rest = ids.length > cap ? ` and ${gu(ids.length - cap)} more` : '';
       // The message carries the offending value for some codes ("Duplicate number: 27"), so
       // the id list is appended to it rather than replacing it.
-      return `${message.split(' — ')[0]} (${gu(ids.length)}): ${shown}${rest}`;
+      return `${message.split(' - ')[0]} (${gu(ids.length)}): ${shown}${rest}`;
     })
     .join(' · ');
 }

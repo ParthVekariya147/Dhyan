@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { useAdminAuth } from '../../../lib/adminAuth';
-import { AsyncBlock } from '../../../components/StateBlocks';
+import { AsyncBlock, Empty, FormSkeleton } from '../../../components/StateBlocks';
 import { PageHeader } from '../../../components/StatCard';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { gu } from '../../../lib/format';
@@ -40,6 +40,12 @@ import '../level4.css';
  * all of it happens to a working copy in this component, and the engine re-checks the working
  * copy on every keystroke. That is what makes Auto Divide a *starting point* the સંચાલક can
  * modify (§6) rather than a decision taken on his behalf.
+ *
+ * Because of that, §31's form states are the whole ergonomics of this page: the one save
+ * button says whether there is anything to save, whether it is in flight, and what happened
+ * — and it never spins forever, because `saveDraft` reloads on failure as well as success.
+ * A builder that leaves a સંચાલક unsure whether twenty minutes of dividing reached the
+ * database is the one failure mode worth designing against here.
  *
  * **The numbering on this page is the user's** (ORDERING.md decision #2). `listDarshan()`
  * hands back the collection already sequenced, so every range typed here, every preview line
@@ -89,6 +95,10 @@ export default function Level4EditorPage() {
   const [parts, setParts] = useState(2);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
+  /** §31 — "saved" is a state, not a message that scrolls away. Set only by a save that
+      actually landed, so the line under the button can distinguish "nothing to save yet"
+      from "everything you did is in the database". */
+  const [saved, setSaved] = useState(false);
   const [dialog, setDialog] = useState(null);
   const tmp = useRef(0);
 
@@ -277,12 +287,14 @@ export default function Level4EditorPage() {
       }
 
       setMsg({ tone: 'ok', text: 'Draft saved.' });
+      setSaved(true);
       state.retry();
     } catch (e) {
       // Reloaded on failure too: some of the statements above may have landed, and a screen
       // that went on showing the working copy would be showing something that is no longer
       // what the database holds.
       setMsg({ tone: 'danger', text: saveError(e) });
+      setSaved(false);
       state.retry();
     } finally {
       setBusy(false);
@@ -305,11 +317,41 @@ export default function Level4EditorPage() {
 
   const blocking = check?.errors?.length || 0;
 
+  /**
+   * The pass mark against what the sub-level actually holds (0016).
+   *
+   * Not a refusal — the database clamps a mark larger than the sub-level at submit time, so
+   * it can never make a sub-level impossible, and refusing it here would be this page
+   * inventing a rule. It is marked invalid all the same, because it almost always means the
+   * દ્રશ્યો were changed afterwards and the number was forgotten, and a red edge is how that
+   * gets noticed before publishing rather than after.
+   */
+  const reqOver = !!open && open.requiredCount != null && open.requiredCount > open.sceneIds.length;
+
+  /** §31 — one line, under the one button, saying which of the six states the form is in. */
+  const saveState = busy
+    ? { cls: '', text: 'Saving…' }
+    : msg?.tone === 'danger'
+      ? { cls: 'is-error', text: 'Not saved - see the message above.' }
+      : dirty
+        ? { cls: '', text: 'Unsaved changes.' }
+        : saved
+          ? { cls: 'is-ok', text: 'All changes saved.' }
+          : { cls: '', text: '' };
+
   return (
     <>
       <PageHeader
-        title={config ? `Level 4 — version ${gu(config.version)}` : 'Level 4'}
+        title={config ? `Level 4 - version ${gu(config.version)}` : 'Level 4'}
         sub="Sub-levels, and which Darshan each one asks a user to recall"
+        /* The way back up is not otherwise on this screen: the editor is reached from a
+           version on the list page, and a સંચાલક who arrived by URL has nothing else to
+           tell him where he is. */
+        crumbs={[
+          { to: '/levels', label: 'Levels' },
+          { to: '/levels/4', label: 'Level 4' },
+          { label: config ? `Version ${gu(config.version)}` : 'Version' },
+        ]}
         actions={<Link className="btn btn-quiet" to="/levels/4">Back to Level 4</Link>}
       />
 
@@ -317,15 +359,19 @@ export default function Level4EditorPage() {
 
       <AsyncBlock
         state={{ ...state, isEmpty: !state.loading && !state.error && !config }}
-        empty="That version was not found."
+        empty="It may have been retired and removed, or the link may be wrong."
+        emptyTitle="That version was not found"
+        emptyIcon="🔎"
+        emptyAction={<Link className="btn" to="/levels/4">Back to Level 4</Link>}
         onRetry={state.retry}
+        skeleton={<FormSkeleton fields={5} />}
       >
         <>
           {/* Typing the URL of a live version reaches here, so the rule is enforced on the
               page and not only on the button that leads to it (§10). */}
           {config?.status === L4_CONFIG_STATUS.PUBLISHED && (
             <div className="notice notice-warn">
-              This version is live, so it cannot be changed. Make an editable copy — users stay on
+              This version is live, so it cannot be changed. Make an editable copy - users stay on
               this version until the copy is published.{' '}
               {mayEdit && (
                 <button
@@ -355,8 +401,20 @@ export default function Level4EditorPage() {
           <div className="card">
             <h2>Version</h2>
             <div className="field">
-              <label htmlFor="cfg-title">Name (for your own reference)</label>
-              <input id="cfg-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={readOnly} />
+              <label htmlFor="cfg-title">Name</label>
+              <input
+                id="cfg-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={readOnly}
+                aria-describedby="cfg-title-help"
+                placeholder="e.g. Autumn arrangement"
+              />
+              <p className="hint" id="cfg-title-help">
+                For your own reference only - users never see it. Leave it empty and the version
+                is known by its number.
+              </p>
             </div>
             {/*
               The gate used to be two inputs here, and it is deliberately not any more (0014).
@@ -373,12 +431,12 @@ export default function Level4EditorPage() {
             */}
             <p className="card-note">
               What opens Level 4 is set once for the whole app, on the{' '}
-              <Link to="/levels">Levels</Link> page — it is no longer part of a version, so it
+              <Link to="/levels">Levels</Link> page - it is no longer part of a version, so it
               is the same whichever version is published.
             </p>
             <p className="card-note">
               With the gate off, every user sees Level 4 straight away. With it on, a user reaches
-              it after remembering that many Darshan in one day — which is how it already works.
+              it after remembering that many Darshan in one day - which is how it already works.
             </p>
           </div>
 
@@ -410,8 +468,8 @@ export default function Level4EditorPage() {
             </div>
             <p className="card-note">
               Auto Divide splits the {gu(readyCount)} Darshan that are
-              ready to learn into equal groups, in the order users meet them — so each group is a
-              consecutive run of the numbers they see. It is a starting point — change any of them
+              ready to learn into equal groups, in the order users meet them - so each group is a
+              consecutive run of the numbers they see. It is a starting point - change any of them
               afterwards, and nothing is saved until you press Save Draft.
             </p>
           </div>
@@ -420,7 +478,7 @@ export default function Level4EditorPage() {
             <div className="card">
               <h2>Order</h2>
               {!acts.length ? (
-                <p className="hint">No sub-levels yet.</p>
+                <p className="hint">No sub-levels yet - create one, or divide the collection above.</p>
               ) : (
                 <ul className="l4-nav">
                   {acts.map((a, i) => (
@@ -428,9 +486,12 @@ export default function Level4EditorPage() {
                       <button
                         type="button"
                         className={`l4-nav-btn ${a.id === openId ? 'is-active' : ''}`}
+                        aria-current={a.id === openId ? 'true' : undefined}
                         onClick={() => setOpenId(a.id)}
                       >
-                        {a.code} {a.title ? `— ${a.title}` : ''}{' '}
+                        <span className="l4-nav-label">
+                          {a.code}{a.title ? ` - ${a.title}` : ''}
+                        </span>
                         <span className="l4-nav-n">
                           {gu(a.sceneIds.length)}{a.active ? '' : ' · off'}
                         </span>
@@ -463,12 +524,32 @@ export default function Level4EditorPage() {
               </p>
             </div>
 
-            <div className="card">
-              {!open ? (
-                <p className="hint">Choose a sub-level on the left, or create one.</p>
+            {/* §35 — two different nothings, and only one of them has an action worth
+                offering: with sub-levels on the left, the way forward is to pick one. The
+                empty block replaces the card rather than sitting inside it — `.state-empty`
+                is already a surface, and nesting it in another draws a box inside a box. */}
+            {!open ? (
+              acts.length ? (
+                <Empty
+                  icon="👈"
+                  title="Nothing open"
+                  message="Choose a sub-level from the order on the left to edit what it holds."
+                />
               ) : (
-                <>
-                  <h2>{open.code}</h2>
+                <Empty
+                  icon="➗"
+                  title="No sub-levels yet"
+                  message="A version needs at least one sub-level before it can be published. Auto Divide makes a first cut you can then correct, or create one and pick the Darshan yourself."
+                  action={
+                    <button className="btn" type="button" disabled={readOnly || busy} onClick={addActivity}>
+                      + Create Sub-Level
+                    </button>
+                  }
+                />
+              )
+            ) : (
+              <div className="card">
+                <h2>{open.code}</h2>
 
                   <div className="filters">
                     <div className="field">
@@ -479,6 +560,7 @@ export default function Level4EditorPage() {
                         value={open.code}
                         onChange={(e) => patch(open.id, 'code', e.target.value)}
                         disabled={readOnly}
+                        aria-describedby="a-code-help"
                       />
                     </div>
                     <div className="field">
@@ -496,19 +578,22 @@ export default function Level4EditorPage() {
                       />
                     </div>
                     <div className="field">
-                      <label htmlFor="a-active" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <label className="check" htmlFor="a-active">
                         <input
                           id="a-active"
                           type="checkbox"
                           checked={open.active}
                           onChange={(e) => patch(open.id, 'active', e.target.checked)}
                           disabled={readOnly}
-                          style={{ width: 'auto' }}
                         />
-                        Active
+                        Offered to users
                       </label>
                     </div>
                   </div>
+                  <p className="hint l4-help" id="a-code-help">
+                    The code is what a user sees above the sub-level. Nothing in the app decides
+                    anything by reading it, so it can be anything you can tell apart.
+                  </p>
 
                   <div className="field">
                     <label htmlFor="a-title">Title</label>
@@ -542,16 +627,9 @@ export default function Level4EditorPage() {
                     Deliberately not a percentage: the સંચાલક composes a sub-level by picking
                     items, so he is already counting in items, and a percentage would have to
                     resolve against a total that moves the day one is withheld.
-
-                    A mark larger than the sub-level is not refused here — the database
-                    clamps it down at submit time, so it can never make a sub-level
-                    impossible — but it is called out below, because it almost always means
-                    the items were changed afterwards and the number was forgotten.
                   */}
-                  <div className="field">
-                    <label htmlFor="a-req">
-                      Must remember (leave empty for all {gu(open.sceneIds.length)})
-                    </label>
+                  <div className={`field ${reqOver ? 'is-invalid' : ''}`}>
+                    <label htmlFor="a-req">Must remember to pass</label>
                     <input
                       id="a-req"
                       type="number"
@@ -567,14 +645,22 @@ export default function Level4EditorPage() {
                         )
                       }
                       disabled={readOnly}
+                      aria-invalid={reqOver || undefined}
+                      aria-describedby={reqOver ? 'a-req-help a-req-error' : 'a-req-help'}
                     />
-                    <p className="card-note">
+                    <p className="hint" id="a-req-help">
                       {open.requiredCount == null
-                        ? `A user passes ${open.code} by remembering all ${gu(open.sceneIds.length)} of these.`
-                        : open.requiredCount > open.sceneIds.length
-                          ? `This sub-level holds only ${gu(open.sceneIds.length)} Darshan, so ${gu(open.requiredCount)} will be treated as ${gu(open.sceneIds.length)}. Set it to ${gu(open.sceneIds.length)} or lower.`
-                          : `A user passes ${open.code} by remembering ${gu(open.requiredCount)} of these ${gu(open.sceneIds.length)}.`}
+                        ? `Empty means all of them: a user passes ${open.code} by remembering all ${gu(open.sceneIds.length)}.`
+                        : `A user passes ${open.code} by remembering ${gu(open.requiredCount)} of these ${gu(open.sceneIds.length)}.`}
                     </p>
+                    {reqOver && (
+                      <p className="field-error" id="a-req-error">
+                        <span aria-hidden="true">⚠</span>
+                        This sub-level holds only {gu(open.sceneIds.length)} Darshan, so{' '}
+                        {gu(open.requiredCount)} will be treated as {gu(open.sceneIds.length)}. Set
+                        it to {gu(open.sceneIds.length)} or lower.
+                      </p>
+                    )}
                   </div>
 
                   <SceneSelector
@@ -586,7 +672,7 @@ export default function Level4EditorPage() {
                     disabled={readOnly}
                   />
 
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  <div className="form-actions">
                     <button
                       className="btn btn-quiet"
                       type="button"
@@ -596,38 +682,45 @@ export default function Level4EditorPage() {
                       Remove this sub-level
                     </button>
                     {open.progressCount > 0 && (
-                      <span className="hint" style={{ alignSelf: 'center' }}>
+                      <span className="hint">
                         {gu(open.progressCount)} user{open.progressCount === 1 ? '' : 's'} have worked on
-                        it — it will be archived, not deleted.
+                        it - it will be archived, not deleted.
                       </span>
                     )}
                   </div>
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="card">
             <h2>Check</h2>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, fontSize: 13 }}>
+            <label className="check">
               <input
                 type="checkbox"
                 checked={requireFullCoverage}
                 onChange={(e) => setRequireFullCoverage(e.target.checked)}
-                style={{ width: 'auto' }}
               />
               Every Darshan must belong to a sub-level
             </label>
-            <p className="hint" style={{ marginBottom: 12 }}>
+            <p className="hint l4-help">
               Turn this off while a version is deliberately partial. The check itself is the same one
               the app applies to users.
             </p>
 
             <ValidationNotice result={check} collection={byId} />
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn" type="button" disabled={readOnly || busy || !dirty} onClick={saveDraft}>
-                {busy ? 'Saving…' : 'Save Draft'}
+            {/* §31 — the button reports its own progress (`.btn.is-busy`) and the line beside
+                it reports the outcome, so neither depends on a notice that has scrolled away.
+                The label does not change to "Saving…": a button whose text moves under the
+                cursor is the one thing a double-click is made of. */}
+            <div className="form-actions">
+              <button
+                className={`btn ${busy ? 'is-busy' : ''}`}
+                type="button"
+                disabled={readOnly || busy || !dirty}
+                onClick={saveDraft}
+              >
+                Save Draft
               </button>
               <button
                 className="btn btn-quiet"
@@ -637,6 +730,11 @@ export default function Level4EditorPage() {
               >
                 Publish
               </button>
+              {saveState.text && (
+                <span className={`save-state ${saveState.cls}`} role="status" aria-live="polite">
+                  {saveState.text}
+                </span>
+              )}
             </div>
 
             {!!blocking && (
@@ -658,11 +756,11 @@ export default function Level4EditorPage() {
                 <p>
                   The {gu(acts.length)} sub-level{acts.length === 1 ? '' : 's'} shown now
                   {acts.length ? ' are replaced by' : ' become'} {gu(parts)} equal groups covering the{' '}
-                  {gu(readyCount)} Darshan that are ready to learn — split in the order users meet
+                  {gu(readyCount)} Darshan that are ready to learn - split in the order users meet
                   them, so each group is a consecutive run of the numbers they see.
                 </p>
                 <p style={{ marginTop: 8 }}>
-                  Nothing is written yet — change the result as you like, and press Save Draft when it
+                  Nothing is written yet - change the result as you like, and press Save Draft when it
                   is right. A sub-level users have already worked on is archived rather than deleted.
                 </p>
               </>
@@ -677,7 +775,7 @@ export default function Level4EditorPage() {
             title={`Remove ${dialog?.activity?.code || ''}?`}
             body={
               dialog?.activity?.progressCount > 0
-                ? 'Users have already worked on this sub-level, so it is archived instead of deleted — what they finished stays theirs. It takes effect when you save the draft.'
+                ? 'Users have already worked on this sub-level, so it is archived instead of deleted - what they finished stays theirs. It takes effect when you save the draft.'
                 : 'Nobody has worked on this sub-level, so it is deleted when you save the draft.'
             }
             confirmLabel="Remove"
@@ -725,7 +823,7 @@ export default function Level4EditorPage() {
                     Every number below is the one the user's own card will print. Capped for the
                     same reason the preview is: a version may hold any number of sub-levels. */}
                 <p style={{ marginTop: 10 }}>
-                  Each sub-level, numbered exactly as users see it — <strong>not</strong> the
+                  Each sub-level, numbered exactly as users see it - <strong>not</strong> the
                   numbers printed on the artwork:
                 </p>
                 <ul style={{ margin: '6px 0 0 18px' }}>

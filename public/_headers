@@ -22,11 +22,42 @@
 
 # The panel's own shell, and it must never be indexed or cached at an edge: it is an
 # operational console, not a page anyone should arrive at from a search result.
+#
+# This block matches the REQUEST PATH `/admin/index.html` and nothing else. Netlify applies
+# `_headers` rules against the URL as asked for, not against the file it resolves to — so this
+# rule covered the one path nobody ever types, and covered none of the paths a સંચાલક actually
+# opens. Verified against the deployed site:
+#
+#   /admin/index.html  →  X-Frame-Options: DENY, Referrer-Policy: same-origin
+#   /admin/            →  neither
+#   /admin/users       →  neither
+#
+# `/admin/` is served as the directory index and `/admin/users` through the SPA rewrite in
+# netlify.toml, and a rewrite does not re-run this matching against the target. So the panel —
+# the one surface in this project that can suspend an account, read two thousand yuvaks' mobile
+# numbers and grant SUPER_ADMIN — was frameable at every URL it is reached by. The block is
+# kept for the literal path and the two protections that must not depend on how the panel was
+# reached now live in the `/admin/*` rule below.
 /admin/index.html
   Cache-Control: private, max-age=0, must-revalidate
   X-Robots-Tag: noindex, nofollow
   Referrer-Policy: same-origin
   X-Frame-Options: DENY
 
+# Everything under /admin, however it was reached: the shell, every deep link, and the panel's
+# own assets.
+#
+# Cache-Control is deliberately NOT set here. `/admin/assets/*` above declares the hashed
+# chunks immutable, and a broader rule naming the same header would be a second opinion about
+# the same files — the two protections below name headers nothing else sets, so every matching
+# rule simply merges.
+#
+# X-Frame-Options rather than CSP `frame-ancestors`: the latter is the modern spelling and is
+# worth adding, but it belongs in a Content-Security-Policy this project does not have yet, and
+# introducing one header-value's worth of CSP is how a panel ends up with a policy nobody
+# maintains. This restores the protection that was already decided on, at the paths it was
+# meant for.
 /admin/*
   X-Robots-Tag: noindex, nofollow
+  Referrer-Policy: same-origin
+  X-Frame-Options: DENY

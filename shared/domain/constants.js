@@ -40,29 +40,25 @@ export const SUBZONES = [
   { id: 'navsari', name: 'નવસારી' },
 ];
 
-export const subZoneName = (id) => SUBZONES.find((s) => s.id === id)?.name || id || '—';
+export const subZoneName = (id) => SUBZONES.find((s) => s.id === id)?.name || id || '-';
 
-/**
- * The founding સંચાલક numbers from §3.
- *
- * These are a *bootstrap*, not the role system. Since 0004_rbac.sql, an administrator is
- * a row in `admin_profiles` carrying a role, and roles are assigned from the panel by a
- * SUPER_ADMIN. These three numbers resolve to SUPER_ADMIN with or without such a row,
- * which is what makes it impossible to lock the owners out of their own panel — by a bad
- * role edit, a mistaken DISABLE, or a seed that never ran.
- *
- * The list is the root of trust and not the enforcement. Enforcement is
- * `public.effective_role()`, which reads profiles.mobile — a column a trigger makes
- * immutable after registration, so it cannot be self-declared. This copy only decides
- * what the UI shows; `node scripts/seed-admin.mjs` reports drift between the two.
- */
-export const ADMIN_MOBILES = [
-  '9601269715', // §3
-  '9601269009', // §3
-  '9925842081', // developer/owner account, added 2026-08-11
-];
+/*
+  ADMIN_MOBILES and isAdminMobile stood here, and have moved to
+  shared/domain/admin-bootstrap.js.
 
-export const isAdminMobile = (mobile) => ADMIN_MOBILES.includes(String(mobile || '').trim());
+  This module is imported by the યુવક app (through `src/lib/constants.js`, which is
+  `export * from` this file) and by the સંચાલક panel, so anything declared here reaches a
+  browser bundle. Three founders' personal mobile numbers did exactly that, and were being
+  served to every visitor of the deployed site in a preloaded chunk.
+
+  They are not needed on the client for anything. Their only browser reader was
+  `src/lib/auth.jsx`, deciding whether to draw one link to the panel — a question the server
+  answers better and now answers, through `public.effective_role()`. That function is also the
+  only enforcement there has ever been; this list was never it.
+
+  The new module explains the rest, including why moving them is a structural fix rather than
+  a tidy-up and why `scripts/verify-admin-separation.mjs` now greps the built bundles for them.
+*/
 
 /** Indian mobile: 10 digits, first digit 6-9. */
 export const MOBILE_RE = /^[6-9]\d{9}$/;

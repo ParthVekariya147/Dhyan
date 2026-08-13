@@ -49,7 +49,7 @@ export default function LearningPage() {
             <Link className="linklike" to="/">મુખપૃષ્ઠ</Link>
           </header>
           <div className="notice notice-warn" role="status">
-            <p>આગળ વધવામાં સમસ્યા આવી. ફરી પ્રયાસ કરો.</p>
+            <p>આગળ વધવામાં થોડી તકલીફ થઈ. ફરી પ્રયત્ન કરો.</p>
             <button type="button" className="btn-quiet" onClick={L.retryLoad}>
               ફરી પ્રયત્ન કરો
             </button>
@@ -90,7 +90,7 @@ export default function LearningPage() {
           <SceneRunner
             ids={sceneIds()}
             title="દર્શન"
-            hint="દરેક દ્રશ્ય શાંતિથી નિહાળો અને એનું વર્ણન વાંચો."
+            hint="દરેક દ્રશ્યનાં શાંતિથી દર્શન કરો અને એનું વર્ણન વાંચો."
             onFinish={onFinishLearning}
             finishLabel="ઓળખ શરૂ કરો"
           />
@@ -102,12 +102,12 @@ export default function LearningPage() {
             <SceneRunner
               ids={sceneIds()}
               title="ઓળખ"
-              hint="જે દર્શન તમને ખરેખર યાદ છે તેને જ ટિક કરો."
+              hint="જે દર્શન તમને ખરેખર યાદ હોય એની જ ટિક કરો."
               showCheckbox
               isTicked={L.isTicked}
               onToggle={L.toggleRemember}
               onFinish={onSubmit}
-              finishLabel="જમા કરો"
+              finishLabel="નોંધાવો"
             />
             <p className="runner-hint tick-tally" aria-live="polite">
               અત્યાર સુધી ટિક: {gu(L.draftCount)} / {gu(L.total)}
@@ -136,7 +136,7 @@ export default function LearningPage() {
           <SceneRunner
             ids={pendingIds}
             title="બાકી દર્શન"
-            hint={`આ ${gu(pendingIds.length)} દર્શન ફરી શાંતિથી જુઓ.`}
+            hint={`આ ${gu(pendingIds.length)} દર્શન ફરી શાંતિથી કરી લો.`}
             onFinish={() => L.goTo(STAGE.MEMORY_RECALL)}
             finishLabel="સ્મૃતિ દર્શન શરૂ કરો"
           />

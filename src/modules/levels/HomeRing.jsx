@@ -47,7 +47,7 @@ export default function HomeRing() {
         rather than described, because what it contains is his to change and this line is
         not re-read when he changes it.
       */
-      sub={active === 4 ? 'લેવલ ૪' : 'લેવલ ૩ — વર્ણન યાદી'}
+      sub={active === 4 ? 'લેવલ ૪' : 'લેવલ ૩ - વર્ણન યાદી'}
     />
   );
 }

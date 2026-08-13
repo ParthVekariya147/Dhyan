@@ -24,7 +24,18 @@ What the two apps *do* share is `shared/` — domain constants, the દર્શ
 settings validation, audit vocabulary, and one Supabase client factory
 (`shared/supabase/client.js`). Nothing more.
 No shared UI: the યુવક app is a dark, gold, unhurried reading surface and the panel is a
-cool-toned operational console, and they are meant to look nothing alike.
+light, neutral operational console, and they are meant to look nothing alike.
+
+The panel's design system is **one file** — `admin/src/app/admin.css`. Colour, spacing,
+type, radius, elevation and control sizing are all tokens declared at the top of it, and
+a page or a feature stylesheet must never write a raw hex value or a bare pixel radius:
+one edit there restyles the whole console, and a local literal is the thing that stops
+being true. The legacy short names (`--bg`, `--panel`, `--line`, `--accent`, `--ok`…) are
+aliases onto the semantic tokens, kept because every page already spells them that way.
+
+Two rules in that file are load-bearing rather than cosmetic, and both are commented where
+they live: `--tap` rises from 34px to 44px under `pointer: coarse`, and form controls go to
+16px there as well — below that, iOS Safari zooms on focus and never zooms back out.
 
 ## Commands
 
@@ -36,6 +47,9 @@ cool-toned operational console, and they are meant to look nothing alike.
 | `npm run build:yuvak` / `build:admin` | one at a time |
 | `npm run verify` | builds with the test flag, then runs the 18-check image-delivery suite |
 | `npm run verify:separation` | proves no admin code reached the યુવક bundle |
+| `npm run verify:admin` | the panel at the eleven widths §36 names, served under netlify.toml's own redirect rules — so `/admin/users` resolving to the panel rather than the યુવક shell is part of what is tested (needs `dist/`, so run a build first) |
+| `npm run test:navigation` | the bottom bar as pure logic — resolving, validating, reordering, and the registry against both `src/App.jsx` and `0019_mobile_navigation.sql` |
+| `npm run verify:nav` | the bottom bar in a real Chrome at the six widths §21 names: it fits, it taps, it does not cover the page, and it is not drawn on a desktop |
 | `npm run check` | build → separation → regression, i.e. everything |
 | `node scripts/db.mjs migrate` | applies every unapplied file in `supabase/migrations/`, in filename order (needs `SUPABASE_DB_PASSWORD`) |
 | `npm run seed:admin` | creates the first સંચાલક account — an auth user with its email confirmed outright, plus a `profiles` row carrying one of the `ADMIN_MOBILES` (needs `SUPABASE_SECRET_KEY`) |
@@ -114,6 +128,35 @@ bytes, so pointing a card at it would blank the દર્શન for everybody at
 build script both go through `resolveImageInput`, so a link set by hand produces exactly the
 URL a rebuild would have produced.
 
+### The fullscreen gallery, and its one setting
+
+Tapping any દ્રશ્ય in લેવલ ૨ opens it full screen, on that દ્રશ્ય and not on the first, and
+`‹ ›` / swipe / arrow keys walk the whole ક્રમ from there. The foot always shows the દ્રશ્ય's
+own number and an **ⓘ વર્ણન** control; neither ever fades, which is deliberate — the number is
+half of what લેવલ ૨ is teaching, so it is furniture rather than a hint. The viewer records
+nothing: it cannot tick, score, complete લેવલ ૨ or open લેવલ ૩.
+
+The one thing configurable about it is **પેનલ → સેટિંગ્સ → Gallery slideshow** — how long the
+**આપોઆપ** button holds each દ્રશ્ય, **1–60 seconds**, default 6. આપોઆપ never starts by itself
+and stops at the last દ્રશ્ય rather than looping back to the first.
+
+**That number is now a default rather than a description of what every યુવક sees.** Each યુવક
+may set his own speed on his own phone — see *What a યુવક sets for himself* below — and where
+he has, his choice is what runs. The field here is still the answer for everybody who has
+never opened that screen, which today is nearly all of them, and it is the answer they go
+back to when they clear their choice.
+
+The range is enforced in three places on purpose, and they are not redundant: the panel's
+field explains it, `validateSlideshow()` in `shared/domain/settings.js` is the rule both apps
+agree on, and a trigger from `0018_gallery_slideshow.sql` refuses an out-of-range write at the
+table. `settings` is writable through PostgREST by anyone `is_admin()` admits without going
+near `admin/src`, so a disabled input is an explanation and only the trigger is a guarantee.
+
+Two counters appear in the viewer and they are different numbers. Top-right is **position in
+today's collection** (`૫ / ૧૦૯`); the foot is the દ્રશ્ય's **own printed number** (`#૫`), the
+same one લેવલ ૩'s rows and લેવલ ૪'s કસોટી use. Withhold one દ્રશ્ય and the two stop matching —
+which is correct, and why both are shown, marked differently.
+
 ### Why the encoder is gone
 
 The previous scheme downloaded 549 MB of masters and re-encoded all 109 into six widths ×
@@ -125,6 +168,138 @@ Google's image CDN does the same job in the URL. `=w1600-rj-v1` turns a 1606 KB 
 into a **132 KB JPEG** — twelve times smaller, no visible loss, no local CPU, nothing to
 commit. `shared/domain/drive.js` documents what each part of that suffix does and what it
 costs to drop it.
+
+## The bottom navigation bar
+
+**પેનલ → Navigation** decides what stands at the bottom of a યુવક's phone: which buttons,
+in what order, under which word, with which picture, and whether each one is shown at all.
+On a phone that bar is the whole app as far as a યુવક is concerned — what he can reach in
+one thumb-press is what the app *is* — and which buttons those should be is a judgement
+about what he ought to be doing this month, not a fact about the code. So it is
+configuration, changeable without a deploy, in the same row-shaped place as every other
+judgement the સંચાલક makes.
+
+The page lists every destination the app has, shown and hidden together, each with a switch,
+a drag handle, a name field and an icon picker. Saving writes the whole list at once, after
+`validateMobileNav()` has agreed to it.
+
+**Between 2 and 5 buttons may be shown, and 5 is a measurement rather than a preference.**
+At 320px — the iPhone SE and every cheap Android in portrait, the width the whole design
+system is drawn against — five cells are 64px each: a tap target above the 44px one-handed
+floor with room for an icon and one short Gujarati word beneath it. Six cells are 53px,
+which is under the floor with the label already clipped. Two is the other end, because one
+button is not navigation, it is a logo: there is nothing to move between and it costs 64px
+of screen to say where you already are. A સંચાલક who wants no bottom bar at all wants a
+setting that does not exist yet, and is told so rather than left to express it by hiding
+everything. Labels are capped at **12 characters** for the same reason and are truncated
+rather than wrapped — a bar whose height depends on the wording is a bar that moves the page
+under a thumb.
+
+**મુખપૃષ્ઠ cannot be switched off.** Its switch is disabled and the save is refused if it
+is missing, hidden or disabled — three different ways of taking the way back off the screen,
+all three refused. This bar is the only chrome the app has on a phone: there is no sidebar,
+no hamburger and no breadcrumb behind it, and a PWA in standalone mode does not draw a
+browser Back button. A યુવક deep in લેવલ ૪'s કસોટી with no મુખપૃષ્ઠ button has no way out,
+so hiding it is not a configuration, it is a trap.
+
+**Destinations come from a fixed registry and are never typed.** `NAV_REGISTRY` in
+`shared/domain/navigation.js` holds every route a button may have, beside the `<Route>` list
+in `src/App.jsx` where the build can check it. The stored row carries a *key* and the
+સંચાલક's opinions about it; the resolver looks the key up and takes the route from code.
+There is no field in the panel for a URL and there is deliberately no way to add one:
+`settings` is writable through PostgREST by anyone `has_permission('settings.update')`
+admits, so a stored route that was honoured would mean one `curl` could put an arbitrary
+path — or an off-site URL — under a button that 2,000 people press without reading. The row
+is data; a destination is not.
+
+**The icon list is closed** — ten names, each mapped to an inline SVG the app draws itself
+(`src/components/NavIcon.jsx`). Nothing is fetched and nothing is evaluated. The names
+describe the drawing and not the destination (`grid`, not `level4`), because the point of
+making the icon configurable is that a સંચાલક may want a different picture on a button
+without changing where it goes.
+
+**Where it is stored, and why not a table.** `settings['nav'].value.mobileBottom` — a key
+beside `app`, `levels` and `journey` in the same table. An `app_navigation_items` table was
+the obvious shape and is the wrong one: this project already has a configuration system with
+all four of the properties such a table would have been built to get — one RLS policy naming
+`settings.update`, one audit trigger filing every write as `SETTINGS_UPDATED`, one
+server-side validation pattern, and one read the યુવક app is already making. A second system
+would duplicate all four and add a second round trip on a phone, to hold at most nine rows
+that change a few times a year. It is its own key rather than a field of `app` because `app`
+is read and patched by four different hooks, and a list living in the row that four hooks
+merge is a list one of them eventually drops.
+
+**The trigger is the guarantee; the panel is the explanation.** `0019_mobile_navigation.sql`
+re-states the same rules — the registry keys, the icon names, 2..5 shown, the 12-character
+cap, મુખપૃષ્ઠ present and on — in a `BEFORE` trigger on `settings`. That is the only one of
+the two that a `curl` cannot go around, exactly as `0018` does for the gallery interval. The
+panel's disabled switch and its error message exist so the સંચાલક knows *why* before he
+presses Save, not because they stop anything.
+
+**ક્રમાંક (Points / Leaderboard) is a placeholder and cannot be switched on.** It is listed
+in the panel with its switch off and a line saying it is not built yet, because a page that
+simply does not mention it invites the question every month. `ready: false` in the registry
+is a fact about `src/App.jsx` rather than an opinion anybody may hold, and both
+`validateMobileNav()` and the trigger refuse to show an item that carries it — so no save
+and no `curl` can turn it into a button that navigates to a route which does not exist.
+Points and gamification are a separate piece of work; switching this on is that task's
+business. **સેટિંગ** was listed on the same terms until `/settings` was built; it is now
+`ready: true` on both sides — `NAV_REGISTRY` and `nav_registry()` in
+`0020_nav_settings_ready.sql` — so the સંચાલક may put it in the bar if he wants it there. It
+is not in the default four, because a યુવક looks for his settings under **મારું**.
+
+Two suites hold all of this: `npm run test:navigation` for the resolving, the validating and
+the reordering, and `npm run verify:nav` for the bar itself in a real Chrome at the six
+widths §21 names. `test:navigation` also compares the registry against both of the things it
+claims to describe — the `<Route>` list in `src/App.jsx`, and the `ready` flag on every row of
+`nav_registry()` in the **latest** migration that defines it. A registry that says ready while
+the database says not-built is a checkbox the panel offers and the trigger refuses, which is
+why the two copies are asserted to agree rather than remembered to.
+
+## What a યુવક sets for himself
+
+Almost everything a યુવક sees is the સંચાલક's. One thing is not, and it is worth knowing about
+before somebody reports that the slideshow "is not using the number I set".
+
+**પેનલ → સેટિંગ્સ → Gallery slideshow is a default.** Each યુવક may override it from
+**/settings** in his own app — reached from **મારું** — where he picks one of four named
+speeds or types his own:
+
+| વિકલ્પ | seconds | આશરે, at 109 દ્રશ્યો |
+| --- | --- | --- |
+| ઝડપી | 3 | ૫ મિનિટ |
+| મધ્યમ | 5 | ૯ મિનિટ |
+| ધીમું | 8 | ૧૫ મિનિટ |
+| અતિ ધીમું | 12 | ૨૨ મિનિટ |
+| પોતાની ગતિ | 2-30 | counted |
+
+The minute column is **computed, never stored** — it is the seconds against the size of
+today's collection, so the day દ્રશ્ય ૧૧૦ is added every row of it corrects itself. It is the
+reason the speeds are named rather than offered as a bare slider: "8 seconds" is a number a
+યુવક cannot picture, and "આશરે ૧૫ મિનિટ" is the same fact in the unit he is actually deciding
+in — how long am I sitting down for.
+
+**His bounds are 2-30, and they are deliberately not the સંચાલક's 1-60.** The two answer
+different questions. 1-60 is what one person setting a default for two thousand others may
+choose, including the deliberately slow end used for a hall watching together. 2-30 is what a
+યુવક may do to his own દર્શન in the moment: the floor is 2 rather than 1 because he arrives at
+this control by tapping and could hit the floor by accident, and at one second a દ્રશ્ય the
+collection is not being looked at, it is flickering past. The ceiling is 30 because past that
+a દ્રશ્ય that has not moved is indistinguishable from an app that has frozen, and he has the
+`›` arrow for going slower still. A સંચાલક default outside 2-30 is perfectly legal and is
+honoured exactly as he set it — it is his number, and the યુવક's bounds do not clamp it.
+
+**His choice never reaches the database.** It is stored on his device, one field, and there is
+no column for it, no row written, no request made. Three consequences to be clear about: it
+does not follow him to another phone, it disappears when he clears his browser data, and it is
+not visible anywhere in the panel — there is no report of who has chosen what, because nothing
+was recorded. **Clearing it returns him to the સંચાલક's number**, immediately and on every
+screen that reads the speed.
+
+`shared/domain/viewing-speed.js` holds the presets, the bounds, the resolver and the
+validator, and `npm run test:speed` holds it to them — including the four published minute
+totals, which are asserted against the requirement document's own figures so that a change to
+the arithmetic cannot quietly re-time the સાધના.
 
 ## Deployment
 
@@ -242,7 +417,7 @@ deliberately no "log in as this user".
 | `public.learning_sessions` | યુવક app | reads — one row per submitted round |
 | `content/darshan.json` | build pipeline | reads — the master content |
 | `public.scenes` | **panel** | writes `active`/`status`, `order`, `caption`, replacement `image_url` |
-| `public.settings` | **panel** | writes the `app` row (video URL and app settings) and the `levels` row (level availability) |
+| `public.settings` | **panel** | writes the `app` row (video URL, app settings, the two ધૂન, the Drive folder, the gallery slideshow interval), the `levels` row (level availability, what opens લેવલ ૪) and the `nav` row (the phone's bottom bar) |
 | `public.admin_profiles` | **panel** | who holds which role; guarded by `admin_profiles_guard`, never deleted |
 | `public.audit_logs` | **database** | append-only; no update, no delete, for anyone |
 

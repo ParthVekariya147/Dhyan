@@ -2,9 +2,13 @@
 <html lang="gu">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- `viewport-fit=cover` is what makes env(safe-area-inset-*) resolve to a real number.
+       Without it iOS letterboxes the page inside the safe area, every inset reports 0px,
+       and the bottom bar's `calc(58px + env(safe-area-inset-bottom))` silently becomes
+       plain 58px — so in standalone mode the home indicator sits over its labels. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#100d0a">
-  <title>નીલકંઠ વર્ણી ધ્યાન — દર્શન</title>
+  <title>નીલકંઠ વર્ણી ધ્યાન - દર્શન</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 </head>
 <body>

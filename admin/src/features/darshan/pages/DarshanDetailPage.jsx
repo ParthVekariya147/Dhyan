@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { listDarshan, saveScene, setSceneImage, validateImageUrl } from '../services/darshanService';
-import { AsyncBlock } from '../../../components/StateBlocks';
-import { PageHeader } from '../../../components/StatCard';
+import { AsyncBlock, CardSkeleton, Empty, FormSkeleton } from '../../../components/StateBlocks';
+import { PageHeader, StatusBadge } from '../../../components/StatCard';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { dateTimeGu, gu } from '../../../lib/format';
 import { ACTIONS } from '../../../../../shared/domain/audit.js';
 import { saveError } from '../../../lib/errors';
+import '../darshan.css';
 
 /**
  * §30 — one દ્રશ્ય, and the four things it is made of.
@@ -128,34 +129,74 @@ export default function DarshanDetailPage() {
 
   return (
     <>
+      {/*
+        The શીર્ષક is the heading when there is one, because "darshan-041" is the file name
+        and not the thing; the id stays on the line under it and in the crumb, which is what
+        every message about this દ્રશ્ય will name. The crumb is the way back up — this page is
+        arrived at from the grid and there is otherwise nothing on screen that leads back to
+        it — and the button beside it is the same journey at a size a thumb can hit.
+      */}
       <PageHeader
-        title={itemId}
-        sub={item ? `Number shown in the image — ${gu(item.index)}` : ''}
-        actions={<Link className="btn btn-quiet" to="/darshan">← Darshan</Link>}
+        title={item?.title?.trim() || itemId}
+        sub={item ? `${item.id} · number printed in the image - ${gu(item.index)}` : ''}
+        crumbs={[{ to: '/darshan', label: 'Darshan' }, { label: itemId }]}
+        actions={<Link className="btn btn-quiet" to="/darshan">← All Darshan</Link>}
       />
 
-      <AsyncBlock state={state} onRetry={state.retry}>
+      <AsyncBlock
+        state={state}
+        onRetry={state.retry}
+        skeleton={
+          <div className="detail-cols">
+            <div className="dg-loading"><CardSkeleton count={1} /></div>
+            <FormSkeleton fields={4} />
+          </div>
+        }
+      >
         {!item ? (
-          <div className="card"><p>There is no Darshan with this ID.</p></div>
+          /* §35 — a wrong id is a dead end unless it offers the way out of itself. */
+          <Empty
+            icon="❑"
+            title="No Darshan with this ID"
+            message={`Nothing in the collection is called “${itemId}”. It may have been renumbered, or the link may be mistyped.`}
+            action={<Link className="btn" to="/darshan">Back to all Darshan</Link>}
+          />
         ) : (
           <>
-            {msg && <div className={`notice notice-${msg.tone}`} role="status">{msg.text}</div>}
+            {msg && (
+              <div className={`notice notice-${msg.tone}`} role={msg.tone === 'danger' ? 'alert' : 'status'}>
+                {msg.text}
+              </div>
+            )}
 
             <div className="detail-cols">
               <div className="preview">
-                {/* The image as a યુવક sees it. Not lazy: it is the reason the page was
-                    opened. A દ્રશ્ય with no link yet says so rather than showing a broken
-                    frame — §1, never a dead end, applies to the panel too. */}
+                {/* The image as a યુવક sees it, at the full width Google will encode it to —
+                    this is the one place in the panel that must not be a thumbnail, because
+                    inspecting the artwork is what the page is for. Eager for the same reason:
+                    it is the reason the page was opened, not something scrolled past. A દ્રશ્ય
+                    with no link yet says so rather than showing a broken frame — §1, never a
+                    dead end, applies to the panel too. */}
                 {item.imageUrl ? (
-                  <img src={item.fullUrl || item.imageUrl} alt={`Darshan ${item.index}`} decoding="async" />
+                  <img
+                    src={item.fullUrl || item.imageUrl}
+                    alt={`Darshan ${item.index}`}
+                    loading="eager"
+                    decoding="async"
+                    /* Load-bearing: lh3 throttles per referrer — see driveImageUrl in shared/domain/drive.js. */
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
-                  <div className="card"><p>No image link set for this Darshan yet.</p></div>
+                  <div className="notice notice-warn">
+                    No image link is set for this Darshan yet, so users are not shown it. Paste a
+                    Google Drive link in the box beside this to give it one.
+                  </div>
                 )}
               </div>
 
               <div>
-                <div className="card">
-                  <h2>Details</h2>
+                <section className="card" aria-labelledby="details-h">
+                  <h2 id="details-h">Details</h2>
                   <dl className="kv">
                     <dt>ID</dt><dd className="mono">{item.id}</dd>
                     <dt>Number (in image)</dt><dd className="mono">{item.sourceIndex ?? item.index}</dd>
@@ -168,69 +209,76 @@ export default function DarshanDetailPage() {
                     <dt>Order</dt><dd className="mono">{item.order}</dd>
                     <dt>Status</dt>
                     <dd>
+                      {/* §47 — the one badge, so "Active" here is the same object it is on
+                          the grid. The word is the meaning; the tint only repeats it. */}
                       {item.active
-                        ? <span className="pill pill-ok">Active</span>
-                        : <span className="pill pill-off">{item.reason || 'Off'}</span>}
+                        ? <StatusBadge tone="ok">Active</StatusBadge>
+                        : <StatusBadge tone="off">{item.reason || 'Off'}</StatusBadge>}
                     </dd>
                     {item.file && <><dt>File in Drive</dt><dd className="mono">{item.file}</dd></>}
                     {item.driveId && <><dt>Drive ID</dt><dd className="mono">{item.driveId}</dd></>}
-                    <dt>Image URL</dt><dd className="mono">{item.imageUrl || '—'}</dd>
+                    <dt>Image URL</dt><dd className="mono">{item.imageUrl || '-'}</dd>
                     <dt>Source</dt><dd>{item.source}</dd>
-                    <dt>Updated</dt><dd>{item.updatedAt ? dateTimeGu(item.updatedAt) : '—'}</dd>
+                    <dt>Updated</dt><dd>{item.updatedAt ? dateTimeGu(item.updatedAt) : '-'}</dd>
                   </dl>
                   {/* The વર્ણન is not repeated here — it is editable in the next card, and
                       showing it twice is the duplicate this page's design rejects (§23). */}
-                </div>
+                </section>
 
-                <div className="card">
-                  <h2>Edit</h2>
+                <section className="card" aria-labelledby="edit-h">
+                  <h2 id="edit-h">Edit</h2>
+                  <p className="hint d-note">
+                    Five separate saves, each confirmed on its own. Nothing here is written until
+                    you answer its dialog.
+                  </p>
 
                   {/*
                     The link. One box, one paste, one save — and the same converter the build
                     script uses, so what is set here is byte-for-byte the URL a rebuild would
                     have produced.
                   */}
-                  <div className="field">
-                    <label htmlFor="url">Image link (Google Drive)</label>
-                    <input
-                      id="url"
-                      type="url"
-                      value={newUrl}
-                      onChange={(e) => setNewUrl(e.target.value)}
-                      placeholder="https://drive.google.com/file/d/…/view"
-                    />
-                    <span className="hint">
-                      In Drive: right-click the image → Share → General access → “Anyone with
-                      the link”, then Copy link. The link is converted automatically to the
-                      form a browser can display. Nothing is uploaded or deleted, so this can
-                      be rolled back by pasting the previous link.
-                    </span>
+                  <div className="d-block">
+                    <h3>Image link</h3>
+                    <div className="field">
+                      <label htmlFor="url">Image link (Google Drive)</label>
+                      <input
+                        id="url"
+                        type="url"
+                        value={newUrl}
+                        onChange={(e) => setNewUrl(e.target.value)}
+                        placeholder="https://drive.google.com/file/d/…/view"
+                      />
+                      <span className="hint">
+                        In Drive: right-click the image → Share → General access → “Anyone with
+                        the link”, then Copy link. The link is converted automatically to the
+                        form a browser can display. Nothing is uploaded or deleted, so this can
+                        be rolled back by pasting the previous link.
+                      </span>
+                    </div>
+                    <button
+                      className="btn"
+                      type="button"
+                      disabled={!newUrl.trim()}
+                      onClick={() => {
+                        const v = validateImageUrl(newUrl, item.imageUrl);
+                        if (!v.ok) return setMsg({ tone: 'danger', text: v.gu });
+                        setPending({
+                          title: 'Change the image?',
+                          body:
+                            `${item.id} will show this image from now on. The file in Drive is not touched.` +
+                            (v.note ? `\n\n${v.note}` : ''),
+                          // Through the service, not a bare patch: the URL, the Drive id and
+                          // the original paste have to move together or the enlarged view
+                          // would go on asking for the previous image.
+                          run: () => setSceneImage(itemId, newUrl),
+                          action: ACTIONS.IMAGE_REPLACED,
+                          meta: { from: item.imageUrl, to: v.url },
+                        });
+                      }}
+                    >
+                      Save image link
+                    </button>
                   </div>
-                  <button
-                    className="btn"
-                    type="button"
-                    disabled={!newUrl.trim()}
-                    onClick={() => {
-                      const v = validateImageUrl(newUrl, item.imageUrl);
-                      if (!v.ok) return setMsg({ tone: 'danger', text: v.gu });
-                      setPending({
-                        title: 'Change the image?',
-                        body:
-                          `${item.id} will show this image from now on. The file in Drive is not touched.` +
-                          (v.note ? `\n\n${v.note}` : ''),
-                        // Through the service, not a bare patch: the URL, the Drive id and
-                        // the original paste have to move together or the enlarged view
-                        // would go on asking for the previous image.
-                        run: () => setSceneImage(itemId, newUrl),
-                        action: ACTIONS.IMAGE_REPLACED,
-                        meta: { from: item.imageUrl, to: v.url },
-                      });
-                    }}
-                  >
-                    Save image link
-                  </button>
-
-                  <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
 
                   {/*
                     The short name (0013), placed immediately above the વર્ણન because the two
@@ -246,138 +294,144 @@ export default function DarshanDetailPage() {
                     the reason given there (§23): a value shown in two places is a value that
                     can be read stale in one of them.
                   */}
-                  <div className="field">
-                    <label htmlFor="title">Title (શીર્ષક)</label>
-                    <input
-                      id="title"
-                      type="text"
-                      value={title ?? item.title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="આ દ્રશ્યનું ટૂંકું નામ…"
-                    />
-                    <span className="hint">
-                      A few words naming this Darshan, for lists and headings. It is not shown
-                      instead of the description and it does not decide whether users see this
-                      Darshan — that still needs an image and a description.
-                    </span>
+                  <div className="d-block">
+                    <h3>Title</h3>
+                    <div className="field">
+                      <label htmlFor="title">Title (શીર્ષક)</label>
+                      <input
+                        id="title"
+                        type="text"
+                        value={title ?? item.title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="આ દ્રશ્યનું ટૂંકું નામ…"
+                      />
+                      <span className="hint">
+                        A few words naming this Darshan, for lists and headings. It is not shown
+                        instead of the description and it does not decide whether users see this
+                        Darshan - that still needs an image and a description.
+                      </span>
+                    </div>
+                    <button
+                      className="btn"
+                      type="button"
+                      disabled={title === null || title.trim() === item.title}
+                      onClick={() =>
+                        setPending({
+                          title: title.trim() ? 'Save this title?' : 'Clear the title?',
+                          body: title.trim()
+                            ? `${item.id} will be listed as “${title.trim()}”. Nothing users see changes - the title is used in this panel and in headings.`
+                            : `${item.id} will go back to being listed by its number alone.`,
+                          patch: { title: title.trim() },
+                          action: ACTIONS.DARSHAN_UPDATED,
+                          meta: { index: item.index },
+                        })
+                      }
+                    >
+                      Save title
+                    </button>
                   </div>
-                  <button
-                    className="btn"
-                    type="button"
-                    disabled={title === null || title.trim() === item.title}
-                    onClick={() =>
-                      setPending({
-                        title: title.trim() ? 'Save this title?' : 'Clear the title?',
-                        body: title.trim()
-                          ? `${item.id} will be listed as “${title.trim()}”. Nothing users see changes — the title is used in this panel and in headings.`
-                          : `${item.id} will go back to being listed by its number alone.`,
-                        patch: { title: title.trim() },
-                        action: ACTIONS.DARSHAN_UPDATED,
-                        meta: { index: item.index },
-                      })
-                    }
-                  >
-                    Save title
-                  </button>
-
-                  <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
 
                   {/*
                     §12 — the વર્ણન editor. Saving an empty field is not a mistake and is not
                     blocked: it clears the override and the દ્રશ્ય falls back to the વર્ણન in
                     the સંચાલક's sheet, which is the only way back after a bad edit.
                   */}
-                  <div className="field">
-                    <label htmlFor="caption">Description (વર્ણન)</label>
-                    <textarea
-                      id="caption"
-                      rows={3}
-                      value={caption ?? item.caption}
-                      onChange={(e) => setCaption(e.target.value)}
-                      placeholder="આ દ્રશ્યનું વર્ણન લખો…"
-                    />
-                    <span className="hint">
-                      {item.caption
-                        ? 'Shown under the image at Level 2 and read on its own at Level 3. Clearing this restores the text from the sheet.'
-                        : 'This Darshan has no description yet, so users are not shown it. Writing one here publishes it — no rebuild needed.'}
-                    </span>
+                  <div className="d-block">
+                    <h3>Description</h3>
+                    <div className="field">
+                      <label htmlFor="caption">Description (વર્ણન)</label>
+                      <textarea
+                        id="caption"
+                        rows={3}
+                        value={caption ?? item.caption}
+                        onChange={(e) => setCaption(e.target.value)}
+                        placeholder="આ દ્રશ્યનું વર્ણન લખો…"
+                      />
+                      <span className="hint">
+                        {item.caption
+                          ? 'Shown under the image at Level 2 and read on its own at Level 3. Clearing this restores the text from the sheet.'
+                          : 'This Darshan has no description yet, so users are not shown it. Writing one here publishes it - no rebuild needed.'}
+                      </span>
+                    </div>
+                    <button
+                      className="btn"
+                      type="button"
+                      disabled={caption === null || caption === item.caption}
+                      onClick={() =>
+                        setPending({
+                          title: caption.trim() ? 'Save this description?' : 'Clear the description?',
+                          body: caption.trim()
+                            ? `${item.id} will show this description to users.${
+                                item.active ? '' : ' It will also start being shown, because a Darshan becomes active once it has a description and an image.'
+                              }`
+                            : `The description set here will be removed and ${item.id} will fall back to the text in the sheet.`,
+                          patch: { caption: caption.trim() },
+                          action: ACTIONS.DARSHAN_UPDATED,
+                          meta: { index: item.index },
+                        })
+                      }
+                    >
+                      Save description
+                    </button>
                   </div>
-                  <button
-                    className="btn"
-                    type="button"
-                    disabled={caption === null || caption === item.caption}
-                    onClick={() =>
-                      setPending({
-                        title: caption.trim() ? 'Save this description?' : 'Clear the description?',
-                        body: caption.trim()
-                          ? `${item.id} will show this description to users.${
-                              item.active ? '' : ' It will also start being shown, because a Darshan becomes active once it has a description and an image.'
-                            }`
-                          : `The description set here will be removed and ${item.id} will fall back to the text in the sheet.`,
-                        patch: { caption: caption.trim() },
-                        action: ACTIONS.DARSHAN_UPDATED,
-                        meta: { index: item.index },
-                      })
-                    }
-                  >
-                    Save description
-                  </button>
 
-                  <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
-
-                  <div className="field">
-                    <label htmlFor="order">Order</label>
-                    <input
-                      id="order"
-                      type="number"
-                      min="1"
-                      value={order === '' ? item.order : order}
-                      onChange={(e) => setOrder(e.target.value)}
-                    />
-                    <span className="hint">
-                      The number shown in the image ({gu(item.index)}) does not change — it is part
-                      of the image. This is only the display order.
-                    </span>
+                  <div className="d-block">
+                    <h3>Display order</h3>
+                    <div className="field">
+                      <label htmlFor="order">Order</label>
+                      <input
+                        id="order"
+                        type="number"
+                        min="1"
+                        value={order === '' ? item.order : order}
+                        onChange={(e) => setOrder(e.target.value)}
+                      />
+                      <span className="hint">
+                        The number shown in the image ({gu(item.index)}) does not change - it is part
+                        of the image. This is only the display order.
+                      </span>
+                    </div>
+                    <button
+                      className="btn"
+                      type="button"
+                      disabled={order === '' || Number(order) === item.order}
+                      onClick={() =>
+                        setPending({
+                          title: 'Change the order?',
+                          body: `The order of ${item.id} will be changed from ${item.order} to ${order}.`,
+                          patch: { order: Number(order) },
+                          action: ACTIONS.DARSHAN_ORDER_CHANGED,
+                          meta: { from: item.order, to: Number(order) },
+                        })
+                      }
+                    >
+                      Save order
+                    </button>
                   </div>
-                  <button
-                    className="btn"
-                    type="button"
-                    disabled={order === '' || Number(order) === item.order}
-                    onClick={() =>
-                      setPending({
-                        title: 'Change the order?',
-                        body: `The order of ${item.id} will be changed from ${item.order} to ${order}.`,
-                        patch: { order: Number(order) },
-                        action: ACTIONS.DARSHAN_ORDER_CHANGED,
-                        meta: { from: item.order, to: Number(order) },
-                      })
-                    }
-                  >
-                    Save order
-                  </button>
 
-                  <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '18px 0' }} />
-
-                  {/* §31 — disable, never delete. There is no delete button on this page.
-                      Decision #3 — and it does not happen without the renumbering being
-                      stated first, in Darshan, counted from the sequence above. */}
-                  <button
-                    className={`btn ${item.active ? 'btn-danger' : ''}`}
-                    type="button"
-                    onClick={() =>
-                      setPending({
-                        title: item.active ? 'Turn this Darshan off?' : 'Turn this Darshan on?',
-                        body: <RenumberWarning item={item} renumber={renumber} />,
-                        patch: { active: !item.active },
-                        action: item.active ? ACTIONS.DARSHAN_DISABLED : ACTIONS.DARSHAN_ACTIVATED,
-                        meta: { index: item.index },
-                      })
-                    }
-                  >
-                    {item.active ? 'Turn off' : 'Turn on'}
-                  </button>
-                  <p className="card-note">There is deliberately no option to delete a Darshan permanently.</p>
-                </div>
+                  <div className="d-block">
+                    <h3>Shown to users</h3>
+                    {/* §31 — disable, never delete. There is no delete button on this page.
+                        Decision #3 — and it does not happen without the renumbering being
+                        stated first, in Darshan, counted from the sequence above. */}
+                    <button
+                      className={`btn ${item.active ? 'btn-danger' : ''}`}
+                      type="button"
+                      onClick={() =>
+                        setPending({
+                          title: item.active ? 'Turn this Darshan off?' : 'Turn this Darshan on?',
+                          body: <RenumberWarning item={item} renumber={renumber} />,
+                          patch: { active: !item.active },
+                          action: item.active ? ACTIONS.DARSHAN_DISABLED : ACTIONS.DARSHAN_ACTIVATED,
+                          meta: { index: item.index },
+                        })
+                      }
+                    >
+                      {item.active ? 'Turn off' : 'Turn on'}
+                    </button>
+                    <p className="card-note">There is deliberately no option to delete a Darshan permanently.</p>
+                  </div>
+                </section>
               </div>
             </div>
 
@@ -422,7 +476,7 @@ function RenumberWarning({ item, renumber }) {
     <>
       {item.active ? (
         <p>
-          A Darshan that is turned off is not shown to users. Nothing is deleted — it can be
+          A Darshan that is turned off is not shown to users. Nothing is deleted - it can be
           turned back on at any time.
         </p>
       ) : changes ? (
@@ -430,14 +484,14 @@ function RenumberWarning({ item, renumber }) {
       ) : (
         <p>
           This Darshan is switched back on, but users still will not see it
-          {item.reason ? ` — ${item.reason.toLowerCase()}` : ''}. So nothing is renumbered.
+          {item.reason ? ` - ${item.reason.toLowerCase()}` : ''}. So nothing is renumbered.
         </p>
       )}
 
       {!changes && item.active && (
         <p style={{ marginTop: 8 }}>
           It carries no number today
-          {item.reason ? ` — ${item.reason.toLowerCase()}` : ''}, so no other Darshan is renumbered.
+          {item.reason ? ` - ${item.reason.toLowerCase()}` : ''}, so no other Darshan is renumbered.
         </p>
       )}
 
@@ -459,7 +513,7 @@ function RenumberWarning({ item, renumber }) {
 
       <p style={{ marginTop: 8 }}>
         The number printed inside each image does not change, and nothing anyone has already
-        finished is affected — Level 3 and Level 4 follow the Darshan itself, not its number.
+        finished is affected - Level 3 and Level 4 follow the Darshan itself, not its number.
       </p>
     </>
   );

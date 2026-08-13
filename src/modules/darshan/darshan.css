@@ -31,6 +31,24 @@
 .card.in .frame img { transform: scale(1); }
 .frame:hover img { transform: scale(1.045); }
 
+/* A દ્રશ્ય whose retries are all spent — lh3 throttling a burst, usually. The whole frame is
+   the retry (DarshanCard routes the tap), so this is a message inside it rather than a
+   nested button: the same words the fullscreen viewer uses, and a hint styled as the action
+   it is. It also replaces what used to be here, which was worse than nothing: the browser's
+   broken-file glyph with the વર્ણન sprawled beside it as alt text. */
+.frame-fail {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 16px; text-align: center;
+  line-height: 1.6;
+}
+.frame-fail p { margin: 0; color: #b7a68d; font-size: clamp(13px, 2.2vw, 15px); }
+.frame-fail-hint {
+  padding: 9px 20px;
+  border: 1px solid rgba(240, 199, 120, 0.4); border-radius: 999px;
+  color: var(--color-gold-soft); font-size: clamp(13px, 2.2vw, 15px); font-weight: 700;
+}
+
 /* soft sheen sweeping across on reveal */
 .frame::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -106,6 +124,23 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  /* Stated, and it is the whole reason the two pills were different sizes.
+
+     forms.css — which is in the MAIN bundle, so it is loaded on every route whether this
+     chunk's stylesheet is or not — carries `.btn-quiet { margin-top: var(--sp-3) }` for
+     the stacked secondary button on લોગિન, where a 12px gap under the primary is exactly
+     right. Here the two buttons sit side by side, and nothing in this file set a margin,
+     so only the quiet one inherited that 12px.
+
+     What made it a SIZE difference rather than a nudge: this row is `display: flex` with
+     the default `align-items: stretch`, so the flex line is as tall as the tallest OUTER
+     box. Both buttons' outer boxes were 65.25px, but 12 of the quiet one's belonged to
+     its margin — leaving a 53.25px pill sitting 12px lower beside a 65.25px one. Same
+     padding, same font, same flex basis throughout; the margin alone did it.
+
+     Zeroing it here rather than raising specificity elsewhere keeps the reset next to the
+     rule that owns this row, and changes nothing on લોગિન. */
+  margin-top: 0;
   padding: 14px 26px;
   border-radius: 999px;
   font-family: inherit;

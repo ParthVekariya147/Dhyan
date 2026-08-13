@@ -41,7 +41,7 @@ export const ROLE_LABELS = {
   VIEWER: 'Viewer',
 };
 
-export const roleLabel = (r) => ROLE_LABELS[r] || r || '—';
+export const roleLabel = (r) => ROLE_LABELS[r] || r || '-';
 
 /** Every permission the panel knows about. The order is the order the UI lists them in. */
 export const PERMISSIONS = [

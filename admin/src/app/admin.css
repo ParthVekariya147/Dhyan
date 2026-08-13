@@ -1,47 +1,180 @@
-/* સંચાલક પેનલ — its own stylesheet, on purpose.
+/* સંચાલક પેનલ — its own stylesheet, and the single design system for the whole panel.
  *
  * The યુવક app is a dark gold reading surface meant to feel unhurried. This is an
- * operational console: cool slate, dense rows, high contrast, no animation that delays
- * information. §13 says the panel must not look like the learning UI, and sharing a
- * stylesheet is the fastest way for that to stop being true.
+ * operational console: a light, neutral, information-dense workspace. §13 still holds —
+ * the panel must not look like the learning UI — and the separation is now light-vs-dark
+ * rather than cool-vs-warm. Nothing is shared: no stylesheet, no component, no Tailwind.
  *
- * No Tailwind here. The યુવક app imports it for the preflight reset only (no utility
- * classes appear in its JSX), so there is nothing to reuse and a dependency to avoid.
- */
+ * ─────────────────────────────────────────────────────────────────────────────
+ * HOW TO USE THIS FILE
+ *
+ * Everything is a token. A feature stylesheet or a page must never invent a hex value,
+ * a pixel radius or a shadow: reach for the variables below so one edit here restyles
+ * the entire panel. If a token is missing, add it here rather than hard-coding locally.
+ *
+ * The legacy names (--bg, --panel, --panel-2, --line, --accent, --ok…) are kept as
+ * aliases pointing at the new semantic tokens, because darshan.css and level4.css and
+ * every page already reference them. They are not deprecated — they are the short
+ * spellings of the surface ramp.
+ * ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg: #0f141b;
-  --panel: #161d27;
-  --panel-2: #1c2532;
-  --line: #2a3543;
-  --text: #e6edf5;
-  --muted: #8fa1b6;
-  --accent: #4c9aff;
-  --accent-ink: #0b1420;
-  --ok: #3fb27f;
-  --warn: #d9a13b;
-  --danger: #e2584d;
-  --font: "Noto Sans Gujarati", "Shruti", "Nirmala UI", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --sidebar-w: 232px;
+  /* ---- palette: neutrals ------------------------------------------------ */
+  --n-0:   #ffffff;
+  --n-25:  #fafbfc;
+  --n-50:  #f5f6f8;
+  --n-100: #eef0f3;
+  --n-200: #e2e5ea;
+  --n-300: #cfd4db;
+  --n-400: #a3acb8;
+  --n-500: #6b7684;
+  --n-600: #4d5763;
+  --n-700: #363e48;
+  --n-800: #232a33;
+  --n-900: #141a21;
+
+  /* ---- palette: brand ---------------------------------------------------
+   * Deep amber. The યુવક app's identity is warm gold; the panel takes the same hue
+   * at a darker, desaturated value so it reads as authority on white rather than as
+   * decoration. It is the only saturated colour used for anything that is not state. */
+  --brand-50:  #fdf6ec;
+  --brand-100: #f8e6cc;
+  --brand-200: #eecb99;
+  --brand-500: #b47216;
+  --brand-600: #9a6012;
+  --brand-700: #7d4d0e;
+
+  /* ---- palette: state ---------------------------------------------------
+   * Muted on purpose. Colour communicates state; it never decorates. Each state has a
+   * tint (background), a line (border) and an ink (text) so a badge, a notice and a
+   * value can all be built from the same three without guessing. */
+  --ok-tint:   #eaf6ef;   --ok-line:   #b7e0c8;   --ok-ink:   #1b6e42;
+  --warn-tint: #fdf4e3;   --warn-line: #f0dcae;   --warn-ink: #8a5d09;
+  --dang-tint: #fdeeed;   --dang-line: #f3c9c5;   --dang-ink: #a83228;
+  --info-tint: #eef3fd;   --info-line: #c6d7f5;   --info-ink: #1f4fa8;
+
+  /* ---- semantic surfaces ------------------------------------------------ */
+  --surface-app:    var(--n-50);   /* the page behind everything */
+  --surface-card:   var(--n-0);    /* cards, tables, the shell chrome */
+  --surface-sunken: var(--n-100);  /* table headers, inset wells, disabled fields */
+  --surface-hover:  var(--n-25);
+
+  --text-strong: var(--n-900);
+  --text-body:   var(--n-800);
+  --text-muted:  var(--n-500);
+  --text-faint:  var(--n-400);
+  --text-invert: var(--n-0);
+
+  --border:        var(--n-200);
+  --border-strong: var(--n-300);
+
+  /* ---- legacy aliases — the short spellings used across pages ------------ */
+  --bg: var(--surface-app);
+  --panel: var(--surface-card);
+  --panel-2: var(--surface-sunken);
+  --line: var(--border);
+  --text: var(--text-body);
+  --muted: var(--text-muted);
+  --accent: var(--brand-500);
+  --accent-ink: var(--text-invert);
+  --ok: var(--ok-ink);
+  --warn: var(--warn-ink);
+  --danger: var(--dang-ink);
+
+  /* ---- spacing: a 4px scale, used for every gap and pad ------------------ */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* ---- typography -------------------------------------------------------
+   * One family for both scripts. Gujarati is listed first so કક્કો renders from a font
+   * that actually has the conjuncts rather than from a Latin fallback that substitutes
+   * boxes; the Latin faces after it serve the ASCII the panel is mostly written in. */
+  --font: "Noto Sans Gujarati", "Shruti", "Nirmala UI", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --fs-page:    20px;  /* page title — deliberately not huge; §7 */
+  --fs-section: 15px;  /* card / section heading */
+  --fs-body:    14px;
+  --fs-table:   13px;
+  --fs-label:   12.5px;
+  --fs-help:    12px;
+  --fs-micro:   11.5px;
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semi:   600;
+  --fw-bold:   700;
+
+  /* ---- radius ----------------------------------------------------------- */
+  --r-sm:   6px;
+  --r-md:   8px;
+  --r-lg:   12px;
+  --r-full: 999px;
+
+  /* ---- elevation --------------------------------------------------------
+   * Three levels only, all soft. A light console gets its structure from borders;
+   * shadow marks what floats above the page, not what sits on it. */
+  --sh-1: 0 1px 2px rgba(20, 26, 33, .05);
+  --sh-2: 0 2px 8px rgba(20, 26, 33, .07), 0 1px 2px rgba(20, 26, 33, .04);
+  --sh-3: 0 12px 32px rgba(20, 26, 33, .14), 0 2px 8px rgba(20, 26, 33, .06);
+  --ring: 0 0 0 3px rgba(180, 114, 22, .22);   /* focus / active field halo */
+
+  /* ---- control sizing ---------------------------------------------------
+   * --tap is the floor for anything a finger hits. It is 34px on a mouse and 44px on a
+   * touch screen (see the `pointer: coarse` block at the bottom), so a desktop console
+   * stays dense without a phone becoming unusable. */
+  --ctl-h: 36px;
+  --ctl-h-sm: 30px;
+  --tap: 34px;
+
+  --sidebar-w: 240px;
   --topbar-h: 56px;
+  --content-max: 1400px;
+
+  --dur: .16s;
+  --ease: cubic-bezier(.4, 0, .2, 1);
 }
+
+/* Breakpoints are documented here because CSS cannot tokenise a media query. Every
+ * `@media` in the panel — this file and the feature stylesheets — must use one of these:
+ *
+ *   1200px   content gets its side rails back / two-column detail splits
+ *    900px   sidebar becomes a drawer; tables become cards
+ *    640px   phone: single column, full-width controls, dialogs become sheets
+ *    380px   small phone: tighten padding only. Never a new layout. */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--surface-app);
+  color: var(--text-body);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Nothing in the panel is allowed to push the page sideways. §36 is a hard rule and
+   * this is the backstop for it; the real fix is always min-width:0 on the flex child. */
+  overflow-x: hidden;
 }
 
-a { color: var(--accent); text-decoration: none; }
+a { color: var(--brand-600); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* §56 — a focus ring that is always visible, never removed. */
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* Gujarati and English mixed in one string must never be clipped or overlapped: word-break
+ * keeps a long Drive URL or an unbroken વર્ણન inside its column instead of widening it. */
+h1, h2, h3, p, dd, td, th, li, label { overflow-wrap: anywhere; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -49,10 +182,11 @@ a:hover { text-decoration: underline; }
 }
 
 .skip {
-  position: absolute; left: -9999px; top: 8px; z-index: 100;
-  background: var(--accent); color: var(--accent-ink); padding: 8px 14px; border-radius: 6px;
+  position: absolute; left: -9999px; top: var(--sp-2); z-index: 100;
+  background: var(--brand-500); color: var(--text-invert);
+  padding: var(--sp-2) var(--sp-4); border-radius: var(--r-sm); box-shadow: var(--sh-2);
 }
-.skip:focus { left: 8px; }
+.skip:focus { left: var(--sp-2); }
 
 /* ---------------------------------------------------------------- shell */
 
@@ -62,253 +196,754 @@ a:hover { text-decoration: underline; }
   grid-template-rows: var(--topbar-h) 1fr;
   grid-template-areas: "brand top" "nav main";
   min-height: 100vh;
+  min-height: 100dvh;
 }
+
+/* The top-left cell, above the sidebar. Same background and bottom border as the topbar
+ * so the two read as one continuous bar rather than as a box beside a bar. */
+.brand {
+  grid-area: brand;
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 41;
+  color: var(--text-strong); min-width: 0;
+}
+.brand:hover { text-decoration: none; background: var(--surface-hover); }
+.brand-mark {
+  flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: var(--r-md);
+  display: grid; place-items: center;
+  background: var(--brand-500); color: var(--text-invert);
+  font-size: 16px; font-weight: var(--fw-bold); line-height: 1;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.brand-text strong {
+  font-size: var(--fs-body); font-weight: var(--fw-semi); color: var(--text-strong);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.brand-text span { font-size: var(--fs-micro); color: var(--text-muted); }
 
 .topbar {
   grid-area: top;
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 18px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 0 var(--sp-5);
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border);
+  /*
+   * THE STACK, top to bottom: skip link 100 · topbar/brand 40–41 · drawer 30 · scrim 25 ·
+   * feature sticky bars 2–3 · sticky table head 1.
+   *
+   * 40 rather than 20, and the reason is not cosmetic. `position: sticky` with a z-index
+   * creates a STACKING CONTEXT, so the account menu's own z-index is resolved *inside*
+   * this element rather than against the page — at 20 the menu was therefore painted
+   * below the drawer scrim (25), and opening the drawer and then the account menu put the
+   * menu behind the dimming layer where it could be seen but not pressed. Raising the
+   * topbar lifts everything it contains with it. The drawer never overlaps: it is
+   * positioned from `top: var(--topbar-h)` downwards.
+   */
+  position: sticky; top: 0; z-index: 40;
+  /* min-width:0 so a long page title truncates instead of widening the grid column. */
+  min-width: 0;
 }
-.topbar-title { display: flex; flex-direction: column; line-height: 1.15; }
-.topbar-title strong { font-size: 15px; }
-.topbar-title span { font-size: 11.5px; color: var(--muted); }
-.topbar-right { margin-inline-start: auto; display: flex; align-items: center; gap: 14px; }
-.who { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
-.who-name { font-size: 13px; }
-.who-role { font-size: 11px; color: var(--muted); }
+.topbar-title { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.topbar-title strong {
+  font-size: var(--fs-section); font-weight: var(--fw-semi); color: var(--text-strong);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.topbar-right {
+  margin-inline-start: auto; display: flex; align-items: center;
+  gap: var(--sp-3); min-width: 0; position: relative;
+}
+
+/* ---- account button + menu ---- */
+
+.account {
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: transparent; border: 1px solid transparent; border-radius: var(--r-md);
+  padding: var(--sp-1) var(--sp-2); min-height: var(--tap);
+  font: inherit; color: var(--text-body); cursor: pointer; min-width: 0;
+}
+.account:hover, .account.is-open { background: var(--surface-sunken); border-color: var(--border); }
+.avatar {
+  flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: var(--r-full);
+  display: grid; place-items: center;
+  background: var(--brand-100); color: var(--brand-700);
+  font-size: var(--fs-micro); font-weight: var(--fw-bold); line-height: 1;
+}
+.account-who { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; min-width: 0; }
+.who-name {
+  font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--text-strong);
+  max-width: 18ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* The role is a badge, not a caption: which authority you are holding is worth reading
+ * off the screen at a glance, and it is the one piece of chrome that changes per user. */
+.who-role {
+  font-size: var(--fs-micro); font-weight: var(--fw-semi); color: var(--brand-700);
+  max-width: 18ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.account-caret { color: var(--text-faint); font-size: 10px; flex: 0 0 auto; }
+
+.menu {
+  position: absolute; top: calc(100% + var(--sp-2)); inset-inline-end: 0; z-index: 40;
+  min-width: 232px; max-width: min(300px, calc(100vw - 24px));
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-3);
+  padding: var(--sp-2); overflow: hidden;
+}
+.menu-head {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  border-bottom: 1px solid var(--border); margin-bottom: var(--sp-2);
+}
+.menu-head strong { font-size: var(--fs-table); color: var(--text-strong); word-break: break-word; }
+.menu-head span:not(.pill) { font-size: var(--fs-help); color: var(--text-muted); word-break: break-all; }
+.menu-item {
+  display: flex; align-items: center; gap: var(--sp-2); width: 100%;
+  background: transparent; border: 0; border-radius: var(--r-sm);
+  padding: 0 var(--sp-3); min-height: var(--tap);
+  font: inherit; font-size: var(--fs-table); color: var(--text-body);
+  text-align: start; cursor: pointer;
+}
+.menu-item:hover { background: var(--surface-sunken); text-decoration: none; }
+.menu-item.is-danger { color: var(--dang-ink); }
+.menu-item.is-danger:hover { background: var(--dang-tint); }
 
 .sidebar {
   grid-area: nav / nav / main / nav;
-  background: var(--panel);
-  border-inline-end: 1px solid var(--line);
-  padding: 14px 10px;
+  background: var(--surface-card);
+  border-inline-end: 1px solid var(--border);
+  padding: var(--sp-4) var(--sp-3) var(--sp-2);
   display: flex; flex-direction: column;
   position: sticky; top: var(--topbar-h);
   height: calc(100vh - var(--topbar-h));
+  height: calc(100dvh - var(--topbar-h));
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
-.sidebar ul { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-.sidebar a {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 7px;
-  color: var(--text); font-size: 14px;
-}
-.sidebar a:hover { background: var(--panel-2); text-decoration: none; }
-.sidebar a.is-active {
-  background: var(--panel-2);
-  color: #fff;
-  /* Colour is not the only marker — the bar is a second, non-colour cue. */
-  box-shadow: inset 3px 0 0 var(--accent);
-  font-weight: 600;
-}
-.nav-icon { width: 18px; text-align: center; color: var(--muted); }
-.sidebar a.is-active .nav-icon { color: var(--accent); }
-.sidebar-foot { margin-top: auto; padding: 12px; font-size: 11.5px; color: var(--muted); }
+.sidebar ul { list-style: none; display: flex; flex-direction: column; gap: 1px; }
 
-.content { grid-area: main; padding: 22px; max-width: 1400px; }
+/* §10 — grouped navigation. The label is a quiet rule above its items, not a heading
+ * competing with them; a group with no permitted items is not rendered at all. */
+.nav-group + .nav-group { margin-top: var(--sp-5); }
+.nav-group-label {
+  font-size: var(--fs-micro); font-weight: var(--fw-semi); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-faint);
+  padding: 0 var(--sp-3) var(--sp-2);
+}
+
+.sidebar a {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 0 var(--sp-3); min-height: var(--tap);
+  border-radius: var(--r-sm);
+  color: var(--text-body); font-size: var(--fs-body); font-weight: var(--fw-medium);
+}
+.sidebar a:hover { background: var(--surface-sunken); text-decoration: none; }
+.sidebar a.is-active {
+  background: var(--brand-50);
+  color: var(--brand-700);
+  /* Colour is not the only marker — the bar is a second, non-colour cue (§43). */
+  box-shadow: inset 3px 0 0 var(--brand-500);
+  font-weight: var(--fw-semi);
+}
+.nav-icon { width: 18px; text-align: center; color: var(--text-faint); flex: 0 0 auto; }
+.sidebar a.is-active .nav-icon { color: var(--brand-500); }
+.sidebar-foot {
+  margin-top: auto; padding: var(--sp-3);
+  font-size: var(--fs-micro); color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* Drawer head — phone only. The brand cell above the sidebar does not exist at this
+ * width, so the drawer states what it belongs to itself. */
+.sidebar-brand { display: none; }
+
+.content {
+  grid-area: main;
+  padding: var(--sp-6);
+  max-width: var(--content-max);
+  width: 100%;
+  min-width: 0;   /* the grid child must be allowed to shrink, or wide tables widen the page */
+}
 
 .scrim { display: none; }
 
-/* ---------------------------------------------------------------- pages */
+/* ---------------------------------------------------------------- page header */
 
+/* §12 — one page header shape for every page: title, one line of purpose, actions.
+ * Pages must not invent their own; PageHeader.jsx renders this. */
 .page-head {
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
-  flex-wrap: wrap; margin-bottom: 18px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-5);
 }
-.page-head h1 { font-size: 21px; font-weight: 650; }
-.page-head p { color: var(--muted); font-size: 13px; margin-top: 3px; }
-.page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.page-head-text { min-width: 0; }
+.page-head h1 {
+  font-size: var(--fs-page); font-weight: var(--fw-semi);
+  color: var(--text-strong); line-height: 1.3;
+}
+.page-head p { color: var(--text-muted); font-size: var(--fs-label); margin-top: var(--sp-1); }
+.page-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+
+.breadcrumb {
+  display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+  font-size: var(--fs-help); color: var(--text-muted); margin-bottom: var(--sp-2);
+}
+.breadcrumb a { color: var(--text-muted); }
+.breadcrumb a:hover { color: var(--brand-600); }
+.breadcrumb span[aria-hidden] { color: var(--text-faint); }
+
+/* ---------------------------------------------------------------- surfaces */
 
 .card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 16px;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-4);
+  box-shadow: var(--sh-1);
 }
-.card h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-.card-note { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+.card h2 {
+  font-size: var(--fs-section); font-weight: var(--fw-semi);
+  color: var(--text-strong); margin-bottom: var(--sp-3);
+}
+.card-note { color: var(--text-muted); font-size: var(--fs-help); margin-top: var(--sp-3); }
+/* A card that only wraps a table should not double the padding around it. */
+.card-flush { padding: 0; overflow: hidden; }
+.card-flush .table-wrap { border: 0; border-radius: 0; box-shadow: none; }
 
 .grid-stats {
-  display: grid; gap: 12px; margin-bottom: 18px;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  display: grid; gap: var(--sp-3); margin-bottom: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-.stat-label { color: var(--muted); font-size: 12px; }
-.stat-value { font-size: 26px; font-weight: 650; margin-top: 4px; line-height: 1.15; }
-.stat-sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
-.stat-ok .stat-value { color: var(--ok); }
-.stat-warn .stat-value { color: var(--warn); }
-.stat-danger .stat-value { color: var(--danger); }
+.stat {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: var(--sp-4);
+  box-shadow: var(--sh-1);
+}
+.stat-label { color: var(--text-muted); font-size: var(--fs-help); font-weight: var(--fw-medium); }
+.stat-value {
+  font-size: 24px; font-weight: var(--fw-semi); color: var(--text-strong);
+  margin-top: var(--sp-1); line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.stat-sub { color: var(--text-muted); font-size: var(--fs-help); margin-top: var(--sp-1); }
+.stat-ok .stat-value { color: var(--ok-ink); }
+.stat-warn .stat-value { color: var(--warn-ink); }
+.stat-danger .stat-value { color: var(--dang-ink); }
 
-.section-title { font-size: 13px; color: var(--muted); margin: 20px 0 8px; text-transform: none; }
+.section-title {
+  font-size: var(--fs-help); font-weight: var(--fw-semi); letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text-faint);
+  margin: var(--sp-6) 0 var(--sp-2);
+}
 
 /* ---------------------------------------------------------------- table */
 
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-.dt { width: 100%; border-collapse: collapse; font-size: 13px; }
-.dt th, .dt td { padding: 10px 12px; text-align: start; border-bottom: 1px solid var(--line); vertical-align: top; }
-.dt th { background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-card);
+  box-shadow: var(--sh-1);
+  -webkit-overflow-scrolling: touch;
+}
+.dt { width: 100%; border-collapse: collapse; font-size: var(--fs-table); }
+.dt th, .dt td {
+  padding: var(--sp-3) var(--sp-4);
+  text-align: start; border-bottom: 1px solid var(--border); vertical-align: middle;
+}
+.dt th {
+  background: var(--surface-sunken); color: var(--text-muted);
+  font-weight: var(--fw-semi); font-size: var(--fs-help);
+  letter-spacing: .03em; white-space: nowrap;
+  position: sticky; top: 0; z-index: 1;
+}
 .dt tbody tr:last-child td { border-bottom: 0; }
-.dt tbody tr:hover { background: #19222e; }
+.dt tbody tr:hover { background: var(--surface-hover); }
 .dt tr.is-clickable { cursor: pointer; }
+.dt tr.is-clickable:hover { background: var(--brand-50); }
 .ta-r { text-align: end; }
-.th-sort { all: unset; cursor: pointer; display: inline-flex; gap: 2px; }
-.th-sort:focus-visible { outline: 2px solid var(--accent); }
+.th-sort {
+  all: unset; cursor: pointer; display: inline-flex; gap: var(--sp-1); align-items: center;
+  font: inherit; color: inherit;
+}
+.th-sort:hover { color: var(--brand-600); }
+.th-sort:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 
 .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
-.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; border: 1px solid var(--line); }
-.pill-ok { color: var(--ok); border-color: #24503f; }
-.pill-off { color: var(--muted); }
-.pill-warn { color: var(--warn); border-color: #5a4520; }
-.pill-danger { color: var(--danger); border-color: #5c2b27; }
+/* ---------------------------------------------------------------- badges */
 
-.pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
-.pager-btns { display: flex; align-items: center; gap: 10px; }
-.pager-n { color: var(--muted); font-size: 12.5px; }
-.page-size { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; }
+/* Every status in the panel is one of these. Tint + border + ink, never colour alone:
+ * the word inside carries the meaning for anyone who cannot separate the hues (§43). */
+.pill {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 2px var(--sp-2); border-radius: var(--r-full);
+  font-size: var(--fs-micro); font-weight: var(--fw-medium);
+  border: 1px solid var(--border); background: var(--surface-sunken); color: var(--text-body);
+  white-space: nowrap;
+}
+.pill-ok     { color: var(--ok-ink);   background: var(--ok-tint);   border-color: var(--ok-line); }
+.pill-warn   { color: var(--warn-ink); background: var(--warn-tint); border-color: var(--warn-line); }
+.pill-danger { color: var(--dang-ink); background: var(--dang-tint); border-color: var(--dang-line); }
+.pill-info   { color: var(--info-ink); background: var(--info-tint); border-color: var(--info-line); }
+.pill-off    { color: var(--text-muted); background: var(--surface-sunken); border-color: var(--border); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 3px var(--sp-2); border-radius: var(--r-sm);
+  background: var(--surface-sunken); border: 1px solid var(--border);
+  font-size: var(--fs-micro); color: var(--text-body);
+}
+
+/* ---------------------------------------------------------------- pager */
+
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); margin-top: var(--sp-3); flex-wrap: wrap;
+}
+.pager-btns { display: flex; align-items: center; gap: var(--sp-3); }
+.pager-n { color: var(--text-muted); font-size: var(--fs-label); font-variant-numeric: tabular-nums; }
+.page-size {
+  display: flex; align-items: center; gap: var(--sp-2);
+  color: var(--text-muted); font-size: var(--fs-label);
+}
+.page-size select { width: auto; min-width: 72px; }
+
+/* ---------------------------------------------------------------- buttons */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  background: var(--brand-500); color: var(--text-invert);
+  border: 1px solid var(--brand-500); border-radius: var(--r-sm);
+  padding: 0 var(--sp-4); min-height: var(--tap);
+  font: inherit; font-size: var(--fs-table); font-weight: var(--fw-semi);
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.btn:hover:not(:disabled) { background: var(--brand-600); border-color: var(--brand-600); }
+.btn:active:not(:disabled) { background: var(--brand-700); border-color: var(--brand-700); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-quiet {
+  background: var(--surface-card); color: var(--text-body); border-color: var(--border-strong);
+}
+.btn-quiet:hover:not(:disabled) { background: var(--surface-sunken); border-color: var(--n-400); }
+.btn-quiet:active:not(:disabled) { background: var(--n-100); }
+
+/* Used by the દર્શન reorder bar. It was referenced in JSX and never defined here, so it
+ * rendered as a primary button in a row of secondaries. It is the lowest-weight action:
+ * no border until hover. */
+.btn-ghost {
+  background: transparent; color: var(--text-muted); border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface-sunken); color: var(--text-body); }
+
+.btn-danger { background: var(--dang-ink); border-color: var(--dang-ink); color: var(--text-invert); }
+.btn-danger:hover:not(:disabled) { background: #8f2a21; border-color: #8f2a21; }
+
+.btn-sm { min-height: var(--ctl-h-sm); padding: 0 var(--sp-3); font-size: var(--fs-help); }
+.btn-block { width: 100%; }
+
+/* §31 — a button that is saving says so and cannot be pressed twice. The spinner is a
+ * pseudo-element so no caller has to restructure its markup to show progress. */
+.btn.is-busy { pointer-events: none; opacity: .75; }
+.btn.is-busy::before {
+  content: ""; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin .7s linear infinite;
+}
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-card); border: 1px solid var(--border-strong); color: var(--text-body);
+  border-radius: var(--r-sm);
+  width: var(--tap); height: var(--tap); min-width: var(--tap);
+  font-size: 15px; cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { background: var(--surface-sunken); }
+
+.linklike {
+  all: unset; color: var(--brand-600); cursor: pointer;
+  font: inherit; border-radius: 2px;
+}
+.linklike:hover { text-decoration: underline; }
+.linklike:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 
 /* ---------------------------------------------------------------- forms */
 
-.btn {
-  background: var(--accent); color: var(--accent-ink);
-  border: 1px solid transparent; border-radius: 7px;
-  padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600;
-  cursor: pointer;
+.field { display: flex; flex-direction: column; gap: var(--sp-1); margin-bottom: var(--sp-4); min-width: 0; }
+.field label { font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--text-body); }
+
+input[type="text"], input[type="email"], input[type="password"], input[type="search"],
+input[type="tel"], input[type="url"], input[type="number"], input[type="date"],
+select, textarea {
+  background: var(--surface-card); color: var(--text-body);
+  border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+  padding: 0 var(--sp-3); min-height: var(--tap);
+  font: inherit; font-size: var(--fs-table); width: 100%;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
-.btn:hover:not(:disabled) { filter: brightness(1.08); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn-quiet { background: transparent; color: var(--text); border-color: var(--line); }
-.btn-quiet:hover:not(:disabled) { background: var(--panel-2); }
-.btn-danger { background: var(--danger); color: #fff; }
-.icon-btn { background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 7px; width: 34px; height: 34px; font-size: 15px; cursor: pointer; }
-
-.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
-.field label { font-size: 12.5px; color: var(--muted); }
-input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="url"], input[type="number"], input[type="date"], select, textarea {
-  background: var(--bg); color: var(--text);
-  border: 1px solid var(--line); border-radius: 7px;
-  padding: 9px 11px; font: inherit; font-size: 13.5px; width: 100%;
+textarea { padding: var(--sp-2) var(--sp-3); line-height: 1.6; resize: vertical; min-height: 84px; }
+select {
+  appearance: none;
+  /* The chevron is an inline SVG data URI: no network request, no icon font, and it
+   * inherits nothing so it cannot go missing when a font fails to load. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%236b7684' stroke-width='1.5' d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--sp-3) center;
+  padding-inline-end: var(--sp-8);
 }
-input:disabled, select:disabled { opacity: .55; }
-.hint { font-size: 11.5px; color: var(--muted); }
+/* The chevron flips side under RTL; the panel is LTR today but the shell already uses
+ * logical properties throughout and a one-line rule keeps that promise intact. */
+[dir="rtl"] select { background-position: left var(--sp-3) center; }
 
-.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
-.filters .field { margin-bottom: 0; min-width: 160px; flex: 0 1 220px; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--brand-500); box-shadow: var(--ring);
+}
+input:disabled, select:disabled, textarea:disabled {
+  background: var(--surface-sunken); color: var(--text-muted); cursor: not-allowed;
+}
+input::placeholder, textarea::placeholder { color: var(--text-faint); }
 
-.notice { border: 1px solid var(--line); border-inline-start: 3px solid var(--accent); background: var(--panel-2); padding: 10px 12px; border-radius: 7px; font-size: 13px; margin-bottom: 12px; }
-.notice-ok { border-inline-start-color: var(--ok); }
-.notice-warn { border-inline-start-color: var(--warn); }
-.notice-danger { border-inline-start-color: var(--danger); }
+/* §31 — an invalid field is marked by border *and* a message, never by colour alone. */
+.field.is-invalid input, .field.is-invalid select, .field.is-invalid textarea { border-color: var(--dang-ink); }
+.field.is-invalid input:focus { box-shadow: 0 0 0 3px rgba(168, 50, 40, .18); }
+.field-error {
+  font-size: var(--fs-help); color: var(--dang-ink);
+  display: flex; align-items: center; gap: var(--sp-1);
+}
+.hint { font-size: var(--fs-help); color: var(--text-muted); }
+
+.check {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-table); min-height: var(--tap); cursor: pointer;
+}
+.check input[type="checkbox"], .check input[type="radio"] {
+  width: 16px; height: 16px; min-height: 0; accent-color: var(--brand-500);
+  flex: 0 0 auto; cursor: pointer;
+}
+
+.form-actions {
+  display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center;
+  margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+}
+.form-actions .save-state { font-size: var(--fs-help); color: var(--text-muted); }
+.form-actions .save-state.is-ok { color: var(--ok-ink); }
+.form-actions .save-state.is-error { color: var(--dang-ink); }
+
+/* §29 — filter and search bars. Fields shrink but never below a usable width, and the
+ * whole bar collapses to one column on a phone rather than to three cramped ones. */
+.filters {
+  display: flex; gap: var(--sp-3); flex-wrap: wrap;
+  align-items: flex-end; margin-bottom: var(--sp-4);
+}
+.filters .field { margin-bottom: 0; min-width: 150px; flex: 0 1 220px; }
+.filters .btn { flex: 0 0 auto; }
+
+.toolbar {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+.toolbar .grow { flex: 1 1 200px; min-width: 0; }
+.grow { flex: 1 1 auto; min-width: 0; }
+
+/* ---------------------------------------------------------------- notices */
+
+.notice {
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--info-ink);
+  background: var(--info-tint);
+  border-color: var(--info-line);
+  color: var(--text-body);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  font-size: var(--fs-table); margin-bottom: var(--sp-3);
+}
+.notice-ok     { background: var(--ok-tint);   border-color: var(--ok-line);   border-inline-start-color: var(--ok-ink); }
+.notice-warn   { background: var(--warn-tint); border-color: var(--warn-line); border-inline-start-color: var(--warn-ink); }
+.notice-danger { background: var(--dang-tint); border-color: var(--dang-line); border-inline-start-color: var(--dang-ink); }
 
 /* ---------------------------------------------------------------- states */
 
-.state { text-align: center; padding: 42px 20px; color: var(--muted); }
-.state p { margin-bottom: 12px; }
-.state-error { color: var(--text); }
+.state { text-align: center; padding: var(--sp-10) var(--sp-5); color: var(--text-muted); }
+.state p { margin-bottom: var(--sp-3); }
+.state-error { color: var(--text-body); }
+/* §35 — an empty list is a card with an offer in it, never a blank area of page. */
+.state-empty, .state-error {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-1);
+}
+.state-title {
+  font-size: var(--fs-section); font-weight: var(--fw-semi);
+  color: var(--text-strong); margin-bottom: var(--sp-1);
+}
+.state-icon { font-size: 26px; color: var(--text-faint); display: block; margin-bottom: var(--sp-2); }
+
 .spin {
-  display: inline-block; width: 22px; height: 22px; margin-bottom: 10px;
-  border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%;
+  display: inline-block; width: 22px; height: 22px; margin-bottom: var(--sp-2);
+  border: 2px solid var(--border); border-top-color: var(--brand-500); border-radius: 50%;
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
 
-.skeleton { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.sk-row { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid var(--line); }
+/* §33 — skeletons, not spinners, for page content: the shape of what is coming keeps
+ * the layout from jumping when it arrives. */
+.skeleton {
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  overflow: hidden; background: var(--surface-card);
+}
+.sk-row { display: flex; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); }
 .sk-row:last-child { border-bottom: 0; }
-.sk-cell { flex: 1; height: 12px; border-radius: 4px; background: linear-gradient(90deg, #1d2733, #26313f, #1d2733); background-size: 200% 100%; animation: sk 1.4s linear infinite; }
+.sk-cell {
+  flex: 1; height: 12px; border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--n-100), var(--n-200), var(--n-100));
+  background-size: 200% 100%; animation: sk 1.4s linear infinite;
+}
 .sk-cell.wide { display: block; width: 90px; height: 22px; }
 @keyframes sk { to { background-position: -200% 0; } }
 
+.sk-cards { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.sk-card {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: var(--sp-4); height: 88px;
+}
+.sk-line {
+  height: 12px; border-radius: var(--r-sm); margin-bottom: var(--sp-2);
+  background: linear-gradient(90deg, var(--n-100), var(--n-200), var(--n-100));
+  background-size: 200% 100%; animation: sk 1.4s linear infinite;
+}
+.sk-line.short { width: 45%; }
+.sk-line.tall { height: 24px; }
+
 /* ---------------------------------------------------------------- gates */
 
-.gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.gate { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--sp-6); }
 .gate-card {
-  width: min(420px, 100%); background: var(--panel);
-  border: 1px solid var(--line); border-radius: 12px; padding: 28px; text-align: center;
+  width: min(420px, 100%); background: var(--surface-card);
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: var(--sp-8); text-align: center; box-shadow: var(--sh-2);
 }
-.gate-card h1 { font-size: 20px; margin-bottom: 6px; }
-.gate-msg { color: var(--text); margin: 12px 0; }
-.gate-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; word-break: break-all; }
+.gate-card h1 { font-size: var(--fs-page); color: var(--text-strong); margin-bottom: var(--sp-1); }
+.gate-msg { color: var(--text-body); margin: var(--sp-3) 0; }
+.gate-sub { color: var(--text-muted); font-size: var(--fs-label); margin-bottom: var(--sp-4); word-break: break-word; }
 .gate-card .field { text-align: start; }
 .gate-card .btn { width: 100%; }
-.gate-foot { margin-top: 14px; font-size: 12px; color: var(--muted); }
-.linklike { all: unset; color: var(--accent); cursor: pointer; }
-.linklike:hover { text-decoration: underline; }
+.gate-foot { margin-top: var(--sp-4); font-size: var(--fs-help); color: var(--text-muted); }
 
 /* ---------------------------------------------------------------- dialog */
 
 .confirm {
-  border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
-  color: var(--text); padding: 22px; width: min(440px, calc(100vw - 32px));
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface-card); color: var(--text-body);
+  padding: var(--sp-6); width: min(460px, calc(100vw - 32px));
+  box-shadow: var(--sh-3);
 }
-.confirm::backdrop { background: rgba(6, 10, 15, .65); }
-.confirm h2 { font-size: 16px; margin-bottom: 10px; }
-.confirm-body { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; }
-.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.confirm::backdrop { background: rgba(20, 26, 33, .45); }
+.confirm h2 { font-size: var(--fs-section); color: var(--text-strong); margin-bottom: var(--sp-2); }
+.confirm-body { font-size: var(--fs-table); color: var(--text-muted); margin-bottom: var(--sp-5); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); flex-wrap: wrap; }
 
 /* ---------------------------------------------------------------- darshan */
 
-.dg { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
-.dg-item { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: block; color: inherit; }
-.dg-item:hover { border-color: var(--accent); text-decoration: none; }
+.dg { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.dg-item {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden; display: block; color: inherit;
+  box-shadow: var(--sh-1);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.dg-item:hover { border-color: var(--brand-200); box-shadow: var(--sh-2); text-decoration: none; }
 /* The asset is a finished design — artwork, વર્ણન and the printed number are already
    inside the pixels (§23). The panel shows the file and nothing on top of it. */
-.dg-item img { display: block; width: 100%; height: auto; background: #0b0f14; }
+.dg-item img { display: block; width: 100%; height: auto; background: var(--surface-sunken); }
 /* A દ્રશ્ય created in the panel has no artwork until one is published to it. It stands in
    the grid at the tile's own aspect so the row does not jump when the image arrives. */
-.dg-empty { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; background: #0b0f14; color: var(--muted); font-size: 12px; }
-.dg-meta { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
-.dg-id { color: var(--muted); font-variant-numeric: tabular-nums; }
+.dg-empty {
+  display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9;
+  background: var(--surface-sunken); color: var(--text-muted); font-size: var(--fs-help);
+}
+.dg-meta {
+  padding: var(--sp-2) var(--sp-3); display: flex; align-items: center;
+  justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-help);
+  border-top: 1px solid var(--border);
+}
+.dg-id { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
 .preview { max-width: 100%; }
-.preview img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #0b0f14; }
+.preview img {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface-sunken);
+}
 
-.kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; font-size: 13px; }
-.kv dt { color: var(--muted); }
-.kv dd { word-break: break-word; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--sp-2) var(--sp-5); font-size: var(--fs-table); }
+.kv dt { color: var(--text-muted); }
+.kv dd { word-break: break-word; color: var(--text-body); }
 
-.detail-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+.detail-cols {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start;
+}
 
-.issue-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.issue { display: flex; gap: 10px; align-items: baseline; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 13px; }
-.issue-error { border-inline-start: 3px solid var(--danger); }
-.issue-warn { border-inline-start: 3px solid var(--warn); }
+.issue-list { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.issue {
+  display: flex; gap: var(--sp-3); align-items: baseline;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3); font-size: var(--fs-table);
+  background: var(--surface-card);
+}
+.issue-error { border-inline-start: 3px solid var(--dang-ink); background: var(--dang-tint); border-color: var(--dang-line); }
+.issue-warn { border-inline-start: 3px solid var(--warn-ink); background: var(--warn-tint); border-color: var(--warn-line); }
 
-/* ---------------------------------------------------------------- narrow */
+/* ---------------------------------------------------------------- responsive */
 
 .only-narrow { display: none; }
 
-@media (max-width: 900px) {
-  .only-narrow { display: inline-block; }
-  .shell { grid-template-columns: 1fr; grid-template-areas: "top" "main"; }
-  .content { padding: 16px; }
+@media (max-width: 1200px) {
+  .content { padding: var(--sp-5); }
+}
 
-  /* Drawer: off-canvas until the topbar button opens it. */
+@media (max-width: 900px) {
+  .only-narrow { display: inline-flex; }
+  .shell { grid-template-columns: 1fr; grid-template-areas: "top" "main"; }
+  .content { padding: var(--sp-4); }
+  .topbar { padding: 0 var(--sp-4); }
+
+  /* The brand cell is not in the grid at this width, so it must not render: a grid item
+   * whose named area no longer exists is placed in an implicit row and would appear as a
+   * stray bar above the topbar. The drawer carries the brand instead. */
+  .brand { display: none; }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-1) var(--sp-3) var(--sp-4);
+    margin-bottom: var(--sp-2); border-bottom: 1px solid var(--border);
+    color: var(--text-strong); font-size: var(--fs-body);
+  }
+
+  /* §11 — drawer: off-canvas until the topbar button opens it. */
   .sidebar {
     position: fixed; inset: var(--topbar-h) auto 0 0;
-    width: var(--sidebar-w); height: calc(100vh - var(--topbar-h));
-    transform: translateX(-102%); transition: transform .18s ease; z-index: 30;
+    width: min(var(--sidebar-w), 84vw);
+    height: calc(100vh - var(--topbar-h));
+    height: calc(100dvh - var(--topbar-h));
+    transform: translateX(-102%); transition: transform var(--dur) var(--ease);
+    z-index: 30; box-shadow: var(--sh-3);
   }
   .shell.is-open .sidebar { transform: none; }
-  @media (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
 
-  .scrim { display: block; position: fixed; inset: var(--topbar-h) 0 0 0; background: rgba(6, 10, 15, .6); border: 0; z-index: 25; }
+  .scrim {
+    display: block; position: fixed; inset: var(--topbar-h) 0 0 0;
+    background: rgba(20, 26, 33, .45); border: 0; z-index: 25;
+  }
 
   .detail-cols { grid-template-columns: 1fr; }
 
-  /* §55 — rows become cards rather than a ten-column squeeze. */
-  .table-wrap { border: 0; background: transparent; overflow: visible; }
+  /* §30, §55 — rows become cards rather than a ten-column squeeze. Horizontal scrolling
+   * hides exactly the column you were looking for, so the table stops being a table. */
+  .table-wrap { border: 0; background: transparent; overflow: visible; box-shadow: none; }
   .dt thead { display: none; }
   .dt, .dt tbody, .dt tr, .dt td { display: block; width: 100%; }
-  .dt tr { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; padding: 4px 2px; }
-  .dt td { border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 14px; text-align: end; }
+  .dt tr {
+    background: var(--surface-card); border: 1px solid var(--border);
+    border-radius: var(--r-lg); margin-bottom: var(--sp-3);
+    padding: var(--sp-1) var(--sp-3); box-shadow: var(--sh-1);
+  }
+  .dt tbody tr:hover { background: var(--surface-card); }
+  .dt td {
+    border-bottom: 1px solid var(--border); display: flex;
+    justify-content: space-between; align-items: center; gap: var(--sp-4);
+    text-align: end; padding: var(--sp-2) 0;
+  }
   .dt td:last-child { border-bottom: 0; }
-  .dt td::before { content: attr(data-label); color: var(--muted); font-size: 12px; text-align: start; flex: 0 0 auto; }
+  .dt td::before {
+    content: attr(data-label); color: var(--text-muted); font-size: var(--fs-help);
+    font-weight: var(--fw-medium); text-align: start; flex: 0 0 auto;
+  }
   .ta-r { text-align: end; }
+}
+
+@media (max-width: 640px) {
+  .content { padding: var(--sp-3); }
+  .card { padding: var(--sp-4); border-radius: var(--r-md); }
+  .page-head { gap: var(--sp-3); }
+  /* A primary action on a phone spans the row rather than hiding at one end of it. */
+  .page-actions { width: 100%; }
+  .page-actions .btn { flex: 1 1 auto; }
+  .filters { gap: var(--sp-2); }
+  .filters .field { flex: 1 1 100%; min-width: 0; }
+  .pager { justify-content: center; }
+  .pager-btns { width: 100%; justify-content: space-between; }
+  /* The account button collapses to its avatar. The name and role are not lost — they
+   * are the first thing inside the menu it opens — and the topbar keeps the room for the
+   * section title, which is the part that changes as you work. */
+  .account-who, .account-caret { display: none; }
+  .account { padding: var(--sp-1); }
+  .grid-stats { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); }
+  .stat { padding: var(--sp-3); }
+  .stat-value { font-size: 20px; }
+
+  /* §32 — a dialog becomes a bottom sheet: reachable by thumb, and its buttons stay
+   * above the keyboard because the sheet is anchored to the bottom rather than centred
+   * in a viewport the keyboard just halved. */
+  .confirm {
+    width: 100%; max-width: 100%;
+    margin: auto auto 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding: var(--sp-5) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom));
+  }
+  .confirm-actions { flex-direction: column-reverse; }
+  .confirm-actions .btn { width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .content { padding: var(--sp-2); }
+  .topbar { padding: 0 var(--sp-3); gap: var(--sp-2); }
+  .grid-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* §37 — a finger needs more room than a cursor. This raises every control at once
+ * rather than per component, and only where the pointer is actually coarse. */
+@media (pointer: coarse) {
+  :root { --tap: 44px; --ctl-h-sm: 38px; }
+
+  /* 16px is not a taste decision. iOS Safari zooms the page when a field smaller than
+   * this takes focus, and it does not zoom back out on blur — so one tap on a filter
+   * leaves the સંચાલક on a page wider than his screen, which is the "the keyboard broke
+   * the layout" bug. Scoped to coarse pointers so the desktop console stays dense. */
+  input[type="text"], input[type="email"], input[type="password"], input[type="search"],
+  input[type="tel"], input[type="url"], input[type="number"], input[type="date"],
+  select, textarea { font-size: 16px; }
+
+  /* `all: unset` leaves .linklike with no box at all, so it inherited the line's 19px and
+   * every text-button in the panel — "Forgot your password?", "Log in with a different
+   * account" — was a third of the 44px floor. It stays inline-level and looks unchanged;
+   * inline-flex is only what lets a min-height apply to it. Caught by verify:admin, which
+   * is the reason that script exists. */
+  .linklike {
+    display: inline-flex; align-items: center;
+    min-height: var(--tap);
+  }
+}
+
+/* §44 — motion is a courtesy, never a dependency. Everything below still communicates
+ * with position and colour when animation is switched off. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  /* The two progress indicators keep turning — a frozen spinner reads as a hang — but
+   * slowly enough not to be the thing you look at. */
+  .spin, .btn.is-busy::before { animation-duration: 3s !important; animation-iteration-count: infinite !important; }
+  .sk-cell, .sk-line { animation: none !important; background: var(--n-100); }
+}
+
+/* Printing a table of results is a real thing a સંચાલક does at a desk. */
+@media print {
+  .sidebar, .topbar, .scrim, .page-actions, .pager, .skip { display: none !important; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: none; }
+  .card, .table-wrap { box-shadow: none; border-color: var(--n-300); break-inside: avoid; }
 }

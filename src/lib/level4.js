@@ -95,8 +95,8 @@ const KNOWN_STATUS = new Set(Object.values(S));
  * something to explain to the યુવક in the middle of his ધ્યાન.
  */
 const L4_ERRORS = {
-  level4_not_published: 'આ કસોટી હમણાં ખુલ્લી નથી. લેવલ ૪ તૈયાર થઈ રહ્યું છે — થોડા વખતમાં ફરી જુઓ.',
-  level4_gate_closed: 'લેવલ ૩ પૂરું થયા પછી આ કસોટી ખૂલશે. પહેલાં લેવલ ૩ કરો.',
+  level4_not_published: 'આ કસોટી હમણાં ખુલ્લી નથી. લેવલ ૪ તૈયાર થઈ રહ્યું છે - થોડા વખતમાં ફરી જુઓ.',
+  level4_gate_closed: 'લેવલ ૩ માં જરૂરી ટિક પૂરી થાય પછી આ કસોટી ખૂલશે. પહેલાં લેવલ ૩ કરી લો.',
   level4_locked: 'આ પહેલાંની કસોટી પૂરી થાય પછી આ ખૂલશે. એક પછી એક, ક્રમ પ્રમાણે.',
   /*
     Kept, and unreachable — deliberately.
@@ -107,9 +107,9 @@ const L4_ERRORS = {
     the cost of the wrong Gujarati line in that window is higher than the cost of five lines
     of dead map. Delete it once no deployment predates 0017.
   */
-  level4_already_passed: 'આ કસોટી તમે પૂરી કરી લીધી છે — એ કાયમ પૂરી જ રહેશે. દર્શન ફરી જોવાં હોય તો ખુશીથી જુઓ.',
+  level4_already_passed: 'આ કસોટી તમે પૂરી કરી લીધી છે - એ કાયમ પૂરી જ રહેશે. ફરી દર્શન કરવાં હોય તો ખુશીથી કરો.',
   level4_not_signed_in: 'ફરી લોગિન કરો, પછી આ કસોટી ચાલુ રહેશે. તમારું ધ્યાન સચવાયેલું છે.',
-  level4_not_active: 'તમારું ખાતું હમણાં ચાલુ નથી. સંચાલકને જણાવો.',
+  level4_not_active: 'તમારું ખાતું હમણાં ચાલુ નથી. સંચાલકને એક વાર જણાવી દેજો.',
 };
 
 /** લેવલ ૪ હજુ તૈયાર થઈ રહ્યું છે — said in one place so every screen says it the same way. */
@@ -665,6 +665,38 @@ export function useLevel4Activity(activityId) {
 // ---------------------------------------------------------------- the two writes
 
 /**
+ * A key for one logical submission (0025).
+ *
+ * The rule the caller has to keep is the whole of the mechanism, and it is one sentence: **the
+ * same answer keeps the same token, a new answer gets a new one.** A token minted per *attempt
+ * to send* would make every retry a fresh submission and deduplicate nothing; a token that
+ * outlived a completed attempt would make a યુવક's deliberate second sitting replay his first,
+ * which is worse — 0017 exists to let him sit it again.
+ *
+ * `crypto.randomUUID` needs a secure context, which the deployed site is and `http://localhost`
+ * counts as. The fallback is there for anything else — an IP address in dev, an old WebView —
+ * because a submission with no token is not an error but is not protected either, and the one
+ * case where duplicates are most likely is a bad connection.
+ */
+export function newClientToken() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40; // version 4
+      b[8] = (b[8] & 0x3f) | 0x80; // variant 10
+      const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+      return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    }
+  } catch {
+    /* fall through — an attempt without a token is still recorded, just not deduplicated */
+  }
+  return null;
+}
+
+/**
  * The attempt (§2.3) — the only way one comes into existence.
  *
  * The selection is de-duplicated and cleaned here purely so the request is well formed;
@@ -679,7 +711,7 @@ export function useLevel4Activity(activityId) {
  *          Postgres message — `guError()` in src/lib/auth.jsx reads `.gu` first, so the
  *          ordinary `catch (e) { setMsg(guError(e)) }` already does the right thing.
  */
-export async function submitAttempt(activityId, selectedSceneIds) {
+export async function submitAttempt(activityId, selectedSceneIds, clientToken = null) {
   if (!configured) throw notReady();
   if (!activityId) throw notReady();
 
@@ -688,6 +720,17 @@ export async function submitAttempt(activityId, selectedSceneIds) {
   const { data, error } = await supabase.rpc('level4_submit', {
     p_activity_id: activityId,
     p_selected: selected,
+    /*
+      0025's idempotency key. Passed even when null — PostgREST resolves the three-argument
+      function either way, and sending the argument explicitly means a null here is a
+      deliberate "this caller has no key" rather than a parameter somebody forgot to add.
+
+      What makes it work is that the *caller* owns the value and keeps it across retries; see
+      newClientToken() above and the ref in ActivityTestPage. A token minted inside this
+      function would be a new token on every attempt to send, which is precisely the thing it
+      exists to prevent.
+    */
+    p_token: clientToken || null,
   });
   if (error) throw l4Error(error);
 

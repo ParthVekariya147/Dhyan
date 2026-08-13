@@ -8,9 +8,20 @@
    rendered from four different lazy chunks and Vite ships a chunk's CSS with the chunk —
    a stylesheet imported by only one of them would leave the others unstyled. */
 
+/* The inline padding is the point of this rule, not a detail of it. On a phone the block
+   ran edge to edge inside its column: Gujarati matras touching the left rule and the last
+   word of every line touching the right, which is what made eight lines of instruction
+   look like one solid slab. A gutter on both sides is what tells the eye where the text
+   begins and ends, and it is the same gutter on both, so nothing looks hung off-centre.
+
+   `text-align: center` stays for what is still one short line — the `<summary>` beneath.
+   The instruction is a list now (below) and sets itself back to `start`: a centred list
+   has a ragged left edge, and the left edge is the one a reader's eye returns to on every
+   line of a wrapped Gujarati sentence. */
 .page-intro {
   max-width: 560px;
   margin: 14px auto 0;
+  padding-inline: 18px;
   text-align: center;
 }
 
@@ -28,108 +39,51 @@
    one centred line, and matras need the room over a paragraph.
 
    .level-note moved with it (levels.css) — the two were deliberately identical, and a
-   comment there says so. */
+   comment there says so.
+
+   It is a `<ul>` since PageIntro.jsx started splitting the instruction into its points: one
+   sentence, one line, one bullet. The type is unchanged — same size, same cream, same 1.85
+   for the matras — because the paragraph was set correctly; what was wrong was that five
+   instructions were printed as one shape. */
 .page-intro-lead {
   margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: start;
+}
+
+.page-intro-lead > li {
+  position: relative;
+  padding-inline-start: 18px;
   font-size: clamp(15px, 2.3vw, 17px);
   line-height: 1.85;
   color: #f4ead8;
 }
 
-/* ---------------------------------------------------------------- the details */
+/* Space between the points and not between the lines inside one: a point that wraps onto
+   three lines must still read as one thing. This is the gap that does the work — without
+   it the list is the same slab with dots down the side. */
+.page-intro-lead > li + li { margin-top: 9px; }
 
-.page-intro-more {
-  margin-top: 8px;
-}
-
-.page-intro-more > summary {
-  display: inline-block;
-  cursor: pointer;
-  font-size: 12.5px;
-  letter-spacing: .3px;
-  color: var(--color-gold-soft);
-  opacity: .78;
-  /* The marker is removed on both engines — a native triangle sits oddly beside centred
-     Gujarati text, and the caret below is drawn in the flow instead. */
-  list-style: none;
-}
-.page-intro-more > summary::-webkit-details-marker { display: none; }
-.page-intro-more > summary::after {
-  content: ' ▾';
-  font-size: 10px;
-}
-.page-intro-more[open] > summary::after { content: ' ▴'; }
-.page-intro-more > summary:hover { opacity: 1; }
-.page-intro-more > summary:focus-visible {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-.page-intro-body {
-  margin-top: 10px;
-  padding: 14px 16px;
-  text-align: start;
-  border: 1px solid rgba(240, 199, 120, .16);
-  border-radius: 12px;
-  background: rgba(240, 199, 120, .035);
-}
-
-.page-intro-block + .page-intro-block { margin-top: 12px; }
-
-.page-intro-h {
-  margin: 0 0 4px;
-  font-size: 12px;
-  letter-spacing: .4px;
-  color: var(--color-gold);
-  opacity: .85;
-}
-
-/* The prose inside the panel is the same voice as the lead above it, so it takes the same
-   cream. Only the small gold headings stay gold — they are labels, and if everything in the
-   panel were one colour there would be nothing left to tell a heading from its answer. */
-.page-intro-line {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.85;
-  color: #f4ead8;
-}
-
-.page-intro-body ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.page-intro-body li {
-  position: relative;
-  padding-inline-start: 16px;
-  font-size: 14px;
-  line-height: 1.85;
-  color: #f4ead8;
-}
-
-.page-intro-body li::before {
-  content: '·';
+/* The same gold dot the panel below uses, so the two lists are visibly one family. It is
+   drawn rather than left to `list-style`, which cannot be coloured apart from its text. */
+.page-intro-lead > li::before {
+  content: '•';
   position: absolute;
-  inset-inline-start: 4px;
+  inset-inline-start: 2px;
   color: var(--color-gold);
-  opacity: .7;
+  opacity: .75;
 }
 
-/* What is absent is marked with a dash rather than a cross: a ✕ beside every line would
-   read as a list of things taken away from him. It is dimmer than the list above it for
-   the same reason — it is the smaller half of the answer. */
-.page-intro-body .is-absent li { opacity: .72; }
-.page-intro-body .is-absent li::before { content: '–'; opacity: .55; }
+/* ----------------------------------------------------------------------------
+   The 'આ વિભાગમાં શું છે?' panel used to be styled from here down.
 
-@media (prefers-reduced-motion: no-preference) {
-  .page-intro-more[open] .page-intro-body {
-    animation: pageIntroIn .28s cubic-bezier(.2, .7, .3, 1) both;
-  }
-}
+   It is gone from the yuvak app — see the essay at the top of PageIntro.jsx. The rules that
+   dressed it (.page-intro-more, .page-intro-body, .page-intro-block, .page-intro-h,
+   .page-intro-line, .is-absent and the pageIntroIn keyframes) went with it rather than being
+   left behind as dead selectors: this stylesheet ships in the entry CSS every route pays for,
+   and a rule with no element is weight on a Surat connection for nothing.
 
-@keyframes pageIntroIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: none; }
-}
+   The specification fields those rules displayed are untouched in shared/domain/journey.js
+   and are still rendered by the સંચાલક panel, which has its own stylesheet.
+   ---------------------------------------------------------------------------- */

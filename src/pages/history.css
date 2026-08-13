@@ -1,0 +1,207 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   મારી પ્રગતિ (/history) — two numbers, then a column of days
+   ────────────────────────────────────────────────────────────────────────────
+
+   Co-located with the page and imported by it, exactly as home.css and profile.css are.
+
+   Nothing here invents a size, a radius or a colour. The type comes from tokens.css's scale
+   (--fs-label, --fs-body, --fs-helper, --lh-body, --lh-tight), the space from its --sp- steps,
+   the radii from --radius-card / --radius-control / --radius-pill, and the palette from
+   index.css's @theme (--color-panel, --color-gold, --color-gold-soft, --color-muted). The two
+   bare hexes below - #f6efe2 and #8b7a66 - are the app's body ink and its quiet grey, already
+   spelled that way in profile.css and home.css; they are reused rather than re-chosen, which
+   is the opposite of the drift tokens.css exists to stop.
+
+   The column matches the મુખપૃષ્ઠ's and મારું's 560px rather than the form pages' 460px: this
+   screen belongs to the app's inside, and a યુવક reaches it from the same bar. */
+
+.hist-wrap {
+  /* The same 60px of breathing room under the last control that home.css and profile.css
+     leave. The bottom bar's own reservation lives on .app-shell-content (bottom-nav.css) and
+     is added to this, not replaced by it. */
+  padding-bottom: 60px;
+}
+
+.hist-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+
+/* Every descendant may shrink. `min-width: auto` is a flex/grid child's default and it refuses
+   to go below its content, which is exactly how one long કસોટી title in a flex row pushes a
+   320px page sideways. tokens.css states the same rule, but only inside .auth-card. */
+.hist-inner,
+.hist-inner * {
+  min-width: 0;
+}
+
+/* ---- the two numbers ------------------------------------------------------- */
+
+/* Two equal columns rather than a flex row, so આજે and કુલ sit on the same axis whatever
+   their digits: `+૩૦૦` and `૧૨,૬૦૦` are different widths and a flex row would let the larger
+   number push the divider sideways from one visit to the next. */
+.hist-points {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--radius-card);
+  background: var(--color-panel);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+
+.hist-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  text-align: center;
+}
+
+.hist-point-label {
+  font-size: var(--fs-label);
+  line-height: var(--lh-tight);
+  color: var(--color-muted);
+}
+
+/* The one place on this page anything is set large. Clamped rather than fixed, and against the
+   same lower bound the મુખપૃષ્ઠ's .ring-num uses, so the number is the same size on a 320px
+   phone as the ring a યુવક saw a moment ago on the home page. */
+.hist-point-value {
+  font-size: clamp(24px, 7vw, 30px);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  color: var(--color-gold-soft);
+}
+
+/* ---- one day -------------------------------------------------------------- */
+
+.hist-day {
+  margin-top: var(--sp-5);
+}
+
+/* The date, set as a quiet section heading rather than a card of its own. A day is a group of
+   rows, not an object with a border - boxing each day would draw fourteen frames down a page
+   whose whole content is already a list. */
+.hist-date {
+  font-size: var(--fs-section);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  color: var(--color-gold);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid rgba(240, 199, 120, 0.18);
+}
+
+.hist-list {
+  list-style: none;
+}
+
+/* Label-and-figure, side by side, because the figure is short and always short: `૮૨ / ૧૦૮`,
+   `૫ વાર`, `પૂર્ણ`. The left half is the one that grows, so it is the one allowed to wrap -
+   `flex: 1 1 auto` with `min-width: 0` above lets a long લેવલ ૪ title take two lines without
+   the figure ever leaving the row or widening the page. */
+.hist-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid rgba(240, 199, 120, 0.1);
+}
+.hist-row:last-child {
+  border-bottom: none;
+}
+
+.hist-row-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+/* The level leads the row and the title follows it, which is the order the ladder is climbed
+   in: he looks for લેવલ ૩ first and reads which કસોટી second. */
+.hist-level {
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  color: #f6efe2;
+  overflow-wrap: break-word;
+}
+
+.hist-title {
+  font-size: var(--fs-helper);
+  line-height: var(--lh-body);
+  color: #8b7a66;
+  overflow-wrap: break-word;
+}
+
+/* The figure and, when the day paid for it, the points - stacked on the right and right-aligned
+   so the numbers of fourteen days form one column the eye can run down. `flex: 0 0 auto` keeps
+   them at their natural width; nothing here ever needs to shrink, and letting it would put
+   `૮૨ /` on one line and `૧૦૮` on the next. */
+.hist-row-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-1);
+  text-align: end;
+}
+
+.hist-figure {
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  color: var(--color-gold-soft);
+  /* The figure is two numbers and a slash; it must never break across lines. */
+  white-space: nowrap;
+}
+
+/* The award, as a small pill. Gold and quiet - it is a record of something already given, not
+   a badge and not a prize, and §1 rule 4 keeps everything on this screen the same temperature. */
+.hist-points-row {
+  padding: 0 var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-helper);
+  line-height: calc(var(--fs-helper) * 1.8);
+  color: var(--color-gold);
+  background: rgba(240, 199, 120, 0.1);
+  border: 1px solid rgba(240, 199, 120, 0.22);
+  white-space: nowrap;
+}
+
+/* ---- the three other states ------------------------------------------------ */
+
+/* forms.css centres .spinner-page in 70dvh, which is right for a page that is nothing but a
+   spinner and wrong here: a later page loads *under* the days already on screen, and 70vh of
+   empty space between the last day and three dots would look like the list had ended. Only the
+   height is overridden; the dots and their animation stay forms.css's. */
+.hist-inner .spinner-page {
+  min-height: 0;
+  padding: var(--sp-5) 0;
+}
+
+/* Nothing recorded yet. Centred, quiet, and given room above it so it does not sit tight under
+   the header as though something had failed to load. */
+.hist-empty {
+  margin-top: var(--sp-6);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+/* The error's own panel keeps forms.css's fill and border; only the space above it belongs to
+   this page, so the rhythm is the same whether the page below it holds days or not. */
+.hist-inner .notice {
+  margin-top: var(--sp-5);
+  text-align: center;
+}
+
+/* વધુ જુઓ. `.btn` already carries the app's 48px control floor - above both published
+   one-handed tap minimums (Android 48, iOS 44) - and its full width, so all this decides is
+   how far it sits from the last day above it. A full step, so a thumb travelling down the list
+   does not arrive on it. */
+.hist-more {
+  margin-top: var(--sp-5);
+}

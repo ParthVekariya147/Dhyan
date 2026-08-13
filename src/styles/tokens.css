@@ -118,5 +118,25 @@ body {
 .auth-card,
 .auth-card * {
   min-width: 0;
+}
+
+/* `max-width: 100%` deliberately does NOT include .auth-wrap or .auth-card.
+   It used to, and that is how લોગિન and નોંધણી came to span a 1920px monitor edge to
+   edge — a phone form stretched into a single 1900px-wide line of inputs.
+
+   Both rules are one class deep, so they carry the SAME specificity as forms.css's
+   `.auth-wrap { max-width: var(--page-max) }`; the winner is decided purely by which
+   file the bundler happens to emit last, and it emitted this one — 18KB later — so
+   the 460px column silently became `100%`. Nothing caught it because the guard and
+   the column agree at every width the acceptance test measures (320–430px): below
+   460px, `100%` IS the column. The two only disagree on a screen wider than the
+   form, which is precisely the case §21's phone widths do not cover.
+
+   So the containers own their own width — .auth-wrap the --page-max column,
+   .auth-card the 100% of it that forms.css gives it — and this rule is left to do
+   the job it was actually written for: stopping a long email address, URL or SMK
+   inside the card from pushing the page sideways. `min-width: 0` above is the part
+   that matters for flex/grid children, and it still applies to all three. */
+.auth-card * {
   max-width: 100%;
 }

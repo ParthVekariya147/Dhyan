@@ -82,5 +82,5 @@ export const STAGE_LABEL = {
   [STAGE.SUBMITTED]: 'પરિણામ',
   [STAGE.PENDING_REVIEW]: 'બાકી દર્શન',
   [STAGE.MEMORY_RECALL]: 'સ્મૃતિ દર્શન',
-  [STAGE.COMPLETED]: 'સંપૂર્ણ',
+  [STAGE.COMPLETED]: 'પૂરું થયું',
 };

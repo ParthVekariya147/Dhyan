@@ -53,7 +53,7 @@ const LEVEL = 4;
  * Loading        Three dots under a navigable bar.
  * Locked         The gate, in the સંચાલક's own number, with લેવલ ૩ as the way on.
  * Empty          Nothing published → the shared 'હજુ તૈયાર થઈ રહ્યું છે' sentence.
- * Error          One Gujarati line from src/lib/level4.js and a ફરી પ્રયાસ કરો button.
+ * Error          One Gujarati line from src/lib/level4.js and a ફરી પ્રયત્ન કરો button.
  * Source of truth  The published લેવલ ૪ configuration for the ladder and the gate;
  *                  useScenes() for printed numbers; shared/domain/journey.js for wording.
  *
@@ -159,7 +159,7 @@ export default function Level4Page() {
         <section className="level-empty">
           <p>{error}</p>
           <button type="button" className="btn-quiet btn-inline" onClick={retry}>
-            ફરી પ્રયાસ કરો
+            ફરી પ્રયત્ન કરો
           </button>
         </section>
       </div>
@@ -184,7 +184,7 @@ export default function Level4Page() {
         <Level4Bar />
         <section className="level-empty">
           <p>{L4_PREPARING_GU}</p>
-          <Link to="/darshan" className="btn-quiet btn-inline">દર્શન જુઓ</Link>
+          <Link to="/darshan" className="btn-quiet btn-inline">દર્શન કરો</Link>
         </section>
       </div>
     );
@@ -221,7 +221,7 @@ export default function Level4Page() {
             લેવલ ૩ માં {gu(gateThreshold)} પૂરાં કરો, પછી આ ખૂલશે
           </p>
           <p className="locked-sub">
-            એક જ દિવસમાં {gu(gateThreshold)} દ્રશ્યો — પછી આ લેવલ કાયમ ખુલ્લું રહેશે.
+            એક જ દિવસમાં {gu(gateThreshold)} દ્રશ્યો યાદ કરો - પછી આ લેવલ કાયમ માટે ખુલ્લું રહેશે.
           </p>
           <Link to="/level/3" className="btn-gold btn-inline">લેવલ ૩ શરૂ કરો</Link>
         </section>
@@ -251,8 +251,8 @@ export default function Level4Page() {
         <ProgressRing
           score={done}
           total={activities.length}
-          label="Completed"
-          sub="એક કસોટી પૂરી થાય એટલે પછીની ખૂલે છે. પૂરી થયેલી કસોટી કાયમ પૂરી રહે છે — અને ફરી આપવી હોય તો જેટલી વાર જોઈએ તેટલી વાર આપી શકાય."
+          label="પૂરી થયેલી કસોટી"
+          sub="એક કસોટી પૂરી કરશો એટલે પછીની આપમેળે ખૂલશે. પૂરી થયેલી કસોટી કાયમ પૂરી જ રહેશે, અને ફરી આપવી હોય તો જેટલી વાર મન થાય એટલી વાર આપી શકશો."
         />
 
         {/*
@@ -281,7 +281,7 @@ export default function Level4Page() {
         {!gateOpen && (
           <p className="level-note l4-banner">
             લેવલ ૩ માં {gu(gateThreshold)} પૂરાં કરો, પછી હવે પછીની કસોટીઓ ખૂલશે. પૂરી થયેલી
-            કસોટીઓ તમારી જ છે — જેટલી વાર કરવી હોય એટલી વાર કરી શકાય.
+            કસોટીઓ તો તમારી જ છે - જેટલી વાર આપવી હોય એટલી વાર આપી શકશો.
           </p>
         )}
       </header>
@@ -329,13 +329,13 @@ export default function Level4Page() {
           <p className="level-note">{allDone.grow}</p>
           {nextLevel ? (
             <Link to={nextLevel.to} className="btn-gold btn-inline">
-              આગળ — {nextLevel.name}<NavArrow />
+              આગળ - {nextLevel.name}<NavArrow />
             </Link>
           ) : (
             /* No sentence of its own here any more: `grow` above already says the દર્શન stay
                open to him whenever he wants them, and saying it twice in four lines reads as
                the app not trusting him to have read the first one. */
-            <Link to="/darshan" className="btn-quiet btn-inline">દર્શન જુઓ</Link>
+            <Link to="/darshan" className="btn-quiet btn-inline">દર્શન કરો</Link>
           )}
         </section>
       )}
@@ -377,7 +377,7 @@ const STATE = {
   [L4_ACTIVITY_STATUS.IN_PROGRESS]: { label: 'ચાલુ છે', action: 'ચાલુ રાખો', tone: 'is-open' },
   [L4_ACTIVITY_STATUS.REVISION_REQUIRED]: {
     label: 'ફરી દર્શન કરીએ',
-    action: 'ફરી કરીએ',
+    action: 'ફરી કસોટી આપો',
     tone: 'is-open',
   },
   /*
@@ -419,7 +419,7 @@ function ActivityCard({ activity, previous, range, gateClosed }) {
     ? 'લેવલ ૩ પૂરું થાય, પછી આ ખૂલશે'
     : previous
       ? `લેવલ ${gu(previous.code)} પૂરું થાય, પછી આ ખૂલશે`
-      : 'આગળની કસોટી પૂરી થાય, પછી આ ખૂલશે';
+      : 'આ પહેલાંની કસોટી પૂરી થાય, પછી આ ખૂલશે';
 
   const body = (
     <>
@@ -432,7 +432,7 @@ function ActivityCard({ activity, previous, range, gateClosed }) {
 
       {range && (
         <span className="l4-range">
-          દ્રશ્ય {gu(range.from)}–{gu(range.to)} · {gu(range.count)} દ્રશ્યો
+          દ્રશ્ય {gu(range.from)} - {gu(range.to)} · {gu(range.count)} દ્રશ્યો
         </span>
       )}
 
@@ -466,11 +466,11 @@ function ActivityCard({ activity, previous, range, gateClosed }) {
         at દર્શન he has earned is the gentler half of repeating, not a lesser one.
 
         Absent on AVAILABLE and IN_PROGRESS, which lead to the કસોટી and carry
-        [દર્શન ફરી જુઓ] there; absent on LOCKED, where there is nothing yet to revise.
+        [ફરી દર્શન કરો] there; absent on LOCKED, where there is nothing yet to revise.
       */}
       {(activity.status === L4_ACTIVITY_STATUS.REVISION_REQUIRED || done) && (
         <Link className="l4-aside linklike" to={`/level/4/${activity.id}/revision`}>
-          દર્શન ફરી જુઓ
+          ફરી દર્શન કરો
         </Link>
       )}
     </li>
@@ -486,7 +486,7 @@ function Level4Bar() {
   return (
     <header className="level-bar">
       <Link className="linklike" to="/">મુખપૃષ્ઠ</Link>
-      <Link className="linklike" to="/darshan">દર્શન જુઓ</Link>
+      <Link className="linklike" to="/darshan">દર્શન કરો</Link>
       {/*
         The way back to લેવલ ૩, matching the way forward that લેવલ ૩ now carries.
 

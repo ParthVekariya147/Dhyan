@@ -115,7 +115,7 @@ export default function RevisionPage() {
       <Shell>
         <section className="level-empty">
           <p>{error}</p>
-          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ જુઓ</Link>
+          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ ની યાદી</Link>
         </section>
       </Shell>
     );
@@ -129,7 +129,7 @@ export default function RevisionPage() {
       <Shell>
         <section className="level-empty">
           <p>આ કસોટી અત્યારે મળતી નથી. લેવલ ૪ પરથી ફરી પસંદ કરો.</p>
-          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ જુઓ</Link>
+          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ ની યાદી</Link>
         </section>
       </Shell>
     );
@@ -154,7 +154,7 @@ export default function RevisionPage() {
           <p className="locked-sub">
             આ પહેલાંની કસોટી પૂરી થાય પછી આ આપોઆપ ખૂલશે. ક્રમ કદી તૂટતો નથી.
           </p>
-          <Link to="/level/4" className="btn-gold btn-inline">લેવલ ૪ જુઓ</Link>
+          <Link to="/level/4" className="btn-gold btn-inline">લેવલ ૪ ની યાદી</Link>
         </section>
       </Shell>
     );
@@ -167,7 +167,7 @@ export default function RevisionPage() {
       <Shell>
         <section className="level-empty">
           <p>આ કસોટીનાં દ્રશ્યો હમણાં તૈયાર થઈ રહ્યાં છે. થોડા વખતમાં અહીં આવશે.</p>
-          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ જુઓ</Link>
+          <Link to="/level/4" className="btn-quiet btn-inline">લેવલ ૪ ની યાદી</Link>
         </section>
       </Shell>
     );
@@ -205,8 +205,8 @@ export default function RevisionPage() {
         */}
         <p className="level-note">
           {done
-            ? 'આ કસોટી પૂરી થઈ ગઈ છે. દર્શન જેટલી વાર જોવાં હોય તેટલી વાર જોઈ શકાય, અને કસોટી ફરી આપવી હોય તો એ પણ થઈ શકે.'
-            : 'જેટલી વાર જોવું હોય તેટલી વાર જુઓ. પછી ફરી કસોટી આપો.'}
+            ? 'આ કસોટી તમે પૂરી કરી લીધી છે. દર્શન જેટલી વાર કરવાં હોય એટલી વાર કરી શકશો, અને કસોટી ફરી આપવી હોય તો એ પણ થઈ શકે.'
+            : 'જેટલી વાર દર્શન કરવાં હોય એટલી વાર કરો, લીલા મનમાં રાખો. પછી ફરી કસોટી આપો.'}
         </p>
       </header>
 
@@ -241,8 +241,8 @@ export default function RevisionPage() {
       <div className="level-foot">
         <p>
           {done
-            ? 'ફરી કસોટી આપવી હોય તો અહીંથી આપી શકાય — પૂરી થયેલી કસોટી પૂરી જ રહેશે.'
-            : 'ધ્યાનથી જોયું? હવે ફરી કસોટી આપો.'}
+            ? 'ફરી કસોટી આપવી હોય તો અહીંથી આપી શકશો - પૂરી થયેલી કસોટી પૂરી જ રહેશે.'
+            : 'લીલા મનમાં બરાબર બેસી ગઈ? હવે ફરી કસોટી આપો.'}
         </p>
         {/*
           §18, §22 — the count is bumped *on the way*, not on arrival, because what it
@@ -383,6 +383,8 @@ function RevisionScene({ item, rank, onOpen }) {
           loading={eager ? 'eager' : 'lazy'}
           fetchPriority={rank === 0 ? 'high' : rank === 1 ? 'low' : 'auto'}
           decoding="async"
+          /* Load-bearing: lh3 throttles per referrer — see driveImageUrl in shared/domain/drive.js. */
+          referrerPolicy="no-referrer"
           onError={onError}
         />
       </div>
