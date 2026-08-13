@@ -54,6 +54,13 @@
 .runner-hint {
   margin: 14px auto 0; max-width: 640px; text-align: center;
   color: var(--color-muted); font-size: 14.5px; line-height: 1.85;
+  /* Renders `sessionComplete().grow` from shared/domain/milestones.js, so it carries the same
+     `pre-line` as .level-note and .l4-panel-grow — see the long note in levels.css. That
+     string has no paragraph break today and this changes nothing about how it draws; it is
+     here so that the six moments in that module, which exist precisely so the app speaks in
+     one voice, cannot start rendering differently from one another depending on which screen
+     a યુવક happens to have finished on. */
+  white-space: pre-line;
 }
 .tick-tally { margin-top: 18px; color: var(--color-gold-soft); }
 

@@ -58,6 +58,28 @@
   font-size: 15px;
   line-height: 1.85;
   color: #f4ead8;
+  /*
+     The paragraph breaks in shared/domain/milestones.js are breaks a યુવક sees.
+
+     `allActivitiesDone` — the "લેવલ ૪ ની બધી કસોટીઓ પૂરી" moment — is written as three
+     paragraphs separated by `\n\n`, and HTML's default `white-space: normal` collapses every
+     run of whitespace, newlines included, into a single space. So the three arrived on screen
+     as one unbroken block: the congratulation, the encouragement to keep going and the
+     જય સ્વામિનારાયણ all running together, which is the opposite of the pause the wording is
+     built around.
+
+     `pre-line` and not `pre` or `pre-wrap`, deliberately. Those two also preserve *spaces*,
+     and every sentence in milestones.js is assembled by concatenating string fragments across
+     source lines — so the indentation of the next fragment would become visible leading
+     whitespace inside the sentence. `pre-line` honours the newline and collapses everything
+     else, which is exactly the difference wanted and nothing more.
+
+     Safe for the other fifteen things wearing this class: `pre-line` differs from `normal`
+     ONLY where a line break exists, and a scan of the built bundle finds four Gujarati line
+     breaks in the whole shipped app, all four inside the string above. Nothing else can
+     render differently under this.
+  */
+  white-space: pre-line;
 }
 /* `.level-carried` stood beside this one, for the "N દ્રશ્યો બીજેથી ગણતરીમાં લેવાયાં" note
    LevelPage no longer renders. */

@@ -139,7 +139,11 @@
 /* The sentence that says the સાધના goes on (shared/domain/milestones.js). Quieter than the
    line above it and set in the muted colour on purpose: it is an encouragement, not another
    fact about the કસોટી, and at the same weight the two would compete. */
-.l4-panel-grow { margin-top: 10px; font-size: 14.5px; line-height: 1.9; color: var(--color-muted); }
+/* `white-space: pre-line` for the reason .level-note carries it (levels.css): these sentences
+   come from shared/domain/milestones.js, one of them is written as three paragraphs, and the
+   default `normal` collapses the newlines that separate them into single spaces. This class
+   renders `grow` and nothing else, so there is nothing else here for it to affect. */
+.l4-panel-grow { margin-top: 10px; font-size: 14.5px; line-height: 1.9; color: var(--color-muted); white-space: pre-line; }
 
 @media (max-width: 480px) {
   .l4-card { padding: 15px 14px 13px; }

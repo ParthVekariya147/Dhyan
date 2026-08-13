@@ -131,8 +131,23 @@ export const DEFAULT_JOURNEY = {
     levelId: null,
     name: 'મુખપૃષ્ઠ',
     short: 'તમારી આખી સાધના એક નજરમાં.',
-    instruction:
-      'અહીંથી તમારી સાધના શરૂ થાય છે. દરેક લેવલની નીચે લખ્યું છે કે એમાં શું કરવાનું છે અને એ ખૂલ્યું છે કે નહીં. જે લેવલ તૈયાર હોય એના પર અડકો એટલે એ ખૂલી જશે. ઉતાવળ કરવાની જરૂર નથી, એક પછી એક નિરાંતે આગળ વધજો.',
+    /*
+      મુખપૃષ્ઠ is the one page with no instruction, and that is a decision.
+
+      It used to carry four sentences at the top - "અહીંથી તમારી સાધના શરૂ થાય છે…" - which
+      PageIntro printed as four bullets above the ring. Every one of them was already said
+      by the screen itself: each tile carries its own `short`, a locked tile says what opens
+      it, and the ring says what today came to. So the first thing a યુવક saw was a
+      paragraph explaining the page he was looking at, pushing the ring and the way in
+      below the fold on a phone.
+
+      Empty, not deleted: the page is still in the specification, still listed in the panel,
+      and still says what it contains and excludes. PageIntro renders nothing for an empty
+      instruction, so this is the description going quiet rather than the page going missing.
+      A સંચાલક who ever wants a line here can write one through settings['journey'] (§36) and
+      it appears - resolveJourney() treats an empty default like any other.
+    */
+    instruction: '',
     contains: ['ચારેય લેવલ', 'દરેક લેવલનું ટૂંકું વર્ણન', 'આજની પ્રગતિ', 'લેવલ ૪ ક્યારે ખૂલશે તે'],
     excludes: ['દર્શનનાં ચિત્રો', 'કસોટી', 'વર્ણન યાદી'],
     completion: 'મુખપૃષ્ઠ પોતે કોઈ લેવલ નથી - અહીં કંઈ પૂરું કરવાનું નથી.',
@@ -170,7 +185,7 @@ export const DEFAULT_JOURNEY = {
     key: JOURNEY_PAGE.LEVEL2,
     levelId: 2,
     name: 'દર્શન',
-    short: 'શાંતિથી દર્શન કરો - ચિત્ર, વર્ણન અને ક્રમ નંબર, ત્રણેય મનમાં રાખો.',
+    short: 'શાંતિથી દર્શન કરો - Image, વર્ણન અને ક્રમ નંબર, ત્રણેય યાદ રાખો.',
     /*
       Three things to remember, and the number is the one that gets forgotten.
 
@@ -211,7 +226,7 @@ export const DEFAULT_JOURNEY = {
     key: JOURNEY_PAGE.LEVEL3,
     levelId: 3,
     name: 'વર્ણન યાદી',
-    short: 'વર્ણન વાંચીને દ્રશ્ય મનમાં લાવો, પછી ટિક કરો.',
+    short: 'વર્ણન વાંચીને Image મનમાં લાવો, પછી ટિક કરો.',
     /*
       Two sentences added, and both are about what the tick *means*.
 
@@ -259,7 +274,7 @@ export const DEFAULT_JOURNEY = {
     name: 'કસોટી',
     short: 'ફક્ત નંબર જોઈને લીલા યાદ કરો, પછી ટિક કરો.',
     instruction:
-      'આ કસોટીમાં ફક્ત નંબર દેખાશે - Image કે વર્ણન બતાવવામાં નહીં આવે. દરેક નંબરની સામેની લીલા અને એનું વર્ણન યાદ આવે તો જ ટિક કરજો. જો કોઈ નંબરની સામેની લીલા યાદ ન આવે તો ટિક કરવી નહીં. એના બદલે નીચે "ફરી દર્શન કરો" દબાવીને ફરી દર્શન કરો અને લીલા ધ્યાનથી વિચારો. ફરી દર્શન કરી શકાયે છે , જેટલી વાર જરૂર પડે એટલી વાર દર્શન કરી શકશો. બધી ટીક કરવી જરૂરી છે માટે બધી ટીક થઇ ગયા પછી "પૂરું કરો" બટન આવશે. કસોટી ફરી આપવા પર કોઈ મર્યાદા નથી - પૂરી થઈ ગયા પછી પણ જેટલી વાર આપવી હોય એટલી વાર આપી શકશો, અને પૂરી થયેલી કસોટી કાયમ તમારી જ રહેશે.',
+      'આ કસોટીમાં ફક્ત નંબર દેખાશે - Image કે વર્ણન બતાવવામાં નહીં આવે. દરેક નંબરની સામેની લીલા અને એનું વર્ણન યાદ આવે તો જ ટિક કરજો. જો કોઈ નંબરની સામેની લીલા યાદ ન આવે તો ટિક કરવી નહીં. એના બદલે નીચે "ફરી દર્શન કરો" દબાવીને ફરી દર્શન કરો અને લીલા ધ્યાનથી વિચારો. ફરી દર્શન કરી શકાયે છે , જેટલી વાર જરૂર પડે એટલી વાર દર્શન કરી શકશો. બધી ટીક કરવી જરૂરી છે માટે બધી ટીક થઇ ગયા પછી "પૂરું કરો" બટન આવશે. કસોટી ફરી આપવા પર કોઈ મર્યાદા નથી - પૂરી થઈ ગયા પછી પણ જેટલી વાર આપવી હોય એટલી વાર આપી શકશો, અને પૂરી થયેલી કસોટી નો ડેટા સેવ થઇ ગયો છે .',
     contains: ['ક્રમ નંબર', 'ટિક'],
     excludes: [
       'ચિત્ર',
@@ -269,7 +284,7 @@ export const DEFAULT_JOURNEY = {
       'કેટલાં બાકી છે એની ટકોર',
     ],
     completion:
-      'આ કસોટી માટે જેટલી ટિક જરૂરી હોય એટલી થાય અને "પૂરું કરો" દબાવો એટલે. કસોટી ફરી આપવા પર કોઈ મર્યાદા નથી - પૂરી થઈ ગયા પછી પણ જેટલી વાર આપવી હોય એટલી વાર આપી શકાય, અને પૂરી થયેલી કસોટી કાયમ તમારી જ રહેશે.',
+      'આ કસોટી માટે જેટલી ટિક જરૂરી હોય એટલી થાય અને "પૂરું કરો" દબાવો એટલે. કસોટી ફરી આપવા પર કોઈ મર્યાદા નથી - પૂરી થઈ ગયા પછી પણ જેટલી વાર આપવી હોય એટલી વાર આપી શકાય, અને પૂરી થયેલી કસોટી નો ડેટા સેવ થઇ ગયો છે .',
     reads: 'આ કસોટીના દ્રશ્યોના નંબર - ચિત્ર કે વર્ણન નહીં',
     records: 'લેવલ ૪ નો દરેક પ્રયાસ - પૂરો થયો હોય કે અધૂરો - અને કસોટી પૂરી થઈ તે',
     next: { to: '/level/4', label: 'પૂરું થાય તો પછીની કસોટી, નહીં તો ફરી દર્શન કરો' },

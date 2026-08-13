@@ -55,6 +55,22 @@ export const L4_ACTIVITY_STATUS = Object.freeze({
 export const DEFAULT_GATE_THRESHOLD = LEVEL4_UNLOCK_THRESHOLD;
 
 /**
+ * Four. Which level this whole module is about.
+ *
+ * It lived as `const LEVEL = 4` inside Level4Page.jsx, and that was right while exactly one
+ * screen needed it. The completion moment is now said in two places — on the કસોટી screen the
+ * moment the last one is finished, and on the list a યુવક returns to afterwards — and both
+ * have to name the same level in the same sentence. Two literals that are meant to be one
+ * number are two literals that will eventually differ, which is the argument
+ * DEFAULT_GATE_THRESHOLD above is written to settle for the threshold; this settles it for
+ * the number.
+ *
+ * Latin digits, deliberately. It is an identifier here and becomes ૪ at the edge, through
+ * `gu()`, exactly as `activityCode()` below explains for '4.1'.
+ */
+export const LEVEL4_ID = 4;
+
+/**
  * '4.1'. Latin digits — this is an identifier stored in a column with a CHECK constraint
  * (`code ~ '^[0-9]+\.[0-9]+$'`), not display text. `gu()` turns it into ૪.૧ at the edge,
  * where it is rendered.

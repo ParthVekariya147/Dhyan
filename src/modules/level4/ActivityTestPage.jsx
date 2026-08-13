@@ -8,6 +8,7 @@ import { useScenes } from '../../lib/useScenes';
 */
 import {
   L4_ACTIVITY_STATUS,
+  LEVEL4_ID,
   guLevel4Error,
   newClientToken,
   submitAttempt,
@@ -22,7 +23,7 @@ import { JOURNEY_PAGE, usePageSpec } from '../../lib/journey';
 /* The two things this screen says once an attempt is in: shared/domain/milestones.js holds
    every finishing moment in the app, so these two read as the same voice as લેવલ ૩'s and
    the home ladder's. Sentences only — the same rule as the journey import above. */
-import { passedActivity, shortAttempt } from '../../lib/milestones';
+import { allActivitiesDone, passedActivity, shortAttempt } from '../../lib/milestones';
 import { gu } from '../../lib/scenes';
 /* Text, and text only — the same rule as the journey import above. `useTickWord()` returns
    one configured string for the whole list; there is no scene in it and no way to ask it
@@ -302,19 +303,62 @@ export default function ActivityTestPage() {
       about, not so a યુવક can be told he was three short (§16).
     */
     if (outcome.passed) {
+      /*
+        ────────────────────────────────────────────────────────────────────────────
+        Was that the last one?
+        ────────────────────────────────────────────────────────────────────────────
+
+        The moment a યુવક finishes the final કસોટી is the biggest moment લેવલ ૪ has, and
+        until now this screen did not know it had arrived: it said 'લેવલ ૪.૪ પૂરું થયું' —
+        true, and the same sentence it says for ૪.૧ — while the words written for finishing
+        the whole level sat on the list page he had not navigated to yet. So the celebration
+        was one tap away from the moment that earned it.
+
+        Derived from the list, never from a count. LEVEL4.md rule 1 keeps a total out of
+        everywhere but the collection itself, so there is no "is this ૪.૪" here and nothing
+        that has to be edited the day a ૪.૫ is published — the સંચાલક adds one and this
+        answers correctly on its own.
+
+        ────────────────────────────────────────────────────────────────────────────
+        Why not `allComplete` from useLevel4(), which already exists
+        ────────────────────────────────────────────────────────────────────────────
+
+        Because of *when* it becomes true. `submit()` ends with `retry()`, and until that
+        re-read lands `activities` still holds the statuses from before the attempt — so
+        `allComplete` is false for the width of a round trip and then flips. This screen
+        would congratulate him for one કસોટી and then, half a second later, swap the words
+        underneath him for the ones about finishing the level. The note above this block is
+        emphatic that a flicker here costs more than anywhere else in the app.
+
+        `every` with the current કસોટી excused is the same question asked a moment earlier:
+        this one has just passed — `outcome.passed` is the server saying so — so if every
+        *other* one is already COMPLETED then everything is. True on the first paint, and
+        still true after the re-read, so nothing changes under him.
+
+        It reads correctly for a repeat, too: a યુવક re-taking ૪.૨ once the rest are done has
+        in fact finished them all, and is told so.
+      */
+      const everythingDone =
+        activities.length > 0 &&
+        activities.every((a) => a.id === activity.id || a.status === L4_ACTIVITY_STATUS.COMPLETED);
+
       /* The words come from shared/domain/milestones.js, where all six of the app's
          finishing moments are written together so they congratulate a યુવક in one voice.
          `line` is said here because this is the moment it becomes true, and because a યુવક
          who comes back tomorrow looking for the કસોટી should have been told once, warmly,
          rather than meeting a closed door and wondering (0016). `grow` is the sentence that
          keeps the screen from reading as an ending. */
-      const words = passedActivity(gu(activity.code));
+      const words = everythingDone ? allActivitiesDone(gu(LEVEL4_ID)) : passedActivity(gu(activity.code));
       return (
         <Frame code={activity.code}>
           <section className="l4-panel">
             <div className="l4-mark" aria-hidden="true">🙏</div>
             <h2>{words.title}</h2>
-            <p className="l4-panel-line">{words.line}</p>
+            {/* Guarded, because not every moment has a middle sentence: `allActivitiesDone`
+                deliberately has no `line` — its title and its three paragraphs say the whole
+                thing — and an unguarded {words.line} renders an empty <p> that still carries
+                its own margin, opening a gap under the heading that nobody chose. */}
+            {words.line && <p className="l4-panel-line">{words.line}</p>}
             <p className="l4-panel-grow">{words.grow}</p>
             {outcome.nextActivityId ? (
               <Link to={`/level/4/${outcome.nextActivityId}`} className="btn-gold btn-inline">

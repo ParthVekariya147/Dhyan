@@ -13,3 +13,10 @@ assets/originals/
 .env
 .env.local
 .env.*.local
+
+# .claude/settings.json is committed — it wires the SessionStart hook that every cloud
+# session runs (docs/CLOUD_SETUP.md). The .local file beside it is per-machine permission
+# state and is not. It was only ever ignored by a global gitconfig on one machine, which
+# stopped being enough the moment .claude/ became a tracked directory: a teammate, or a
+# cloud session granting itself a permission, would otherwise offer to commit it.
+.claude/settings.local.json

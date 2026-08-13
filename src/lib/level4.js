@@ -10,7 +10,7 @@ import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supaba
   mirroring — so a configuration that does not say what its threshold is falls back to the
   shared constant rather than to a number typed here.
 */
-import { DEFAULT_GATE_THRESHOLD, L4_ACTIVITY_STATUS } from '../../shared/domain/level4.js';
+import { DEFAULT_GATE_THRESHOLD, L4_ACTIVITY_STATUS, LEVEL4_ID } from '../../shared/domain/level4.js';
 
 /**
  * લેવલ ૪ — the યુવક side of the dynamic sub-level system (LEVEL4.md §3.3).
@@ -65,7 +65,7 @@ const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
  * third place for it to drift. Re-exporting means the યુવક screens have a single import
  * for the whole of લેવલ ૪ and never reach past this module for anything.
  */
-export { L4_ACTIVITY_STATUS };
+export { L4_ACTIVITY_STATUS, LEVEL4_ID };
 
 const S = L4_ACTIVITY_STATUS;
 const KNOWN_STATUS = new Set(Object.values(S));

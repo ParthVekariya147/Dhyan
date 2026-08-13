@@ -6,7 +6,7 @@ import { useScenes } from '../../lib/useScenes';
   One import for the whole of લેવલ ૪, including the status vocabulary — src/lib/level4.js
   re-exports it from shared/domain/level4.js precisely so these screens never reach past it.
 */
-import { L4_ACTIVITY_STATUS, L4_PREPARING_GU, useLevel4 } from '../../lib/level4';
+import { L4_ACTIVITY_STATUS, L4_PREPARING_GU, LEVEL4_ID, useLevel4 } from '../../lib/level4';
 import { JOURNEY_PAGE, nextLevelAfter, usePageSpec } from '../../lib/journey';
 /* What the app says when a યુવક finishes something — one file for all six of those moments,
    so this page and લેવલ ૩ and the કસોટી screen congratulate him in the same voice. */
@@ -25,8 +25,15 @@ import ProgressRing from '../levels/ProgressRing';
 import '../levels/levels.css';
 import './level4.css';
 
-/** This screen is લેવલ ૪ and nothing else, so the number is a constant, not a prop (§37). */
-const LEVEL = 4;
+/**
+ * This screen is લેવલ ૪ and nothing else, so the number is a constant, not a prop (§37).
+ *
+ * It moved to shared/domain/level4.js when the કસોટી screen began saying the same completion
+ * sentence at the moment the last one is finished: both screens name the level in that
+ * sentence, and two literals meant to be one number are two literals that will eventually
+ * differ. Aliased rather than used under its own name so every `LEVEL` below reads as it did.
+ */
+const LEVEL = LEVEL4_ID;
 
 /**
  * ────────────────────────────────────────────────────────────────────────────
@@ -221,7 +228,7 @@ export default function Level4Page() {
             લેવલ ૩ માં {gu(gateThreshold)} પૂરાં કરો, પછી આ ખૂલશે
           </p>
           <p className="locked-sub">
-            એક જ દિવસમાં {gu(gateThreshold)} દ્રશ્યો યાદ કરો - પછી આ લેવલ કાયમ માટે ખુલ્લું રહેશે.
+            એક જ દિવસમાં {gu(gateThreshold)} દ્રશ્યો યાદ કરો - પછી આ લેવલ ઓપન થશે .
           </p>
           <Link to="/level/3" className="btn-gold btn-inline">લેવલ ૩ શરૂ કરો</Link>
         </section>
@@ -252,7 +259,7 @@ export default function Level4Page() {
           score={done}
           total={activities.length}
           label="પૂરી થયેલી કસોટી"
-          sub="એક કસોટી પૂરી કરશો એટલે પછીની આપમેળે ખૂલશે. પૂરી થયેલી કસોટી કાયમ પૂરી જ રહેશે, અને ફરી આપવી હોય તો જેટલી વાર મન થાય એટલી વાર આપી શકશો."
+          sub="એક કસોટી પૂરી કરશો એટલે પછીની આપમેળે ખૂલશે. અને ફરી આપવી હોઈ તો આપી શકશો."
         />
 
         {/*
@@ -325,7 +332,12 @@ export default function Level4Page() {
               this is the furthest a યુવક can currently climb and it should not read as the
               end of one. */}
           <p className="level-next-line">{allDone.title}</p>
-          <p className="level-note">{allDone.line}</p>
+          {/* Guarded, for the reason ActivityTestPage's copy of this panel gives:
+              `allActivitiesDone` has no `line` — the title and the three paragraphs of `grow`
+              say the whole thing — and an unguarded {allDone.line} renders an empty <p> that
+              still carries `.level-note`'s own top margin, opening 14px of dead space between
+              the heading and the message that nobody chose. */}
+          {allDone.line && <p className="level-note">{allDone.line}</p>}
           <p className="level-note">{allDone.grow}</p>
           {nextLevel ? (
             <Link to={nextLevel.to} className="btn-gold btn-inline">
@@ -485,7 +497,7 @@ function ActivityCard({ activity, previous, range, gateClosed }) {
 function Level4Bar() {
   return (
     <header className="level-bar">
-      <Link className="linklike" to="/">મુખપૃષ્ઠ</Link>
+      <Link className="linklike" to="/">Home</Link>
       <Link className="linklike" to="/darshan">દર્શન કરો</Link>
       {/*
         The way back to લેવલ ૩, matching the way forward that લેવલ ૩ now carries.
@@ -495,7 +507,7 @@ function Level4Bar() {
         half of the same climb. Always shown: લેવલ ૩ is open to everyone, always, so there
         is no state in which this link could turn him away.
       */}
-      <Link className="linklike" to="/level/3">લેવલ ૩</Link>
+      <Link className="linklike" to="/level/3">Leval ૩</Link>
     </header>
   );
 }
