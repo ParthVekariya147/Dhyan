@@ -1,0 +1,151 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   એપ્લિકેશન ઇન્સ્ટોલ કરો — the home-screen invitation
+   ────────────────────────────────────────────────────────────────────────────
+
+   ── the z-index ladder ──
+   .install-scrim 90  ›  .gv 80  ›  .lb 70  ›  #bar 60  ›  .dhun 55  ›  #top 50
+   Above the gallery viewer, and that is deliberate rather than tidy: this dialog is
+   mounted outside <Routes> and can therefore appear over any screen, દર્શન included. A
+   modal drawn under a fullscreen viewer is a modal that takes the taps and shows nothing.
+
+   ── prefers-reduced-motion ──
+   src/index.css kills every transition with `!important` and resets nothing, so the rule
+   gallery.css states holds here too: the base style of every element is its VISIBLE
+   state, entrances are @keyframes, and hiding is unmount. Nothing below starts at
+   opacity 0 or off-screen — the slide-up is a keyframe, so a યુવક who has asked for less
+   motion simply gets the sheet already in place.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.install-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  /* Bottom-anchored on a phone: a sheet that rises from the thumb rather than a box that
+     lands in the middle of what he was reading. It centres on a wide screen below. */
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--sp-4);
+  background: rgba(8, 6, 4, 0.72);
+  backdrop-filter: blur(4px);
+  font-family: var(--font-gu);
+  animation: install-scrim-in 0.18s ease both;
+}
+
+.install-sheet {
+  width: 100%;
+  max-width: var(--page-max);
+  /* The home indicator sits under the foot of this sheet on an iPhone. viewport-fit=cover
+     is set in index.html, so this inset resolves to a real number there and to 0 elsewhere. */
+  padding: var(--sp-5) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom));
+  background: var(--color-panel);
+  border: 1px solid rgba(240, 199, 120, 0.18);
+  border-radius: var(--radius-card);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.55);
+  animation: install-sheet-in 0.22s ease both;
+}
+
+.install-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.install-mark {
+  flex: none;
+  display: block;
+  line-height: 0;
+}
+
+.install-title {
+  margin: 0;
+  font-size: var(--fs-section);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--color-gold-soft);
+}
+
+.install-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-helper);
+  line-height: var(--lh-tight);
+  color: var(--color-muted);
+}
+
+.install-body {
+  margin: var(--sp-4) 0 0;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: #e9dcc9;
+}
+
+/* ---- the iOS steps --------------------------------------------------------
+
+   A list rather than one sentence with commas: he is holding the phone and reading one
+   line at a time while he looks for the button, and a paragraph loses his place. The
+   numerals are Gujarati text in a span rather than the list's own marker, because the
+   `gujarati` counter style is not carried by every engine this app runs in and a missing
+   counter style falls back to Latin without saying so. */
+.install-steps {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.install-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: #e9dcc9;
+}
+
+.install-step-n {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  /* The matras of a Gujarati numeral need the extra line box, so the circle is centred
+     with flex rather than with a line-height equal to its height. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  font-size: var(--fs-helper);
+  font-weight: 700;
+  color: #2a1d12;
+  background: var(--color-gold);
+  border-radius: var(--radius-pill);
+}
+
+/* The buttons are forms.css's .btn and .btn-quiet — the same pill, the same height and
+   the same focus ring as every primary action in the app. Only the first one's top
+   margin is trimmed, because .btn is written to follow a field and here it follows prose. */
+.install-sheet .btn {
+  margin-top: var(--sp-4);
+}
+.install-sheet .btn-quiet {
+  margin-top: var(--sp-2);
+}
+
+@keyframes install-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes install-sheet-in {
+  from { transform: translateY(12px); }
+  to { transform: none; }
+}
+
+/* Above the widest phone there is room to place the sheet properly rather than pinned to
+   the bottom edge of a large window. */
+@media (min-width: 640px) {
+  .install-scrim {
+    align-items: center;
+  }
+  .install-sheet {
+    padding-bottom: var(--sp-5);
+  }
+}

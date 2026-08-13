@@ -162,23 +162,23 @@ export default function Login() {
             autoCapitalize="none"
             spellCheck={false}
             /*
-              §17 — the right keyboard for what he is typing, chosen from what he has typed
-              so far. All digits means a mobile number, so the numeric pad opens; the moment
-              an '@' or a letter appears it is an email and the full keyboard is needed.
-              `inputMode` rather than type="tel"/type="email", because the field accepts
-              both and a fixed type would validate the wrong one.
+              §17 — one keyboard, the full one, for the whole of this field.
 
-              The empty field is `text`, and the `\d+` below rather than `\d*` is what makes
-              it so. An empty value is trivially "all digits", and reading it that way opened
-              the numeric pad before he had typed anything — on iOS that pad carries no
-              letters and no way to reach them, so a યુવક logging in with his email met a
-              keyboard that could not type one. Nothing was visibly broken, which is why it
-              survived: the field accepted email the whole time, the phone just refused to
-              offer the characters. He gets the full keyboard until a digit tells us
-              otherwise, and the numeric pad from the first digit on — one swap, at the point
-              where the field's meaning first becomes knowable.
+              It used to switch: all-digits opened the numeric pad, anything else the full
+              keyboard. That reasoning is sound for a field that is only ever a phone number,
+              and wrong for this one, which is a phone number OR an email. An email that
+              begins with digits - '9parth@gmail.com', and plenty of them do - flipped the
+              field to the numeric pad on the very first character, and on iOS that pad
+              carries no letters and no way to reach them. He was left mid-email at a
+              keyboard that could not finish it, with nothing on screen to explain why.
+
+              The full keyboard can type both, so it is the only one that is never wrong
+              here. A યુવક entering his mobile number reaches the digits one tap away; a
+              યુવક entering his email is never cornered. `inputMode` rather than
+              type="tel"/type="email" for the same reason as before: the field accepts both
+              and a fixed type would validate the wrong one.
             */
-            inputMode={/^\d+$/.test(identifier) ? 'numeric' : 'text'}
+            inputMode="text"
             disabled={busy}
           />
 

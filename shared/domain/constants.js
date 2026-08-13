@@ -107,8 +107,14 @@ export const MIN_PASSWORD = 6;
  *
  * Format alone cannot make it unique. Under Firestore that needed a companion
  * `smkIndex/{SMK}` document claimed in the same batch; in Postgres it is a UNIQUE
- * constraint on profiles.smk, and a trigger makes the column immutable after
- * registration. See supabase/migrations/0001_init.sql.
+ * constraint on profiles.smk, and a trigger makes the column write-once. See
+ * supabase/migrations/0001_init.sql and 0027_smk_optional.sql.
+ *
+ * No screen collects an SMK today — નોંધણી stopped asking (0027) and `profiles.smk` is
+ * nullable, so most rows have none. These two are kept because the format is a fact about
+ * the domain and the column still holds values for everyone who registered earlier;
+ * whatever eventually offers to fill one in should validate through them and not invent a
+ * second spelling of the same rule.
  */
 export const SMK_RE = /^[A-Z]{3}\d{3}$/;
 

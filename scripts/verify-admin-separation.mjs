@@ -170,9 +170,20 @@ check(`યુવક bundle within ${kb(BUDGET)}`, total <= BUDGET, kb(total));
  * splitting `node_modules/firebase` after the migration, so nothing matched, Supabase fell
  * into the entry chunk, and a 120 KB allowance was loose enough to look survivable at
  * 226 KB only because the manifest had shrunk at the same time.
+ *
+ * The યુવક threshold moved from 60 KB to 62 KB when the home-screen invitation was added,
+ * and the argument the old comment asked for is this. The invitation needs ~1.9 KB of
+ * EAGER code and cannot avoid it: `beforeinstallprompt` fires once, at a moment Chrome
+ * chooses, and a listener that is not already attached does not get a second chance — so
+ * src/lib/installPrompt.js and the gate in src/components/InstallPrompt.jsx are in this
+ * chunk on purpose. What that buys is that everything else stayed out: the sheet's markup,
+ * its Gujarati sentences and its stylesheet are a separate 2.7 KB chunk that is fetched
+ * only on the load where there is actually something to offer (see InstallSheet.jsx). The
+ * measured chunk is 61.4 KB, so the ~1% margin this check has always run with is intact
+ * and the next KB has to argue for itself exactly as this one did.
  */
 const entry = yuvak.find((f) => /^index-.*\.js$/.test(f.name));
-check('યુવક entry chunk is app code only', !!entry && entry.size < 60 * 1024,
+check('યુવક entry chunk is app code only', !!entry && entry.size < 62 * 1024,
   entry ? kb(entry.size) : 'no entry chunk');
 const adminEntry = admin.find((f) => /^index-.*\.js$/.test(f.name));
 check('સંચાલક entry chunk is panel code only', !!adminEntry && adminEntry.size < 60 * 1024,

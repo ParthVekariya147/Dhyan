@@ -59,8 +59,13 @@ saints when they visit.
 
 Overrides the spec's Phone OTP (§4). No SMS, no OTP, so no Blaze needed for auth.
 
-**Registration collects:** SMK · નામ · **email** · **password** · મોબાઈલ · ઝોન · સબઝોન
+**Registration collects:** નામ · **email** · **password** · મોબાઈલ · ઝોન · સબઝોન
 **Login accepts either:** mobile + password **or** email + password.
+
+**Not SMK, any more.** It was the first field and it was ફરજિયાત, which put a value a યુવક
+carries on a card — and often not on him — in front of the app's own front door.
+`profiles.smk` is nullable as of `0027_smk_optional.sql`, kept UNIQUE and now write-once, so
+anyone who registered earlier still has his and anyone who registers now simply has none.
 
 **Design — Firebase Auth identity is the real email.** That choice matters:
 

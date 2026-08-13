@@ -35,8 +35,9 @@ const zoneName = (id) => ZONES.find((z) => z.id === id)?.name || id || '-';
  *                page render, so opening મારું costs zero requests. The role arrives on its
  *                own schedule and only decides whether one link is drawn, so the panel link
  *                may appear a moment after the rest — it is never waited for.
- * Visible        His નામ, SMK, મોબાઈલ નંબર, ઝોન and સબઝોન; the સેટિંગ link; the લોગ આઉટ
- *                button; and, for whoever has one, the સંચાલક પેનલ link.
+ * Visible        His નામ, મોબાઈલ નંબર, ઝોન and સબઝોન — plus SMK, but only for whoever has
+ *                one; નોંધણી no longer asks for it (0027_smk_optional.sql). The સેટિંગ
+ *                link; the લોગ આઉટ button; and, for whoever has one, the સંચાલક પેનલ link.
  * Actions        Open મારી પ્રગતિ. Open સેટિંગ. Log out. Open the panel. Nothing else.
  * Persisted      Nothing. This page does not write, and that is a decision rather than an
  *                omission — see "Excluded" below.
@@ -51,9 +52,10 @@ const zoneName = (id) => ZONES.find((z) => z.id === id)?.name || id || '-';
  *                app, but they are still excluded from *this page*: it carries a link to
  *                મારી પ્રગતિ and not one figure of its own, because a number here would be a
  *                second answer to a question that page already answers. Also excluded: the SMK
- *                and મોબાઈલ as anything but text, because both are immutable after
- *                registration (a trigger in 0001_init.sql enforces it) and a field a યુવક
- *                can type into but not save is worse than no field.
+ *                and મોબાઈલ as anything but text, because a trigger in 0001_init.sql (as
+ *                amended by 0027) refuses to move either — મોબાઈલ never, and SMK once it
+ *                is set — and a field a યુવક can type into but not save is worse than no
+ *                field.
  * Loading        Nothing blocks. <Guarded> has already waited for both the session and the
  *                profile before this component exists, so there is no in-between state to
  *                render.
@@ -97,7 +99,14 @@ export default function Profile() {
   const rows = profile
     ? [
         { label: 'નામ', value: profile.name },
-        { label: 'SMK', value: profile.smk, mono: true },
+        /*
+          Only for whoever has one. નોંધણી stopped asking for the SMK (0027_smk_optional
+          made the column nullable), so for everyone who registered after that the row
+          would be a label with a dash beside it — a hole where a fact should be, on the
+          one card that is meant to read as complete. The યુવક who does have an SMK still
+          sees it, in the same place as before.
+        */
+        ...(profile.smk ? [{ label: 'SMK', value: profile.smk, mono: true }] : []),
         { label: 'મોબાઈલ નંબર', value: profile.mobile, mono: true },
         { label: 'ઝોન', value: zoneName(profile.zone_id) },
         {
@@ -135,9 +144,11 @@ export default function Profile() {
               <div className="profile-row" key={r.label}>
                 <dt className="profile-label">{r.label}</dt>
                 <dd className={r.mono ? 'profile-value is-id' : 'profile-value'}>
-                  {/* A field the schema declares NOT NULL should never be empty, so the
-                      dash is not really a fallback - it is what keeps a row that somehow
-                      is empty from collapsing to a label with nothing beside it. */}
+                  {/* Every row that reaches here is NOT NULL in the schema, and the one
+                      column that is not - smk - is dropped from the list above rather
+                      than dashed. So this is not really a fallback: it is what keeps a
+                      row that somehow is empty from collapsing to a label with nothing
+                      beside it. */}
                   {r.value || '-'}
                 </dd>
               </div>
@@ -192,10 +203,10 @@ export default function Profile() {
           on a settings row is a menu a યુવક cannot learn. The same reasoning the entry gate
           uses for a missing વિડિયો link — explain, never vanish.
         */}
-        <Link to="/leaderboard" className="profile-link">
-          <span className="profile-link-name">ક્રમાંક</span>
-          <span className="profile-link-note">સંઘમાં તમારું સ્થાન</span>
-        </Link>
+      {/* <Link to="/leaderboard" className="profile-link">
+        <span className="profile-link-name">ક્રમાંક</span>
+        <span className="profile-link-note">સંઘમાં તમારું સ્થાન</span>
+      </Link> */}
 
         <Link to="/settings" className="profile-link">
           <span className="profile-link-name">સેટિંગ</span>

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { useSettings, youtubeId } from './lib/useSettings';
 import { guardRoute, resolveEntryRoute } from './lib/entryRoute';
 import DhunPlayer from './components/DhunPlayer';
+import InstallPrompt from './components/InstallPrompt';
 import AppShell from './components/AppShell';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -627,6 +628,26 @@ export default function App() {
           settings read and not a byte of audio. Preloading is off; see DhunPlayer.jsx.
         */}
         <DhunPlayer />
+
+        {/*
+          "એપ્લિકેશન ઇન્સ્ટોલ કરો" — beside the ધૂન and outside <Routes>, for one of the same
+          reasons and one of its own.
+
+          The same reason: it must survive navigation. Chrome hands over `beforeinstallprompt`
+          once per visit and at a moment of its choosing; a component that unmounted on every
+          route change could be gone at exactly that moment, and the offer with it.
+
+          Its own: the invitation is about the app, not about any page in it, so no page owns
+          it. Mounting it here also means it is asked equally of a યુવક who opens straight to
+          લોગિન and one who resumes at લેવલ ૩ — which is what "as soon as the app starts" has
+          to mean in an app whose first screen depends on who is opening it.
+
+          It renders null unless there is something to offer: already installed, already
+          dismissed, or a browser that cannot install all produce no markup at all. The
+          import is eager because a lazy chunk would arrive after the event it exists to
+          catch; it carries no data and pulls nothing but its own stylesheet.
+        */}
+        <InstallPrompt />
       </AuthProvider>
     </BrowserRouter>
   );

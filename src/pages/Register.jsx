@@ -7,8 +7,6 @@ import {
   MIN_PASSWORD,
   MOBILE_RE,
   normaliseMobile,
-  normaliseSmk,
-  SMK_RE,
   SUBZONES,
   ZONES,
 } from '../lib/constants';
@@ -25,10 +23,16 @@ import '../styles/forms.css';
  *                session lands HERE, not on લોગિન and not on the મુખપૃષ્ઠ — asking someone
  *                who has never been here to find the registration link under a login form
  *                is getting the first minute exactly backwards.
- * Visible        Seven fields, the privacy sentence §13 requires, one primary button, and
+ * Visible        Six fields, the privacy sentence §13 requires, one primary button, and
  *                one quiet sentence pointing at લોગિન (§19).
  * Actions        Register. Go to લોગિન.
- * Persisted      auth.users (the account) and profiles (SMK, name, email, mobile, zone).
+ * Persisted      auth.users (the account) and profiles (name, email, mobile, zone).
+ *
+ * Not asked      SMK. It used to be the first field and it was ફરજિયાત, which meant the
+ *                front door turned away anyone who did not have his member id on him —
+ *                it is printed on a card, not memorised. `profiles.smk` is nullable as of
+ *                0027_smk_optional.sql and stays write-once, so it can be supplied later
+ *                without anything here changing.
  * Completion     The account exists AND he is signed in.
  * Next           / — the મુખપૃષ્ઠ. REGISTER → AUTO LOGIN → મુખપૃષ્ઠ, with no return trip
  *                through લોગિન. He picks લેવલ ૧ from there himself; it is the first tile.
@@ -39,7 +43,6 @@ import '../styles/forms.css';
  */
 
 const EMPTY = {
-  smk: '',
   name: '',
   email: '',
   password: '',
@@ -49,13 +52,12 @@ const EMPTY = {
 };
 
 /**
- * §4 — every field is ફરજિયાત. §18 — each message says what is wrong AND how to fix it,
+ * §4 — every field the form still asks for is ફરજિયાત. §18 — each message says what is
+ * wrong AND how to fix it,
  * in one short line that fits the reserved slot under the field, and never scolds.
  */
 function validate(v) {
   const e = {};
-  if (!v.smk.trim()) e.smk = 'SMK લખો.';
-  else if (!SMK_RE.test(v.smk.trim())) e.smk = '૩ અંગ્રેજી અક્ષર પછી ૩ અંક લખો - દા.ત. PGV881';
   if (!v.name.trim()) e.name = 'નામ લખો.';
   if (!EMAIL_RE.test(v.email.trim())) e.email = 'આખું ઈમેલ સરનામું લખો - દા.ત. naam@gmail.com';
   if (v.password.length < MIN_PASSWORD) e.password = `ઓછામાં ઓછા ${gu(MIN_PASSWORD)} અક્ષર લખો.`;
@@ -87,7 +89,6 @@ export default function Register() {
     // number belonging to nobody, in a UNIQUE column, which then made mobile login
     // impossible for that yuvak forever. See shared/domain/constants.js.
     if (k === 'mobile') val = normaliseMobile(val);
-    if (k === 'smk') val = normaliseSmk(val);
     setV((s) => ({ ...s, [k]: val }));
     if (errs[k]) setErrs((s) => ({ ...s, [k]: undefined }));
     if (formError) setFormError('');
@@ -134,13 +135,13 @@ export default function Register() {
 
       nav(ENTRY_ROUTE.HOME, { replace: true });
     } catch (err) {
-      // A duplicate SMK or mobile belongs beside that field, not in a general banner — it
-      // is the one value the yuvak has to change and resubmit, and a banner at the foot of
-      // a seven-field form does not say which.
+      // A duplicate mobile belongs beside that field, not in a general banner — it is the
+      // one value the yuvak has to change and resubmit, and a banner at the foot of a
+      // six-field form does not say which. (profiles_smk_key is no longer reachable from
+      // here: this form does not send an SMK.)
       const msg = guError(err);
       const constraint = String(err?.message || '');
-      if (constraint.includes('profiles_smk_key')) setErrs({ smk: msg });
-      else if (constraint.includes('profiles_mobile_key')) setErrs({ mobile: msg });
+      if (constraint.includes('profiles_mobile_key')) setErrs({ mobile: msg });
       else setFormError(msg);
     } finally {
       setBusy(false);
@@ -150,7 +151,7 @@ export default function Register() {
   /*
     §14's fallback screen.
 
-    Deliberately replaces the form rather than sitting under it: the seven fields have
+    Deliberately replaces the form rather than sitting under it: the six fields have
     already done their job, the account exists, and leaving them on screen invites him to
     submit them a second time — which would fail as a duplicate and read as the app losing
     his registration. His details are held for the moment he signs in (see auth.jsx), so
@@ -181,22 +182,6 @@ export default function Register() {
         <p className="auth-sub">વર્ણી ધ્યાનમાં જોડાવા માટે નીચેની વિગત ભરો</p>
 
         <form onSubmit={submit} noValidate>
-          <TextField
-            id="smk"
-            label="SMK"
-            hint="નામના ૩ અંગ્રેજી અક્ષર પછી ૩ અંક"
-            error={errs.smk}
-            value={v.smk}
-            onChange={set('smk')}
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            inputMode="text"
-            maxLength={6}
-            placeholder="PGV881"
-            disabled={busy}
-          />
-
           <TextField
             id="name"
             label="નામ"

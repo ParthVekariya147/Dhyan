@@ -69,13 +69,13 @@ export function guError(e) {
  *
  * `sessionStorage` and not `localStorage`, on purpose. This is a hand-off across one
  * navigation — નોંધણી → લોગિન, seconds apart, in the same tab — and it holds a યુવક's
- * name, mobile and SMK. Session storage dies with the tab, which is exactly the lifetime
+ * name, mobile and email. Session storage dies with the tab, which is exactly the lifetime
  * the hand-off has; localStorage would leave those details on a shared phone forever.
  *
  * It exists because of what the fallback would otherwise leave behind: `signUp` succeeded,
  * so the auth account is real, but the `profiles` insert could not run (with no session,
  * `auth.uid()` is NULL and the "own profile insertable" policy refuses it). Without this,
- * logging in afterwards produces a યુવક with no profile row — no name, no SMK, no zone,
+ * logging in afterwards produces a યુવક with no profile row — no name, no mobile, no zone,
  * invisible to the સંચાલક — and no screen anywhere that would let him supply them again.
  */
 const PENDING_PROFILE_KEY = 'varni:pending-profile';
@@ -351,14 +351,16 @@ export function AuthProvider({ children }) {
        *
        * Two steps, and they cannot be one transaction: the auth account has to exist
        * before a profile row can reference it. If the profile insert fails — almost
-       * always a duplicate SMK or mobile — the account is left without a profile, which
-       * would strand the yuvak. `signOut` plus a clear Gujarati message lets him simply
-       * try again with a corrected value; the orphaned auth row is harmless and is
-       * reused on the next attempt with the same email.
+       * always a duplicate mobile — the account is left without a profile, which would
+       * strand the yuvak. `signOut` plus a clear Gujarati message lets him simply try
+       * again with a corrected value; the orphaned auth row is harmless and is reused on
+       * the next attempt with the same email.
        *
-       * SMK uniqueness needs no application logic at all here: `profiles.smk` is UNIQUE,
-       * so Postgres rejects the second claim outright. (Firestore needed a companion
-       * index document written in a batch to achieve the same thing.)
+       * No `smk`. નોંધણી stopped asking for it: it is a member id printed on a card, and
+       * requiring it turned the app's front door away from anyone who did not have that
+       * card on him. `profiles.smk` is nullable and write-once as of
+       * 0027_smk_optional.sql, so the row simply leaves the column unset and it can be
+       * filled in later without touching this path.
        *
        * This depends on "Confirm email" being OFF in the Supabase dashboard
        * (Authentication → Sign In / Providers → Email). With it on, signUp() sends a
@@ -369,10 +371,9 @@ export function AuthProvider({ children }) {
        * confirmation screen anywhere in the app — registration is meant to end signed in,
        * on /welcome.
        */
-      async register({ smk, name, email, password, mobile, zoneId, subZoneId }) {
+      async register({ name, email, password, mobile, zoneId, subZoneId }) {
         const cleanEmail = email.trim().toLowerCase();
         const fields = {
-          smk: smk.trim().toUpperCase(),
           name: name.trim(),
           email: cleanEmail,
           mobile: mobile.trim(),
@@ -431,7 +432,7 @@ export function AuthProvider({ children }) {
           });
 
           if (insertError) {
-            // Almost always a duplicate SMK or mobile. The auth account is left behind
+            // Almost always a duplicate mobile. The auth account is left behind
             // and is harmlessly reused on the next attempt with the same email; signing
             // out is what lets him correct the value and resubmit rather than being
             // carried into the app half-registered.

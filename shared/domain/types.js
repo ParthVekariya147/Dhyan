@@ -43,7 +43,8 @@
  *
  * @typedef {object} UserRecord
  * @property {string}  id
- * @property {string}  smk
+ * @property {string|null} smk  null for anyone who registered after 0027_smk_optional:
+ *                              નોંધણી does not ask for it. Write-once when it is set.
  * @property {string}  name
  * @property {string}  email
  * @property {string}  mobile
