@@ -137,8 +137,8 @@ half of what લેવલ ૨ is teaching, so it is furniture rather than a hint
 nothing: it cannot tick, score, complete લેવલ ૨ or open લેવલ ૩.
 
 The one thing configurable about it is **પેનલ → સેટિંગ્સ → Gallery slideshow** — how long the
-**આપોઆપ** button holds each દ્રશ્ય, **1–60 seconds**, default 6. આપોઆપ never starts by itself
-and stops at the last દ્રશ્ય rather than looping back to the first.
+**ઓટો સ્લાઇડશો** button holds each દ્રશ્ય, **1–60 seconds**, default 6. ઓટો સ્લાઇડશો never starts
+by itself and stops at the last દ્રશ્ય rather than looping back to the first.
 
 **That number is now a default rather than a description of what every યુવક sees.** Each યુવક
 may set his own speed on his own phone — see *What a યુવક sets for himself* below — and where

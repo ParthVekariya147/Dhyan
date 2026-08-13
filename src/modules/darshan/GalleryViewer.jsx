@@ -79,7 +79,18 @@ export default function GalleryViewer({
   label = 'દર્શન - મોટું દ્રશ્ય',
 }) {
   const [index, setIndex] = useState(startIndex);
-  const [descOpen, setDescOpen] = useState(false);
+  /*
+    OPEN, from first paint. A યુવક who opened a દ્રશ્ય met a picture and a number with the
+    વર્ણન behind a control he had to know to press, and the number alone does not tell him
+    what he is looking at — the ⓘ read as decoration rather than as the way to the words.
+    Showing it and letting him close it is the way round that answers the question before he
+    has to ask it, and closing it is one press for the યુવક who wants only the artwork.
+
+    This is a default and not a lock: the button below toggles it both ways, and §9's
+    arrangement — panel ABOVE the number row, never in place of it — is what makes an open
+    panel affordable here. It costs him no sight of which દ્રશ્ય he is reading about.
+  */
+  const [descOpen, setDescOpen] = useState(true);
   /*
     `false`, and nothing but the button and Space ever sets it true. લેવલ ૨ is where a યુવક
     learns the picture and the ક્રમ; a slideshow that started itself the moment he tapped
@@ -527,12 +538,12 @@ export default function GalleryViewer({
           <button
             type="button"
             className={`gv-btn gv-auto${isAuto ? ' on' : ''}`}
-            aria-label={isAuto ? 'આપોઆપ બંધ કરો' : 'આપોઆપ ચાલુ કરો'}
+            aria-label={isAuto ? 'ઓટો સ્લાઇડશો બંધ કરો' : 'ઓટો સ્લાઇડશો ચાલુ કરો'}
             aria-pressed={isAuto}
             onClick={() => setIsAuto((a) => !a)}
           >
             <span aria-hidden="true">{isAuto ? '⏸' : '▶'}</span>
-            <span>આપોઆપ</span>
+            <span>ઓટો સ્લાઇડશો</span>
           </button>
         </div>
       </div>

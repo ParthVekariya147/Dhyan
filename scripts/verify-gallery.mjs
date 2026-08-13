@@ -157,8 +157,9 @@ check(`counter reads ૫ / ${gu(TOTAL)}`, s.count === `${gu(5)} / ${gu(TOTAL)}`,
 check('the દ્રશ્ય’s own number is on screen', s.num === `#${gu(5)}` && s.numShown, `${s.num} shown=${s.numShown}`);
 check('the ⓘ વર્ણન control is on screen', s.descShown && s.descDisabled === false);
 check('no horizontal overflow at 412', s.scrollW <= s.innerW + 0.5, `${s.scrollW} vs ${s.innerW}`);
-check('the વર્ણન panel starts closed', s.desc === null);
-check('આપોઆપ starts off — it never autostarts', s.auto === 'false', s.auto);
+check('the વર્ણન panel starts OPEN, on the દ્રશ્ય he opened', s.desc === active[4].t, s.desc?.slice(0, 26));
+check('…and the control says so from first paint', s.descExpanded === 'true', s.descExpanded);
+check('ઓટો સ્લાઇડશો starts off — it never autostarts', s.auto === 'false', s.auto);
 await shot(page, 'gv-412-portrait');
 
 // ── 2 · arrows ───────────────────────────────────────────────────────────────
@@ -188,7 +189,7 @@ await page.touchscreen.tap(206, 300);
 await wait(300);
 await page.keyboard.press(' ');
 await wait(300);
-check('Space starts આપોઆપ', (await snap()).auto === 'true');
+check('Space starts ઓટો સ્લાઇડશો', (await snap()).auto === 'true');
 await page.keyboard.press(' ');
 await wait(300);
 s = await snap();
@@ -197,10 +198,13 @@ check('…and Space never moved the દ્રશ્ય', s.count === `${gu(5)} /
 
 // ── 4 · વર્ણન ────────────────────────────────────────────────────────────────
 console.log('\n[4] the વર્ણન');
-await page.click('.gv-desc-btn');
-await wait(400);
+/*
+  The panel is open before this section touches anything — §1 already checked that. What is
+  left to prove is that the default is a default and not a stuck state: one press closes it,
+  one press opens it again, and the row it lives above survives both.
+*/
 s = await snap();
-check('ⓘ opens it, verbatim', s.desc === active[4].t, s.desc?.slice(0, 26));
+check('it is open before any press, verbatim', s.desc === active[4].t, s.desc?.slice(0, 26));
 check('the control says it is open', s.descExpanded === 'true');
 /*
   The requirement the whole foot is arranged around: opening the વર્ણન must not cost a યુવક
@@ -220,8 +224,13 @@ await shot(page, 'gv-412-desc');
 await page.click('.gv-desc-btn');
 await wait(300);
 s = await snap();
-check('ⓘ closes it again', s.desc === null);
-check('…and the row it opened from is untouched', s.numShown && s.descShown && s.descExpanded === 'false');
+check('one press closes it', s.desc === null);
+check('…and the row it closed onto is untouched', s.numShown && s.descShown && s.descExpanded === 'false');
+await page.click('.gv-desc-btn');
+await wait(300);
+s = await snap();
+check('one more press opens it again — the toggle goes both ways', s.desc === active[5].t, s.desc?.slice(0, 26));
+check('…and says so', s.descExpanded === 'true');
 await page.click('.gv-prev');
 await until(async () => (await snap()).num === `#${gu(5)}`, 8000);
 

@@ -167,8 +167,18 @@ export default function Login() {
               an '@' or a letter appears it is an email and the full keyboard is needed.
               `inputMode` rather than type="tel"/type="email", because the field accepts
               both and a fixed type would validate the wrong one.
+
+              The empty field is `text`, and the `\d+` below rather than `\d*` is what makes
+              it so. An empty value is trivially "all digits", and reading it that way opened
+              the numeric pad before he had typed anything — on iOS that pad carries no
+              letters and no way to reach them, so a યુવક logging in with his email met a
+              keyboard that could not type one. Nothing was visibly broken, which is why it
+              survived: the field accepted email the whole time, the phone just refused to
+              offer the characters. He gets the full keyboard until a digit tells us
+              otherwise, and the numeric pad from the first digit on — one swap, at the point
+              where the field's meaning first becomes knowable.
             */
-            inputMode={/^\d*$/.test(identifier) ? 'numeric' : 'text'}
+            inputMode={/^\d+$/.test(identifier) ? 'numeric' : 'text'}
             disabled={busy}
           />
 

@@ -180,10 +180,10 @@ export default function Settings() {
         */}
         <section className="settings-section" aria-labelledby="speed-heading">
           <h2 className="settings-section-title" id="speed-heading">
-            આપોઆપ દર્શનની ગતિ
+            ઓટો સ્લાઇડશોની ગતિ
           </h2>
           <p className="settings-note">
-            મોટા પડદે દર્શન કરતી વખતે "આપોઆપ" ચાલુ કરો ત્યારે એક દ્રશ્ય કેટલી વાર દેખાય એ અહીંથી નક્કી કરો.
+            મોટા પડદે દર્શન કરતી વખતે "ઓટો સ્લાઇડશો" ચાલુ કરો ત્યારે એક દ્રશ્ય કેટલી વાર દેખાય એ અહીંથી નક્કી કરો.
           </p>
 
           {/*
