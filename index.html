@@ -10,6 +10,12 @@
   <meta name="theme-color" content="#100d0a">
   <title>નીલકંઠ વર્ણી ધ્યાન - દર્શન</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <!-- iOS reads neither the manifest's icons nor an SVG favicon when a યુવક adds the app to
+       his home screen: without this link it screenshots the page and uses that. The PNG is
+       drawn full-bleed with no transparency and no rounded corners of its own, because iOS
+       applies its own mask — a pre-rounded icon comes out rounded twice. Chrome's manifest
+       icons are declared in vite.config.js. -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body>
   <div id="root"></div>

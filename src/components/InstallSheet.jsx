@@ -21,27 +21,28 @@ import './install-prompt.css';
  */
 export default function InstallSheet({ mode }) {
   const closeRef = useRef(null);
-  const open = mode !== 'none';
 
   /**
    * Escape closes it, and the "પછી" button takes focus when it opens.
    *
-   * Focus goes to the dismissal rather than to "ઇન્સ્ટોલ કરો" deliberately. This dialog
-   * appears unasked-for, and the first thing a keyboard or screen-reader user meets
-   * should be the way out of it, not the action it wants. A stray Enter on arrival then
-   * closes the sheet instead of opening a system install dialog he never requested.
+   * Focus goes to the dismissal rather than to "હોમ સ્ક્રીન પર ઉમેરો" deliberately. This
+   * dialog appears unasked-for, and the first thing a keyboard or screen-reader user
+   * meets should be the way out of it, not the action it wants. A stray Enter on arrival
+   * then closes the sheet instead of opening a system install dialog he never requested.
+   *
+   * There is no "is it open?" condition here or below: this component is mounted only
+   * while there is something to offer and unmounted the moment there is not, so being
+   * rendered at all IS the open state. A second copy of that condition inside the sheet
+   * would be one more thing that can disagree with the gate.
    */
   useEffect(() => {
-    if (!open) return undefined;
     closeRef.current?.focus();
     const onKey = (e) => {
       if (e.key === 'Escape') dismissInstall();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
-
-  if (!open) return null;
+  }, []);
 
   const ios = mode === 'ios';
 

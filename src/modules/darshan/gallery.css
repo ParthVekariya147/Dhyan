@@ -319,6 +319,19 @@
   font-size: 16px;
 }
 
+/* Closed: the control reads as switched off. Darker than the pill beside it, the rim and
+   the ⓘ pulled back with it, so a યુવક can tell at a glance whether the વર્ણન is on
+   without looking for the panel. Only the off state is dressed down — on stays as it was. */
+.gv-desc-btn[aria-expanded='false'] {
+  border-color: rgba(240, 199, 120, 0.14);
+  background: rgba(6, 5, 4, 0.86);
+  color: rgba(239, 225, 201, 0.58);
+}
+
+.gv-desc-btn[aria-expanded='false'] .gv-desc-i {
+  color: rgba(240, 199, 120, 0.55);
+}
+
 /* Open: the control says so rather than leaving the panel to speak for itself. */
 .gv-desc-btn[aria-expanded='true'] {
   border-color: rgba(240, 199, 120, 0.55);
@@ -366,6 +379,14 @@
 
 .gv-auto.on:hover {
   background: linear-gradient(160deg, #fff0cf, #d3a04a);
+}
+
+/* Off stays off under a pointer too: it lifts, it does not light up. Without this the
+   shared hover above would paint the closed control gold and undo the whole distinction. */
+.gv-desc-btn[aria-expanded='false']:hover:not(:disabled) {
+  background: rgba(16, 13, 10, 0.9);
+  border-color: rgba(240, 199, 120, 0.28);
+  color: rgba(239, 225, 201, 0.78);
 }
 
 .gv :focus-visible {

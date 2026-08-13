@@ -63,10 +63,29 @@ export default defineConfig(({ mode }) => {
         display: 'standalone',
         background_color: '#100d0a',
         theme_color: '#100d0a',
+        /*
+          The maskable icon is its OWN file rather than a second entry pointing at
+          icon-512.png, and that is the whole reason this list changed.
+
+          Android does not draw a maskable icon as given: it crops it to whatever shape the
+          launcher uses — circle, squircle, rounded square — and only the central 80% is
+          guaranteed to survive. Declaring the ordinary icon as maskable told Android it was
+          safe to cut into a mark that reaches 60% of the way across, so the gold ring lost
+          its edges to a circular launcher. icon-maskable-512.png is the same mark drawn
+          smaller, inside that safe circle, on the same background.
+
+          All four files are rasterised from public/favicon.svg, so the tab icon, the install
+          sheet and the home screen are one mark at four sizes.
+        */
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          {
+            src: '/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
       workbox: {
