@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import netlifyFunctionsDev from './scripts/lib/vite-netlify-functions.mjs';
 
 /**
  * The યુવક app's build. The સંચાલક panel has its own — admin/vite.config.js — and the two
@@ -50,6 +51,10 @@ export default defineConfig(({ mode }) => {
     },
   },
   plugins: [
+    // First in the list so /api/* is answered before anything else claims it — in
+    // particular before the dev server's HTML fallback, which is what used to turn a POST
+    // to /api/login-mobile into a 404. Dev only; see the plugin's header.
+    netlifyFunctionsDev(),
     react(),
     tailwindcss(),
     VitePWA({
