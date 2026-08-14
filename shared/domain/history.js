@@ -182,6 +182,25 @@ export function groupByDate(rows) {
  * by scripts/test-points.mjs, where the expected values are plainly readable as Latin digits;
  * passing the renderer keeps the assertion legible and the screen Gujarati, without this file
  * holding an opinion about either.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * 0035 considered adding the પુનરાવર્તન count here, and deliberately did not
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * A day of લેવલ ૩ can now hold several પુનરાવર્તન, so `૪૦ / ૧૦૮` hides three sittings behind one
+ * figure and the obvious repair is to append "૩ વાર" to it. That is wrong twice over.
+ *
+ * The rule above is not an accident of formatting: **coverage beats the attempt count**, because
+ * they answer different questions and a row that printed both would be answering neither. The
+ * coverage figure is the day's *union* (`daily_activity_progress.completed_items`, 0021:928-946)
+ * — a યુવક who brought the same ૪૦ to mind three times covered ૪૦, not ૧૨૦ — and pinning "૩ વાર"
+ * beside it invites exactly the multiplication the union exists to refuse. It would also change
+ * લેવલ ૪ rows, which measure the same way and have nothing to do with this work.
+ *
+ * And the repetition is already on screen, in the place §23 asks for it: the ગુણ પ્રમાણે tab
+ * lists every award as its own row, so three પુનરાવર્તન read as three lines with three figures
+ * and three times of day. That is a better rendering of "how was this day made" than a suffix,
+ * and it needed no change at all.
  */
 export function summariseRow(row, digits = (n) => String(n)) {
   if (!row) return '';

@@ -4,6 +4,7 @@ import { useAsync } from '../../../lib/useAsync';
 import {
   activityCounts,
   buildProgressReport,
+  level3Report,
   progressFilterOptions,
   progressReport,
   progressSummary,
@@ -140,6 +141,17 @@ const COLUMN_GROUPS = [
   { title: 'Identity', keys: ['name', 'smk', 'city', 'zone', 'status', 'registered'] },
   { title: 'Progress', keys: ['remembered', 'percentage', 'content_total'] },
   { title: 'Levels', keys: ['level1', 'level2', 'level3'] },
+  /*
+    Level 3's own heading, and it exists because of the one distinction this page cannot afford
+    to blur. "Level 3 distinct scenes" under Activity answers how much of the collection a યુવક
+    holds; every column here answers how much પુનરાવર્તન he has done, which since 0035 is an
+    accumulating figure with no ceiling. Two columns both honestly called "ticks" sitting under
+    one heading would be read as a disagreement rather than as two questions.
+  */
+  {
+    title: 'Level 3 revisions',
+    keys: ['l3_revisions', 'l3_ticks', 'l3_points', 'l3_today_ticks', 'l3_today_points', 'l3_last_at'],
+  },
   { title: 'Level 4', keys: ['l4_passed', 'l4_attempts', 'revision', 'gate'] },
   {
     title: 'Activity',
@@ -170,6 +182,17 @@ const COLUMN_GROUPS = [
  * it did before they existed.
  */
 const countCell = (r, n) => <span className="mono">{r.counted ? gu(n) : '-'}</span>;
+
+/**
+ * The same three-state rule for the six Level 3 columns, which arrive from a *third* call.
+ *
+ * `admin_level3_report()` is fetched separately from `admin_activity_counts()` and can be
+ * absent while that one has arrived, so it needs its own flag rather than borrowing `counted`:
+ * a cell that read a Level 3 figure off the wrong query's arrival would print a 0 for a યુવક
+ * with a hundred પુનરાવર્તન. A '-' says the panel has not asked; a 0 says it asked and the
+ * answer was none.
+ */
+const l3Cell = (r, n) => <span className="mono">{r.l3Counted ? gu(n) : '-'}</span>;
 
 /** The all-level attempt count this page can add up on its own - see the column's comment. */
 const clientAttempts = (r) =>
@@ -711,15 +734,132 @@ export default function ProgressPage() {
       },
       {
         key: 'ticks',
-        label: 'Level 3 ticks',
+        label: 'Level 3 distinct scenes',
         align: 'right',
-        // The distinct દ્રશ્યો ticked across every લેવલ ૩ submission in the window, minus the
-        // ones the સંચાલક has withheld. Distinct and not a running total: a યુવક who submits
-        // the same 108 twice has brought 108 to mind, not 216.
+        /*
+          The **distinct** દ્રશ્યો ticked across every લેવલ ૩ submission in the window, minus
+          the ones the સંચાલક has withheld.
+
+          Still distinct, and still not a running total: a યુવક who submits the same 108 twice
+          has brought 108 to mind, not 216, and that remains the right answer to the question
+          *this* column asks - how much of the collection does he hold. What changed in 0035 is
+          that it stopped being the only true answer about લેવલ ૩: the same યુવક has now done
+          216 ticks of સાધના and is paid for 216 of them. That figure is "Level 3 ticks
+          (total)", a column of its own, and the two are meant to differ. The label says
+          "distinct scenes" out loud so nobody has to guess which of the two he is reading.
+        */
         needsCounts: true,
-        render: (r) => countCell(r, r.ticks),
+        render: (r) => (
+          <span
+            className="mono"
+            title="Distinct darshan he holds, counted once each however many times he has revised them"
+          >
+            {r.counted ? gu(r.ticks) : '-'}
+          </span>
+        ),
         value: (r) => (r.counted ? r.ticks : ''),
         type: 'number',
+      },
+      /* ── 0035's Level 3 columns ────────────────────────────────────────────
+         Six opt-in columns from `admin_level3_report()`, off by default like every other
+         column that costs a round trip. None of them is `base`: a સંચાલક who has never
+         switched Level 3 to a per-tick rule has nothing to read in them, and the report he
+         opens should cost what it always cost. */
+      {
+        key: 'l3_revisions',
+        label: 'Level 3 revisions',
+        align: 'right',
+        // How many times he pressed submit, in the window. Since 0035 each one is paid on its
+        // own terms, so this is a count of awards as much as of acts.
+        needsLevel3: true,
+        render: (r) => l3Cell(r, r.l3Revisions),
+        value: (r) => (r.l3Counted ? r.l3Revisions : ''),
+        type: 'number',
+      },
+      {
+        key: 'l3_ticks',
+        label: 'Level 3 ticks (total)',
+        align: 'right',
+        /*
+          The **additive** sum across every પુનરાવર્તન: 50 then 40 then 30 is 120.
+
+          Deliberately the opposite reading from "Level 3 distinct scenes" above, and both are
+          true of the same yuvak at the same moment. This is the figure the points follow -
+          since 0035 a repeated revision accumulates rather than being paid once - so a
+          સંચાલક checking an award against a count wants this one. It has no ceiling and may
+          exceed the size of the collection many times over, which is not an error.
+        */
+        needsLevel3: true,
+        render: (r) => (
+          <span
+            className="mono"
+            title="Every tick of every revision added together, so the same darshan revised twice counts twice"
+          >
+            {r.l3Counted ? gu(r.l3Ticks) : '-'}
+          </span>
+        ),
+        value: (r) => (r.l3Counted ? r.l3Ticks : ''),
+        type: 'number',
+      },
+      {
+        key: 'l3_points',
+        label: 'Level 3 points',
+        align: 'right',
+        // The ledger's Level 3 rows for this window, and only those - never a share of the
+        // "Points" column divided out. That column is every level's awards together; this one
+        // is what પુનરાવર્તન alone earned, which is the figure §20 asks to be shown beside the
+        // revisions that produced it.
+        needsLevel3: true,
+        render: (r) => l3Cell(r, r.l3Points),
+        value: (r) => (r.l3Counted ? r.l3Points : ''),
+        type: 'number',
+      },
+      {
+        key: 'l3_today_ticks',
+        label: 'Level 3 ticks today',
+        align: 'right',
+        /*
+          Today in IST, decided by the server rather than by this browser.
+
+          The three "today" figures are not cut by the date filters above them - they answer
+          "what has he done since midnight", which is a different question from the window the
+          rest of the row is measured on, and the labels say "today" so the two cannot be read
+          as one. A laptop set to another timezone cannot move that boundary, because no date
+          is computed here at all.
+        */
+        needsLevel3: true,
+        render: (r) => (
+          <span className="mono" title="Ticks submitted today (IST), whatever date range is set above">
+            {r.l3Counted ? gu(r.l3TodayTicks) : '-'}
+          </span>
+        ),
+        value: (r) => (r.l3Counted ? r.l3TodayTicks : ''),
+        type: 'number',
+      },
+      {
+        key: 'l3_today_points',
+        label: 'Level 3 points today',
+        align: 'right',
+        needsLevel3: true,
+        render: (r) => (
+          <span className="mono" title="Level 3 points earned today (IST), whatever date range is set above">
+            {r.l3Counted ? gu(r.l3TodayPoints) : '-'}
+          </span>
+        ),
+        value: (r) => (r.l3Counted ? r.l3TodayPoints : ''),
+        type: 'number',
+      },
+      {
+        key: 'l3_last_at',
+        label: 'Last Level 3 activity',
+        // Null is "he has never submitted a revision in this window", which is an absence and
+        // not a date - so the cell is a dash and the file's cell is empty. istDate() decides
+        // which calendar day an instant belongs to, exactly as "Last activity" does below, so
+        // Excel sorts it as a date rather than as text.
+        needsLevel3: true,
+        render: (r) => (r.l3Counted && r.l3LastAt ? dateTimeGu(r.l3LastAt) : <span className="mono">-</span>),
+        value: (r) => (r.l3Counted && r.l3LastAt ? istDate(r.l3LastAt) : ''),
+        type: 'date',
       },
       {
         key: 'rank',
@@ -826,6 +966,16 @@ export default function ProgressPage() {
   const needsCounts = useMemo(() => visibleColumns.some((c) => c.needsCounts), [visibleColumns]);
 
   /**
+   * The same question for `admin_level3_report()`, and a separate one on purpose.
+   *
+   * Two flags rather than one "needs an extra call", because the two calls cost different
+   * things and answer to different columns: a સંચાલક reading the leaderboard rank should not
+   * pay for a scan of every પુનરાવર્તન, and one reading the Level 3 columns should not pay for
+   * a window function over the whole ledger. Neither on is the page as it always was.
+   */
+  const needsLevel3 = useMemo(() => visibleColumns.some((c) => c.needsLevel3), [visibleColumns]);
+
+  /**
    * The page's ids as one string, and it is a dependency rather than a convenience.
    *
    * `rows.map(...)` is a fresh array on every render, so passing it to `useAsync` would refetch
@@ -851,6 +1001,25 @@ export default function ProgressPage() {
   );
 
   /**
+   * The Level 3 figures for this page, on the same date window as the report.
+   *
+   * A third call and, like the second, not a third source of truth: the report has already
+   * decided who is on screen and this fills in six cells for those ids. It is allowed to fail
+   * quietly for the same reason - `l3Counted` stays false, the six cells read '-', and a page
+   * of correct rows is not thrown away because an optional column could not be filled.
+   *
+   * No `day` is passed. The three "today" figures default to today in IST **on the server**,
+   * which is the only clock allowed to decide where a business day begins (§9); computing a
+   * date here would let a laptop set to another timezone move that boundary for everybody
+   * reading over its shoulder.
+   */
+  const level3 = useAsync(
+    () => level3Report(pageIds, { from, to }),
+    [idsKey, from, to, needsLevel3],
+    { skip: !needsLevel3 || pageIds.length === 0 }
+  );
+
+  /**
    * The rows the table renders: the report's, with the counts merged in where they arrived.
    *
    * Merged per id rather than by position. The two calls are ordered independently and a
@@ -859,12 +1028,19 @@ export default function ProgressPage() {
    */
   const tableRows = useMemo(() => {
     const map = counts.data;
-    if (!map || map.size === 0) return rows;
+    const l3 = level3.data;
+    if ((!map || map.size === 0) && (!l3 || l3.size === 0)) return rows;
     return rows.map((r) => {
-      const c = map.get(r.uid);
-      return c ? { ...r, ...c } : r;
+      const c = map?.get(r.uid);
+      const t = l3?.get(r.uid);
+      if (!c && !t) return r;
+      // Two spreads and not one merge object: the two calls carry disjoint keys - `counted`
+      // and its five, `l3Counted` and its eleven - so neither can overwrite the other's answer
+      // however they land. That disjointness is why the service maps them under two names
+      // rather than letting the later `ticks` win.
+      return { ...r, ...(c || {}), ...(t || {}) };
     });
-  }, [rows, counts.data]);
+  }, [rows, counts.data, level3.data]);
 
   const tableColumns = useMemo(
     () =>
@@ -930,11 +1106,23 @@ export default function ProgressPage() {
     setExporting(true);
     setExportNote(null);
     try {
-      // `withCounts` follows the chosen columns, so the file holds the same five cells the
-      // screen does - and a file with none of them costs the same number of calls it always
-      // did. The export enriches every chunk it walks rather than the page on screen, which is
-      // why it is a parameter of the fetch here and a separate call up in the component.
-      const res = await buildProgressReport(filters, { withCounts: needsCounts });
+      /*
+        Both flags follow the chosen columns, so the file holds exactly the cells the screen
+        does - and a file with none of them costs the same number of calls it always did. The
+        export enriches every chunk it walks rather than the page on screen, which is why they
+        are parameters of the fetch here and separate calls up in the component.
+
+        **Nothing else is needed to export a new column.** `fileColumns` is built from
+        `visibleColumns`, which is built from the one registry, so a column added there is in
+        the CSV and the Excel file the moment it is switched on - with its own `value` and its
+        own `type`, which is what keeps a date sorting as a date and a count summing as a
+        number. That was the property the 0035 columns were checked against rather than
+        assumed: the six carry `value`/`type` like every other entry, and they export.
+      */
+      const res = await buildProgressReport(filters, {
+        withCounts: needsCounts,
+        withLevel3: needsLevel3,
+      });
       const csvName = reportFilename('progress', { from, to, stamp: todayIST() });
       const written =
         format === 'xlsx'

@@ -1032,6 +1032,19 @@ begin
       select jsonb_build_object(
         'revisions', coalesce(count(*), 0),
         'ticks',     coalesce(sum(coalesce(cardinality(a.selected_scene_ids), 0)), 0),
+        -- The day's **distinct** દ્રશ્યો, which is a different question from `ticks` and the one
+        -- the લેવલ ૪ gate asks: "એક જ દિવસમાં N દ્રશ્યો યાદ કરો". Counted from finished
+        -- પુનરાવર્તન only, so the page can offer the door the moment it is genuinely earned
+        -- without waiting for `level4_state()` to be re-read — and without over-promising, which
+        -- the additive total would do.
+        'scenes',    coalesce((
+          select count(distinct s.scene_id)
+          from public.activity_attempts e
+          cross join lateral unnest(e.selected_scene_ids) as s(scene_id)
+          where e.user_id = p_user and e.activity_date = today
+            and e.level_id = 3 and e.activity_key = 'revision'
+            and not (s.scene_id = any (public.admin_withheld_scene_ids()))
+        ), 0),
         'points',    coalesce((
           select sum(t.points) from public.point_transactions t
           where t.user_id = p_user and t.activity_date = today and t.level_id = 3
@@ -1299,11 +1312,12 @@ begin
   ids := coalesce(d.scene_ids, '{}'::text[]);
   n   := coalesce(cardinality(ids), 0);
 
-  if n = 0 then
-    return null;
-  end if;
-
-  -- The retry, answered before a row moves.
+  -- The retry, answered before anything else is looked at — and **before** the empty-draft
+  -- check below, which is the ordering the tests caught. The first press finishes the
+  -- પુનરાવર્તન and empties the draft, so by the time the retry arrives the draft is empty; asking
+  -- "is there anything to finish" first would answer the retry with NULL and the screen would
+  -- lose the attempt number it had already been given. The token is the more specific question
+  -- and is therefore asked first.
   if p_token is not null then
     select * into att
     from public.activity_attempts a
@@ -1312,6 +1326,10 @@ begin
     if found then
       return att.id;
     end if;
+  end if;
+
+  if n = 0 then
+    return null;
   end if;
 
   -- What the કસોટી asked for. The server's own number (`admin_content_total()`, 0029:150) and
@@ -1364,6 +1382,44 @@ begin
   end loop;
 
   perform public.daily_activity_progress_recount(p_user, p_date, 3, 'revision');
+
+  -- ── the day's score, so લેવલ ૪ opens on a finished પુનરાવર્તન ──────────────
+  --
+  -- `level4_gate_open()` reads `progress.level3_score` and nothing else (0014:134), and this
+  -- path writes no attempt through `activity_submit()` — so without these lines a યુવક could
+  -- finish પુનરાવર્તન all day and never open લેવલ ૪. That is not a scoring change and must not
+  -- be mistaken for one: what he may attempt is an access question, and the gate, its threshold
+  -- and its function are all exactly where 0008 and 0014 left them. Only the *writer* of the
+  -- column moves, and it moves in the direction that makes it trustworthy.
+  --
+  -- Two properties, both deliberate:
+  --
+  --   * **The day's distinct દ્રશ્યો, withheld ones removed** — the same number
+  --     `daily_activity_progress.completed_items` holds, so the gate and the day's derived row
+  --     cannot disagree. Not the additive તિક total: crossing a threshold of ૮૦ by ticking the
+  --     same ૪૦ twice would not be "એક જ દિવસમાં ૮૦ દ્રશ્યો યાદ કરો", which is what the screen
+  --     promises in the સંચાલક's own number.
+  --   * **`greatest`, so it can only rise.** 0026 exists because a second device could write
+  --     back a lower `level4_score`; `level3_score` was deliberately left un-guarded (0026:63-72)
+  --     so that un-ticking a mis-tick still works from the handset. This writer therefore does
+  --     its own flooring rather than relying on a guard that is absent on purpose.
+  --
+  -- The handset goes on writing this column too (src/lib/progress.js:219-229), unchanged. The
+  -- two agree because both are counting the same day, and where they briefly do not, the larger
+  -- stands — which is the rule §1 rule 4 has always given: a ધ્યાન already done is never taken
+  -- away.
+  insert into public.progress (user_id, date, level3_score, updated_at)
+  select p_user, p_date, count(distinct s.scene_id)::integer, now()
+  from public.activity_attempts a
+  cross join lateral unnest(a.selected_scene_ids) as s(scene_id)
+  where a.user_id = p_user
+    and a.activity_date = p_date
+    and a.level_id = 3
+    and a.activity_key = 'revision'
+    and not (s.scene_id = any (public.admin_withheld_scene_ids()))
+  on conflict (user_id, date) do update
+    set level3_score = greatest(public.progress.level3_score, excluded.level3_score),
+        updated_at   = now();
 
   -- The award. Called here rather than left to the trigger because a COMPLETED attempt does not
   -- fire it, and because this path has no `activity_submit()` above it to do the job. Keyed, so
@@ -2042,7 +2098,7 @@ as $$
     u.user_id,
     coalesce(a.revisions, 0),
     coalesce(a.ticks, 0),
-    coalesce(a.scenes_distinct, 0),
+    coalesce(sc.scenes_distinct, 0),
     coalesce(x.points, 0),
     coalesce(a.days, 0),
     a.last_at,
@@ -2055,12 +2111,20 @@ as $$
     union
     select user_id from tx
   ) u
+  -- **Two aggregates and not one**, and the reason is worth stating because the single-query
+  -- version is the obvious way to write this and is silently wrong. Unnesting the scene ids to
+  -- count the distinct ones multiplies every attempt row by the number of દ્રશ્યો it names — so
+  -- `count(*)` stops being "how many પુનરાવર્તન" and becomes "how many ticks", and
+  -- `sum(cardinality(...))` becomes the sum of the squares. On the fixture that read ૧૨૦
+  -- પુનરાવર્તન and ૫૦૦૦ ticks for a યુવક who had done three and ૧૨૦.
+  --
+  -- The row-level facts are counted over the attempts as they stand; the દ્રશ્ય-level fact is
+  -- counted in its own subquery, where the multiplication is what is wanted.
   left join (
     select
       att.user_id,
       count(*)                                                          as revisions,
       sum(coalesce(cardinality(att.selected_scene_ids), 0))             as ticks,
-      count(distinct s.scene_id)                                        as scenes_distinct,
       count(distinct att.activity_date)                                 as days,
       max(att.submitted_at)                                             as last_at,
       count(*) filter (where att.activity_date = (select d from day))   as today_revisions,
@@ -2068,10 +2132,15 @@ as $$
                filter (where att.activity_date = (select d from day)), 0) as today_ticks,
       coalesce(sum(att.engaged_ms), 0)                                  as engaged_ms
     from att
-    left join lateral unnest(att.selected_scene_ids) as s(scene_id)
-      on not (s.scene_id = any (public.admin_withheld_scene_ids()))
     group by att.user_id
   ) a on a.user_id = u.user_id
+  left join (
+    select att.user_id, count(distinct s.scene_id) as scenes_distinct
+    from att
+    cross join lateral unnest(att.selected_scene_ids) as s(scene_id)
+    where not (s.scene_id = any (public.admin_withheld_scene_ids()))
+    group by att.user_id
+  ) sc on sc.user_id = u.user_id
   left join (
     select
       tx.user_id,
@@ -2189,6 +2258,207 @@ comment on function public.admin_user_level3_detail(uuid, integer) is
   'the attention behind it, plus a day-by-day roll-up. Guarded by progress.read with a perform, '
   'never by a CTE — 0032''s rule.';
 
+-- One page of યુવકો, filtered and sorted **by their લેવલ ૩ figures** — §29's report.
+--
+-- ────────────────────────────────────────────────────────────────────────────
+-- Why this is a report of its own and not four more parameters on the old one
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- The questions §29 asks — "who has ૫૦+ લેવલ ૩ ગુણ", "who did લેવલ ૩ today", "who did **not**"
+-- — cannot be answered by `admin_level3_report()` above, which enriches a page of ids the main
+-- report has already chosen: a યુવક filtered out by `admin_progress_report()`'s pagination is
+-- one this cannot mention, so "show me everyone above ૫૦" would silently mean "show me everyone
+-- above ૫૦ on this page". The audit notes the same limit for `admin_activity_counts()`.
+--
+-- The other route is adding four parameters to `admin_progress_report()`, which already takes
+-- seventeen and returns thirty columns and is read by four screens and both exports. Widening it
+-- means re-verifying every one of them for a question none of them asks. 0032 made exactly this
+-- choice seven times — a new reader beside the old one — and this is the eighth.
+--
+-- **"Who did NOT do લેવલ ૩ today" is the reason `p_active` is three-valued.** It cannot be
+-- expressed as a minimum of anything: a યુવક with no attempt today has no row to fail a test,
+-- so a filter built from `>= 0` returns him and a filter built from `> 0` cannot name him. It
+-- has to be a LEFT JOIN from the roll of યુવકો, which is what this is, and the `false` case is
+-- the whole reason the join is written that way round.
+create or replace function public.admin_level3_users(
+  p_search      text    default null,
+  p_city        text    default null,
+  p_zone        text    default null,
+  p_status      text    default null,
+  p_from        date    default null,
+  p_to          date    default null,
+  p_day         date    default null,
+  -- Three-valued: true = did લેવલ ૩ on p_day, false = did not, null = do not ask.
+  p_active      boolean default null,
+  p_min_points  integer default null,
+  p_min_ticks   integer default null,
+  p_min_revs    integer default null,
+  p_sort        text    default 'points',
+  p_dir         text    default 'desc',
+  p_page        integer default 0,
+  p_page_size   integer default 20
+)
+returns table (
+  total_rows      bigint,
+  user_id         uuid,
+  name            text,
+  smk             text,
+  city_id         text,
+  zone_id         text,
+  account_status  text,
+  revisions       bigint,
+  ticks           bigint,
+  scenes_distinct bigint,
+  points          bigint,
+  days            bigint,
+  last_at         timestamptz,
+  today_revisions bigint,
+  today_ticks     bigint,
+  today_points    bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  day_   date    := coalesce(p_day, timezone('Asia/Kolkata', now())::date);
+  size_  integer := least(greatest(coalesce(p_page_size, 20), 1), 200);
+  page_  integer := greatest(coalesce(p_page, 0), 0);
+  sort_  text;
+  dir_   text;
+  needle text;
+begin
+  -- 0032's rule: guarded by a `perform`, never by a CTE. A permission test folded into a query
+  -- can be optimised away or short-circuited; a statement of its own cannot.
+  if not public.has_permission('progress.read') then
+    raise exception 'level3_report_forbidden' using errcode = '42501';
+  end if;
+
+  -- Whitelisted, because `p_sort` reaches an ORDER BY. Anything unrecognised falls to the
+  -- default rather than raising: a panel sending a column this function has not heard of should
+  -- show a sensible page, not an error a સંચાલક cannot act on.
+  sort_ := case lower(coalesce(p_sort, ''))
+             when 'ticks'        then 'ticks'
+             when 'revisions'    then 'revisions'
+             when 'scenes'       then 'scenes_distinct'
+             when 'days'         then 'days'
+             when 'last'         then 'last_at'
+             when 'today_points' then 'today_points'
+             when 'today_ticks'  then 'today_ticks'
+             when 'name'         then 'name'
+             when 'smk'          then 'smk'
+             else 'points'
+           end;
+  dir_   := case when lower(coalesce(p_dir, '')) = 'asc' then 'asc' else 'desc' end;
+  needle := nullif(btrim(coalesce(p_search, '')), '');
+
+  return query execute format($q$
+    with att as (
+      select a.*
+      from public.activity_attempts a
+      where a.level_id = 3
+        and a.activity_key = 'revision'
+        and ($4::date is null or a.activity_date >= $4)
+        and ($5::date is null or a.activity_date <= $5)
+    ),
+    agg as (
+      select
+        att.user_id,
+        count(*)                                              as revisions,
+        sum(coalesce(cardinality(att.selected_scene_ids), 0)) as ticks,
+        count(distinct att.activity_date)                     as days,
+        max(att.submitted_at)                                 as last_at,
+        count(*) filter (where att.activity_date = $6)        as today_revisions,
+        coalesce(sum(coalesce(cardinality(att.selected_scene_ids), 0))
+                 filter (where att.activity_date = $6), 0)    as today_ticks
+      from att group by att.user_id
+    ),
+    sc as (
+      select att.user_id, count(distinct s.scene_id) as scenes_distinct
+      from att
+      cross join lateral unnest(att.selected_scene_ids) as s(scene_id)
+      where not (s.scene_id = any (public.admin_withheld_scene_ids()))
+      group by att.user_id
+    ),
+    tx as (
+      select t.user_id,
+             sum(t.points)                                          as points,
+             coalesce(sum(t.points) filter (where t.activity_date = $6), 0) as today_points
+      from public.point_transactions t
+      where t.level_id = 3
+        and ($4::date is null or t.activity_date >= $4)
+        and ($5::date is null or t.activity_date <= $5)
+      group by t.user_id
+    ),
+    rows_ as (
+      -- **LEFT JOIN from profiles**, which is what makes "did not do લેવલ ૩ today" answerable.
+      select
+        p.id                              as user_id,
+        p.name, p.smk,
+        p.zone_id                         as city_id,
+        p.sub_zone_id                     as zone_id,
+        p.status                          as account_status,
+        coalesce(agg.revisions, 0)        as revisions,
+        coalesce(agg.ticks, 0)            as ticks,
+        coalesce(sc.scenes_distinct, 0)   as scenes_distinct,
+        coalesce(tx.points, 0)            as points,
+        coalesce(agg.days, 0)             as days,
+        agg.last_at                       as last_at,
+        coalesce(agg.today_revisions, 0)  as today_revisions,
+        coalesce(agg.today_ticks, 0)      as today_ticks,
+        coalesce(tx.today_points, 0)      as today_points
+      from public.profiles p
+      left join agg on agg.user_id = p.id
+      left join sc  on sc.user_id  = p.id
+      left join tx  on tx.user_id  = p.id
+      where ($1::text is null
+             or p.name ilike '%%' || $1 || '%%'
+             or p.smk  ilike '%%' || $1 || '%%'
+             or coalesce(p.mobile, '') ilike '%%' || $1 || '%%')
+        and ($2::text is null or p.zone_id = $2)
+        and ($3::text is null or p.sub_zone_id = $3)
+        and ($7::text is null or p.status = $7)
+    ),
+    kept as (
+      select * from rows_ r
+      where ($8::boolean is null
+             or ($8 and r.today_revisions > 0)
+             or (not $8 and r.today_revisions = 0))
+        and ($9::integer  is null or r.points    >= $9)
+        and ($10::integer is null or r.ticks     >= $10)
+        and ($11::integer is null or r.revisions >= $11)
+    )
+    -- Parenthesised, so the cast applies to the window function's result and not to its empty
+    -- OVER clause. `count(*)` is already bigint, so this is belt and braces against the day the
+    -- expression is edited into something that is not.
+    select (count(*) over ())::bigint, k.*
+    from kept k
+    order by %I %s nulls last, k.name asc
+    limit $12 offset $13
+  $q$, sort_, dir_)
+  using needle, p_city, p_zone, p_from, p_to, day_, p_status,
+        p_active, p_min_points, p_min_ticks, p_min_revs, size_, page_ * size_;
+end;
+$$;
+
+revoke all on function public.admin_level3_users(
+  text, text, text, text, date, date, date, boolean, integer, integer, integer,
+  text, text, integer, integer) from public;
+
+grant execute on function public.admin_level3_users(
+  text, text, text, text, date, date, date, boolean, integer, integer, integer,
+  text, text, integer, integer) to authenticated;
+
+comment on function public.admin_level3_users(
+  text, text, text, text, date, date, date, boolean, integer, integer, integer,
+  text, text, integer, integer) is
+  'One filtered, sorted, paginated page of યુવકો by their લેવલ ૩ figures (0035, §29). Answers '
+  '"who has N+ ગુણ", "who did લેવલ ૩ today" and — because it LEFT JOINs from profiles rather '
+  'than from attempts — "who did not". A reader of its own beside admin_progress_report() '
+  'rather than four more parameters on it, which is the choice 0032 made seven times. Guarded '
+  'by progress.read with a perform, and p_sort is whitelisted before it reaches an ORDER BY.';
+
 -- ================================================================ RLS and privileges
 
 alter table public.scene_catalog   enable row level security;
@@ -2218,6 +2488,13 @@ create policy "own level3 draft readable" on public.level3_drafts
 -- added policy, a disabled RLS — still does not open the path.
 revoke insert, update, delete on public.scene_catalog from anon, authenticated;
 revoke insert, update, delete on public.level3_drafts from anon, authenticated;
+
+-- And `anon` may not even look at a draft. The policy above would already return him nothing —
+-- `auth.uid()` is NULL for him and matches no row — but it reaches `has_permission()` to find
+-- that out, and `anon` has no privilege on that function, so the refusal arrives as
+-- `permission denied for function has_permission` from deep inside a policy. Revoking the table
+-- makes the answer the plain one: he may not read this table, said at the table.
+revoke select on public.level3_drafts from anon;
 
 -- ================================================================ notes for the next reader
 --

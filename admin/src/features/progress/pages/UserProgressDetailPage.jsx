@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { loadLiveScenes, sceneIndex } from '../../../lib/liveScenes';
-import { getUserProgressDetail, verifyUserProgress } from '../services/detailService';
+import { getUserLevel3Detail, getUserProgressDetail, verifyUserProgress } from '../services/detailService';
 import { listUserAttempts, listUserPoints } from '../../users/services/activityService';
 import DataTable, { Pager } from '../../../components/DataTable';
 import { AsyncBlock, CardSkeleton, Empty, ErrorState, FormSkeleton, TableSkeleton } from '../../../components/StateBlocks';
@@ -68,14 +68,35 @@ import { ACTIVITY_KEY, ATTEMPT_STATUS } from '../../../../../shared/domain/point
  *   Overall progress   the four levels at a glance
  *   Darshan memory     the headline - his share of the live collection, and which દ્રશ્યો
  *   Levels 1, 2, 3     status and counts - all that those levels record
+ *   Level 3 revisions  every પુનરાવર્તન, what it ticked and what it was paid - §20
  *   Level 4            per-કસોટી history, taken from level4_activity_states()
  *   Daily history      every attempt          - attempt_history
  *   Points history     every award            - point_ledger
  *   Verify progress    the reconciliation, on demand
  *
- * The two histories are deliberately not merged, for the reason shared/domain/history.js
- * opens with: three attempts on one day are three rows above and one row below, because an
- * activity is paid at most once a day however many times it is done.
+ * ────────────────────────────────────────────────────────────────────────────
+ * What 0035 changed about what this page may say
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Level 3 used to be paid once a business day however many times it was submitted, and half a
+ * dozen sentences on this page said so - some of them to explain why a cell was permanently a
+ * dash. That is no longer true: under a per-tick or per-revision rule **each પુનરાવર્તન is paid
+ * on its own**, keyed idempotently on the attempt id, so 50 ticks then 40 then 30 is 120 ticks
+ * and 120 ticks' worth of points rather than one flat award.
+ *
+ * The consequence for this page is not only that the old prose is wrong: it is that a
+ * per-attempt points figure now **exists** for Level 3, so a cell that used to have nothing to
+ * show can show it. The "Level 3 revisions" section is where the total is taken apart, and the
+ * Points column in Daily history reads its per-attempt figure from that same document rather
+ * than asking the ledger once per row.
+ *
+ * Which levels still pay once a day is a setting rather than a fact - `earn.levelN` in
+ * Point Management - so nothing on this page states it as one any more. It says what the record
+ * shows and lets the record answer.
+ *
+ * The two histories are still deliberately not merged. The reason has narrowed rather than
+ * disappeared: an award is a row of the ledger and an attempt is a row of the attempt table,
+ * and how many of the first a day's worth of the second produces is now a configured rule.
  */
 
 /** Same three states, and the same words, the Users list and profile use. Read-only (§19). */
@@ -146,6 +167,30 @@ const L4_PASSED = {
 };
 
 /**
+ * What a Level 3 submission came to, in the panel's tones.
+ *
+ * The same two words `activity_attempts.status` can hold, and the same rule as everywhere else
+ * on this page: neither is a failure. COMPLETED means every darshan in the collection was
+ * ticked in that one sitting; REVISION_REQUIRED means some were not, which since 0035 is an
+ * ordinary and **paid** thing to do rather than an incomplete act - a partial પુનરાવર્તન is what
+ * repeated revision is made of. So it is grey, and the section says as much in words.
+ */
+const L3_RESULT = {
+  [ATTEMPT_STATUS.COMPLETED]: { label: 'Whole collection', tone: 'ok' },
+  [ATTEMPT_STATUS.REVISION_REQUIRED]: { label: 'Part of it', tone: 'off' },
+};
+
+/**
+ * How many revisions the itemised list asks for.
+ *
+ * The server clamps to 1..1000 and defaults to 200; 200 is repeated here so the page can say
+ * what it asked for when the answer is capped, rather than showing a truncated list that reads
+ * as a complete one. The totals beside it are computed over his whole history and not over this
+ * slice, which is what makes a capped list safe to show at all.
+ */
+const L3_LIMIT = 200;
+
+/**
  * The three ways to read the per-દ્રશ્ય list. "Pending" and not "missing": the same set of
  * દ્રશ્યો is called `missingIds` by the reconciliation panel, where it is a statement about
  * an arithmetic identity, and "Pending" here, where it is a statement about a person.
@@ -207,6 +252,27 @@ const tickCount = (r) => {
 };
 
 /**
+ * Measured attention, said the way somebody would say it out loud.
+ *
+ * The seconds are the **database's** - accumulated from the gap between one autosave of the
+ * draft and the next, against the server's own clock, with any silence longer than the
+ * configured gap discarded. No browser measures or sends a duration anywhere in this project,
+ * which is the property that makes this figure worth printing beside a points figure at all.
+ *
+ * Zero is not "he was not paying attention": every revision submitted before 0035 accumulated
+ * none, because there was nothing accumulating it. So a 0 reads as "not measured" rather than
+ * as a judgement, and the section's note says which days that covers.
+ */
+function spellMs(ms) {
+  const s = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+  if (s === 0) return null;
+  if (s < 60) return `${gu(s)}s`;
+  const m = Math.floor(s / 60);
+  const rest = s % 60;
+  return rest ? `${gu(m)}m ${gu(rest)}s` : `${gu(m)}m`;
+}
+
+/**
  * A badge for a value this bundle does not know. A status arriving from a later migration is
  * shown raw rather than as a blank or as the wrong word.
  */
@@ -249,6 +315,37 @@ export default function UserProgressDetailPage() {
     [userId, liveIds],
     { skip: !liveIds }
   );
+
+  /*
+    Every પુનરાવર્તન, itemised - §20's requirement that a total be checkable rather than trusted.
+
+    Fetched on page load rather than on demand, unlike the reconciliation below, and the two are
+    different in the way that decides it: the reconciliation is a second full scan of both
+    attempt tables to answer a question most visits never ask, while this is one bounded read of
+    one yuvak's own Level 3 rows and is the section an admin came here for the moment Level 3
+    started accumulating. It does not depend on the live collection, so it does not wait for the
+    manifest.
+
+    It is allowed to fail on its own: the section shows the error and offers a retry, and the
+    rest of the page is untouched. A read that failed is never rendered as a fact about him.
+  */
+  const level3 = useAsync(() => getUserLevel3Detail(userId, L3_LIMIT), [userId]);
+  const l3 = level3.data;
+
+  /**
+   * (business day, revision number) → what that one submission was paid.
+   *
+   * The key is `activity_attempts.attempt_number` beside `activity_date`, which is exactly what
+   * an attempt row in the Daily history below carries - so the Points column there can find its
+   * own figure without a request per row, which is the cost that kept that cell empty before
+   * there was anything to put in it. Built once per document rather than per render of the
+   * table, because the table repaginates and this does not.
+   */
+  const l3PointsByAttempt = useMemo(() => {
+    const m = new Map();
+    for (const r of l3?.revisions || []) m.set(`${r.date}#${r.n}`, r);
+    return m;
+  }, [l3]);
 
   // Which દ્રશ્યો, rather than how many. Closed to begin with: a hundred rows would be the
   // tallest thing on the page and the least often wanted.
@@ -748,6 +845,226 @@ export default function UserProgressDetailPage() {
         </>
       )}
 
+      {/*
+        ────────────────────────────────────────────────────────────────────────
+        Level 3 revision history - §20
+        ────────────────────────────────────────────────────────────────────────
+
+        The section that exists so a Level 3 total can be **checked** rather than believed.
+
+        Since 0035 a repeated પુનરાવર્તન accumulates - 50 ticks, then 40, then 30 is 120 - and a
+        figure arrived at by addition is a figure somebody will eventually dispute. §20 asks
+        that the panel be able to show exactly how it was produced, so what is shown here is the
+        addition itself: every submission with what it ticked and what it was paid, and the same
+        rows gathered by day underneath.
+
+        Three properties of the numbers here, each of which is easy to get wrong by reading them
+        as something they are not:
+
+          * **Ticks are additive.** The same darshan revised twice counts twice. That is the
+            point of the level and it is why this figure can pass the size of the collection
+            many times over. "Darshan remembered" at the top of the page is the other question -
+            the distinct set - and the two are meant to differ.
+          * **Points are the ledger's own rows for that attempt**, not a share of the day
+            divided out. If they are 0 on a real revision, points were off, Level 3 was
+            switched off, the day's cap was already spent, or the pace rule capped the ticks -
+            each of which is a rule an admin set, and none of which is a mark against him.
+          * **The attention is the server's measurement**, never the handset's.
+      */}
+      <h2 className="section-title">Level 3 revision history</h2>
+      <p className="card-note" style={note}>
+        Every revision he has submitted, newest first, with what each one ticked and what each
+        one was paid. A repeated revision adds up rather than replacing the last: this is where
+        the Level 3 total is taken apart.
+      </p>
+
+      <AsyncBlock
+        state={{
+          ...level3,
+          isEmpty: !level3.loading && !level3.error && (l3?.revisions.length ?? 0) === 0,
+        }}
+        emptyIcon="◷"
+        emptyTitle="No revision submitted yet"
+        empty="Nothing appears here until this yuvak submits his first Level 3 revision. There is nothing to do from the panel - the record fills itself as he goes."
+        onRetry={level3.retry}
+        skeleton={<CardSkeleton count={4} />}
+      >
+        <>
+          {l3 && (
+            <>
+              <div className="grid-stats">
+                <StatCard
+                  label="Revisions"
+                  value={gu(l3.totals.revisions)}
+                  sub={l3.totals.days ? `On ${gu(l3.totals.days)} day${l3.totals.days === 1 ? '' : 's'}` : null}
+                />
+                {/*
+                  The additive sum, and it is labelled so it cannot be read as the other one.
+                  A yuvak who has revised the whole collection three times reads three times the
+                  collection here, and that is the correct answer to this question.
+                */}
+                <StatCard
+                  label="Ticks in all"
+                  value={gu(l3.totals.ticks)}
+                  sub="Every revision added together"
+                />
+                <StatCard
+                  label="Level 3 points"
+                  value={gu(l3.totals.points)}
+                  sub="From the ledger, as paid at the time"
+                />
+                <StatCard
+                  label="Last revision"
+                  value={l3.totals.lastAt ? dateGu(l3.totals.lastAt) : '-'}
+                  sub={l3.totals.lastAt ? dateTimeGu(l3.totals.lastAt) : 'Nothing recorded yet'}
+                />
+              </div>
+
+              <DataTable
+                caption="Revisions submitted, newest first"
+                columns={[
+                  { key: 'date', label: 'Date', render: (r) => dateGu(r.date) },
+                  {
+                    key: 'n',
+                    label: 'Revision on that day',
+                    align: 'right',
+                    // Which submission of that business day this was - the first, the second,
+                    // the third. Not a lifetime count: the number restarts each day, which is
+                    // what makes "50 + 40 + 30" a sentence about one day.
+                    render: (r) => (
+                      <>
+                        <span className="mono">{gu(r.n)}</span>
+                        {r.at && <span className="hint" style={cellNote}>{dateTimeGu(r.at)}</span>}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'ticks',
+                    label: 'Ticks',
+                    align: 'right',
+                    // What this one submission ticked, with the collection it was measured
+                    // against beside it as it was recorded at the time - never rescaled to
+                    // today's total, because a revision made before a darshan was published
+                    // counted against a different collection (§62).
+                    render: (r) => (
+                      <>
+                        <span className="mono">{gu(r.ticks)}</span>
+                        {r.total > 0 && (
+                          <span className="hint" style={cellNote}>of {gu(r.total)} then</span>
+                        )}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'points',
+                    label: 'Points',
+                    align: 'right',
+                    /*
+                      What this revision earned, from the ledger rows filed against this very
+                      attempt. A real 0 is printed as 0 and is not a shortfall: points may be
+                      off, Level 3 may be switched off, the day's cap may already be spent, or
+                      the pace rule may have capped the ticks - and every one of those is a rule
+                      an admin set rather than something the yuvak did.
+                    */
+                    render: (r) => <span className="mono">{gu(r.points)}</span>,
+                  },
+                  {
+                    key: 'engagedMs',
+                    label: 'Attention',
+                    align: 'right',
+                    render: (r) => {
+                      const spelt = spellMs(r.engagedMs);
+                      return spelt ? (
+                        <span className="mono" title="Measured by the database from the draft's own autosaves">
+                          {spelt}
+                        </span>
+                      ) : (
+                        noRecord('No attention was measured for this revision - revisions submitted before the pace rule existed accumulated none.')
+                      );
+                    },
+                  },
+                  {
+                    key: 'status',
+                    label: 'Result',
+                    // Two neutral words. "Part of it" is not a failure: a partial revision is
+                    // what repeated revision is made of, and it is paid.
+                    render: (r) => badge(L3_RESULT, r.status),
+                  },
+                ]}
+                rows={l3.revisions}
+                rowKey={(r) => `${r.date}#${r.n}#${r.at || ''}`}
+              />
+
+              {/* The cap, said out loud rather than left to be inferred from a list that stops.
+                  The totals above are over his whole history, which is what makes a partial
+                  list safe to show - so the sentence has to name both halves. */}
+              {l3.revisions.length >= L3_LIMIT && l3.totals.revisions > l3.revisions.length && (
+                <div className="notice" role="status">
+                  Showing the most recent {gu(l3.revisions.length)} of {gu(l3.totals.revisions)}{' '}
+                  revisions. The totals above cover all of them.
+                </div>
+              )}
+
+              {/* The day roll-up - the requirement's own worked example: 14 August = 50 + 40 = 90. */}
+              {l3.days.length > 0 && (
+                <>
+                  <h2 className="section-title">Level 3 by day</h2>
+                  <DataTable
+                    caption="Revisions gathered by business day, newest first"
+                    columns={[
+                      { key: 'date', label: 'Date', render: (r) => dateGu(r.date) },
+                      {
+                        key: 'revisions',
+                        label: 'Revisions',
+                        align: 'right',
+                        render: (r) => <span className="mono">{gu(r.revisions)}</span>,
+                      },
+                      {
+                        key: 'ticks',
+                        label: 'Ticks that day',
+                        align: 'right',
+                        // The day's revisions added together, which is the whole content of the
+                        // change 0035 made: three submissions of 50, 40 and 30 read 120 here
+                        // and would have read one flat award before it.
+                        render: (r) => <span className="mono">{gu(r.ticks)}</span>,
+                      },
+                      {
+                        key: 'points',
+                        label: 'Points that day',
+                        align: 'right',
+                        /*
+                          Every Level 3 award filed under that business day - so it can exceed
+                          the sum of the revisions above it when a manual adjustment was made
+                          against the day. That is a fact about the ledger and not a discrepancy
+                          to be reconciled away here; the Point ledger carries the reason.
+                        */
+                        render: (r) => <span className="mono">{gu(r.points)}</span>,
+                      },
+                    ]}
+                    rows={l3.days}
+                    rowKey={(r) => r.date}
+                  />
+                </>
+              )}
+
+              <p className="card-note">
+                Ticks add up: the same darshan revised twice counts twice, so this figure can
+                pass the size of the collection many times over. That is the level working, not
+                an error - "Darshan remembered" at the top of this page is the other question,
+                the darshan he holds counted once each. Points are the ledger's own rows for each
+                revision, carrying the number that was actually paid at the time. A 0 there means
+                a rule paid nothing - points switched off, Level 3 switched off, the day's cap
+                already spent, or the pace rule capping the ticks to the attention measured - and
+                never that the revision did not count. "Attention" is measured by the database
+                from the revision's own autosaves and is never sent by the phone; a blank means
+                none was measured, which is every revision submitted before that measurement
+                existed.
+              </p>
+            </>
+          )}
+        </>
+      </AsyncBlock>
+
       <h2 className="section-title">Level 4</h2>
       {loading ? (
         <CardSkeleton count={6} />
@@ -900,7 +1217,9 @@ export default function UserProgressDetailPage() {
       <p className="card-note" style={note}>
         One row per submission, newest first. The same activity may appear more than once on a
         day - Level 3 may be submitted as often as he likes, and an unlocked Level 4 test may be
-        sat again - and that is ordinary.
+        sat again - and that is ordinary. A repeated Level 3 revision now carries an award of its
+        own rather than sharing the first one's, so the Points column beside it is filled in
+        wherever the record holds a figure for that attempt.
       </p>
 
       <AsyncBlock
@@ -996,17 +1315,40 @@ export default function UserProgressDetailPage() {
                 label: 'Points',
                 align: 'right',
                 /*
-                  Never filled, and deliberately.
+                  Filled for a Level 3 revision, and a reasoned dash everywhere else.
 
-                  The ledger is keyed by (day, level, activity) and pays an activity once a
-                  day however many times it is done, so no per-attempt points figure exists to
-                  put here - the second sitting of a day earned nothing and is not a shortfall.
-                  Reaching for one row of the ledger per attempt row would also be a request
-                  per row, which is a cost this table will not pay for a prettier cell. What he
-                  was paid is the paginated section below, on its own terms.
+                  This cell used to be permanently blank, and the reason given was that the
+                  ledger paid an activity once a day however many times it was done, so no
+                  per-attempt figure existed to put here. Since 0035 that is no longer true of
+                  Level 3: each પુનરાવર્તન is paid on its own, keyed idempotently on the attempt
+                  id, so there is a real figure for this row and withholding it would be the
+                  panel hiding the very number §20 asks it to show.
+
+                  It is read from the Level 3 document already fetched for the section above -
+                  matched on (business day, revision number), which is what both records key on -
+                  rather than by asking the ledger once per row. A request per row is the cost
+                  this table still will not pay for a prettier cell, and it is why the figure
+                  appears only where that document reaches: beyond its cap, and on every other
+                  level, the dash says which silence it is. What he was paid, in full and by
+                  every level, is the paginated section below.
                 */
-                render: () =>
-                  noRecord('Points are paid once a day per activity, not per attempt - see the points history below.'),
+                render: (r) => {
+                  if (r.levelId !== 3 || r.activityKey !== ACTIVITY_KEY.REVISION) {
+                    return noRecord(
+                      'The per-attempt figure is only recorded for Level 3 revisions - see the points history below for every award.'
+                    );
+                  }
+                  const paid = l3PointsByAttempt.get(`${r.activityDate}#${r.attemptNumber}`);
+                  if (!paid) {
+                    return noRecord(
+                      `Older than the most recent ${L3_LIMIT} revisions listed above, so no per-attempt figure is loaded for it. The points history below still holds the award.`
+                    );
+                  }
+                  // A real 0 is printed as 0. It means a rule paid nothing for this revision -
+                  // points off, the day's cap spent, or the pace rule capping the ticks - and
+                  // it is a different sentence from "no figure exists", which is the dash.
+                  return <span className="mono">{gu(paid.points)}</span>;
+                },
               },
             ]}
             rows={attemptRows}
@@ -1019,8 +1361,11 @@ export default function UserProgressDetailPage() {
             two columns are one and the same figure, the darshan he ticked: shown as a share of
             the day's collection on the left and as a plain count on the right. "Attempts" is
             which sitting this submission was. "L4 passed" applies only to a Level 4 test.
-            "Points" stays blank here because the ledger is keyed by day and activity rather
-            than by attempt - the points history below is the record of what he was paid.
+            "Points" is what that one submission earned, on a Level 3 revision, taken from the
+            revision history above: each revision is now paid on its own, so a second revision on
+            the same day has a figure of its own rather than sharing the first one's. On every
+            other level the record keeps no per-attempt figure, and the dash says so - the points
+            history below is the record of every award, at every level.
           </p>
           <Pager
             page={attemptPage}
@@ -1041,9 +1386,12 @@ export default function UserProgressDetailPage() {
       <h2 className="section-title">Points history</h2>
       <p className="card-note" style={note}>
         One row per award, carrying the number that was actually paid at the time - so changing
-        what a level is worth today never rewrites what he was paid last week. An activity pays
-        once a day, so a day with three attempts has one row here, and an attempt that earned
-        nothing did not use up the day's award.
+        what a level is worth today never rewrites what he was paid last week. How many rows a
+        day produces is a rule an admin sets rather than a fixed fact: an activity set to pay
+        once a day gathers three attempts into one row, while a Level 3 revision counted per tick
+        or per revision is paid each time it is submitted and has a row of its own each time.
+        Either way, an attempt that earned nothing did not use up anything another attempt was
+        entitled to.
       </p>
 
       <AsyncBlock

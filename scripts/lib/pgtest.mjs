@@ -28,13 +28,40 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const MIGRATIONS = path.join(ROOT, 'supabase', 'migrations');
 const PRELUDE = path.join(ROOT, 'supabase', 'test', 'prelude.sql');
 
-const NAME = 'varni-rls-test';
+// Overridable for the same reason the port is, and with a sharper failure mode. `startDatabase`
+// opens with `docker rm -f` on this name, so two suites started at once do not merely share a
+// container — the second one **destroys the first one's** mid-run, and the first dies with
+// `Connection terminated unexpectedly` several hundred assertions in, naming no cause. Setting
+// VARNI_PGTEST_NAME (and a distinct VARNI_PGTEST_PORT with it) gives a run its own container.
+// The default is unchanged, so nothing that works today moves.
+const NAME = process.env.VARNI_PGTEST_NAME || 'varni-rls-test';
 // Overridable because 55433 is not always bindable. Windows reserves blocks of the dynamic
 // range for Hyper-V (`netsh interface ipv4 show excludedportrange protocol=tcp`), and on a
 // machine where 55431-55530 is excluded the container starts and the bind fails with
 // EACCES — which reads as a permissions problem and is really a port that was spoken for.
 // Any free port does; the default is unchanged so nothing that works today moves.
 const PORT = Number(process.env.VARNI_PGTEST_PORT) || 55433;
+/*
+  Overridable for the third time, and this one is an escape hatch rather than a preference.
+
+  Docker's content store can corrupt itself — on this project it did, with `input/output error`
+  on a blob, then a 502 from the daemon. What makes it worth a knob is how it presents
+  afterwards: `docker pull` reports success, `docker image inspect` reports the right
+  architecture, `docker run` starts a container, and the container exits 255 with
+  `exec /usr/local/bin/docker-entrypoint.sh: exec format error`. Every signal says the image is
+  fine and it is not, and `docker rmi` + re-pull does not clear it because the daemon believes
+  it already holds the blob.
+
+  A different tag pulls different layers and sidesteps the damage, so a run that would otherwise
+  be blocked for the length of a Docker Desktop reinstall can carry on with
+  `VARNI_PGTEST_IMAGE=postgres:16-alpine`.
+
+  **The default stays the Debian image on purpose.** Alpine's musl gives different collation and
+  `lc_*` behaviour, so it is the right thing to reach for when the ordinary one is unusable and
+  the wrong thing to standardise on: an ORDER BY that agrees on one and not the other is a
+  difference this suite would then be blind to.
+*/
+const IMAGE = process.env.VARNI_PGTEST_IMAGE || 'postgres:16';
 const PASSWORD = 'varni-test-only';
 
 /** Is there a docker to run this on at all? Reported, never guessed at. */
@@ -66,13 +93,13 @@ export async function startDatabase({ quiet = false } = {}) {
   // serve a database with the previous run's rows in it.
   try { await run('docker', ['rm', '-f', NAME]); } catch { /* nothing to remove */ }
 
-  say(`  starting postgres:16 (container ${NAME}, port ${PORT})…`);
+  say(`  starting ${IMAGE} (container ${NAME}, port ${PORT})…`);
   await run('docker', [
     'run', '-d', '--name', NAME,
     '-e', `POSTGRES_PASSWORD=${PASSWORD}`,
     '-e', 'POSTGRES_DB=postgres',
     '-p', `127.0.0.1:${PORT}:5432`,
-    'postgres:16',
+    IMAGE,
     // fsync off: this database exists for the length of one test run and is then destroyed.
     '-c', 'fsync=off', '-c', 'full_page_writes=off',
   ]);
@@ -133,6 +160,21 @@ export async function startDatabase({ quiet = false } = {}) {
       throw new Error(`could not connect to the test database: ${lastError?.message || lastError}`);
     }
     const client = connected;
+
+    /*
+      A listener whose only job is to stop the real failure being hidden.
+
+      `stop()` removes the container, and a `pg.Client` whose server vanishes mid-session emits
+      `'error'`. An EventEmitter with no `'error'` listener **throws**, asynchronously, outside
+      whatever promise chain was running — so the process dies with `Connection terminated
+      unexpectedly` and a stack in node-postgres, while the error that actually caused the
+      teardown (a migration that failed to apply, an assertion that raised) is never printed.
+
+      Both the `catch` below and every suite's own `finally { await stop() }` end this way, which
+      makes the masking most likely at exactly the moment the message matters most. One no-op
+      listener turns the crash back into an ordinary rejection, and the real error surfaces.
+    */
+    client.on('error', () => { /* the teardown's, not a test's — see the throw that follows it */ });
 
     await client.query(fs.readFileSync(PRELUDE, 'utf8'));
     say('  prelude applied');

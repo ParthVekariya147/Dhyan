@@ -406,6 +406,73 @@
 */
 .level-submit .btn-inline { min-height: 44px; }
 
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  0035 — the autosave line, the pace note, and the history under the button
+  ────────────────────────────────────────────────────────────────────────────
+
+  The autosave line is the one piece of new furniture a યુવક sees on every visit, so it is
+  written to be ignorable: note-sized, muted, and centred under the ring. It changes three times
+  a sitting and must never pull the eye away from the list.
+
+  **Nothing here is red, and the failing state is the reason to say so** (§1 rule 4). The save
+  retries by itself and the ticks are on the phone, so a failure is a delay and not a loss —
+  colouring it as an alarm would tell a યુવક something untrue about his own સાધના. It takes the
+  same muted colour as the resting state and is distinguished only by its words.
+
+  `min-height` on the line so that moving between the three states cannot shift the list under
+  a thumb already travelling towards a checkbox — the same rule verify-mobile.mjs enforces on
+  the auth forms, applied here by hand because this is not one of those.
+*/
+.level-autosave {
+  min-height: 20px;
+  margin: 10px 0 0;
+  text-align: center;
+  color: var(--color-muted);
+  transition: opacity 160ms ease;
+}
+.level-autosave.is-saved { color: var(--color-gold-soft); }
+
+/* Centred with the day's line above it, and muted: it is an explanation, not a verdict. */
+.level-pace {
+  margin: 6px auto 0;
+  max-width: 560px;
+  text-align: center;
+}
+
+/*
+  The history block, separated from the button by a rule rather than by space alone.
+
+  Above the rule is the પુનરાવર્તન on screen; below it is everything already finished. They are
+  different questions (§10) and a યુવક who has just cleared a hundred ticks needs to see at a
+  glance that the second did not move when the first went to zero — so the boundary is drawn
+  rather than implied.
+*/
+.level3-history {
+  margin: 16px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-rule, rgba(255, 255, 255, .08));
+}
+.level3-history .level-note { margin: 4px 0 0; }
+.level3-total {
+  color: var(--color-gold-soft);
+  font-weight: 600;
+}
+/*
+  A plain list, no bullets, no ordering marks. The revision number is already in the text and a
+  marker beside it would print the same fact twice in two different notations.
+*/
+.level3-revisions {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.level3-revisions li {
+  margin: 3px 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
 @media (max-width: 480px) {
   .tick-main { gap: 11px; padding: 13px 12px; }
   .tick-n { min-width: 42px; font-size: 14px; }

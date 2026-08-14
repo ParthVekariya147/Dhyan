@@ -221,7 +221,11 @@ export default function LeaderboardPage() {
       { key: 'darshanSessions', label: 'Darshan sessions', align: 'right', ...count((c) => c.darshanSessions) },
       { key: 'revisionSessions', label: 'Revision sessions', align: 'right', ...count((c) => c.revisionSessions) },
       // The distinct union of દ્રશ્યો across the window's revision submissions, minus anything
-      // withheld - not the sum of their counts, and never above the live collection.
+      // withheld - not the sum of their counts, and never above the live collection. Since 0035
+      // it is therefore **not** the figure the board's Level 3 points follow: a repeated
+      // પુનરાવર્તન accumulates (50 then 40 then 30 is paid as 120) while this column still reads
+      // 50, because it answers how much of the collection he holds rather than how much work he
+      // did. Both are true, and the additive one lives on the Progress page.
       { key: 'ticks', label: 'Darshan brought to mind', align: 'right', ...count((c) => c.ticks) },
       { key: 'examAttempts', label: 'Tests sat', align: 'right', ...count((c) => c.examAttempts) },
       { key: 'examPassed', label: 'Tests complete', align: 'right', ...count((c) => c.examPassed) },

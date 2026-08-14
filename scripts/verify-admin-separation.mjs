@@ -155,8 +155,42 @@ console.log('\n[4] યુવક bundle budget');
  * The margin goes back to ~5%. Tighter still than last time, and deliberately so: at this
  * size the vendor half is fixed and every further KB is app code, so the next re-set should
  * have to argue for itself rather than ride on headroom left over from this one.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Re-set again on 2026-08-14, to 800 KB
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * The 5% margin did its job again, and faster than the last one: the check went red on a
+ * **7 KB** overage rather than on a silent doubling. That is the third time in a row this
+ * budget has caught growth at the size where it is still cheap to look at, which is the whole
+ * argument for keeping the margin tight rather than generous.
+ *
+ * Measured this day: **767.0 KB**, of which **426.0 KB is vendor** (React 222.8 KB + Supabase
+ * 203.2 KB — unchanged for the third re-set running, and still their own cacheable chunks) and
+ * **341.0 KB is app code**, up from 294 KB.
+ *
+ * Where the 47 KB went, and the honest division: this is two features and not one, because the
+ * last re-set was yesterday and two pieces of work landed between them.
+ *
+ *   * **લેવલ ૩ પુનરાવર્તન** (0035) — the draft that saves itself, the pace rule and the
+ *     revision history. `src/lib/level3.js` is 11 KB of code before minification and lands
+ *     entirely inside the `LevelPage` chunk, which measures 14.8 KB against roughly 10 KB
+ *     before. **It is not in the entry chunk and must never be**: લેવલ ૩ is behind
+ *     authentication and behind a route, and the entry measurement below (62 KB, unmoved)
+ *     is what says so rather than this sentence.
+ *   * The daily-record screen and the મારી પ્રગતિ work that came with 0034, whose chunks
+ *     (`DailyActivity` 12.9 KB, the history additions) are the rest of it.
+ *
+ * Nothing about the split regressed: the two vendor chunks are byte-identical to yesterday's,
+ * the entry chunk is 62 KB against its own 62 KB limit, and every new module is route-split.
+ *
+ * The margin goes back to ~4%, tighter again for the same reason as last time. At 767 KB of a
+ * 800 KB ceiling with 426 KB of it immovable, the next 33 KB is entirely app code and should
+ * have to justify itself in a paragraph here — which is what this budget is for, and is the
+ * only thing it is for. It is not a performance target; the vendor half dwarfs everything
+ * this project writes, and the value of the check is that it forces the question.
  */
-const BUDGET = 760 * 1024;
+const BUDGET = 800 * 1024;
 const total = yuvak.reduce((s, f) => s + f.size, 0);
 console.log(`      યુવક js+css: ${kb(total)}   ·   સંચાલક js+css: ${kb(admin.reduce((s, f) => s + f.size, 0))}`);
 check(`યુવક bundle within ${kb(BUDGET)}`, total <= BUDGET, kb(total));

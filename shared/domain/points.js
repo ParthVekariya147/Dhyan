@@ -1077,6 +1077,175 @@ export function validatePointRules(rules) {
 }
 
 /**
+ * ════════════════════════════════════════════════════════════════════════════
+ * 0035's key — `points.pace`, the rule that tells સાધના from scrolling
+ * ════════════════════════════════════════════════════════════════════════════
+ *
+ * "૫૦ ટિક માટે ૫૦ સેકંડ" — one તિક is worth one second of attention, at whatever rate the
+ * સંચાલક sets, and a પુનરાવર્તન is paid for no more ticks than the clock has earned:
+ *
+ *     paid ticks = least( valid ticks, (engaged seconds + grace) / secondsPerTick )
+ *
+ * **A cap and never a gate.** ૫૦ ticks in ૪૫ seconds is ૪૫, not nothing — a gate would punish a
+ * યુવક who was half a minute quick exactly as hard as one who flicked to the bottom of the list
+ * to reach the next page, and §1 rule 4 refuses that reading.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Its own key, and its own resolver, on purpose
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Not inside `tick`, which would have been the tidier-looking home. `settings_check_points()`
+ * refuses an unknown key inside `tick` (0031:986-988), so putting it there would have meant
+ * reissuing a three-hundred-line trigger that guards every level's pricing in order to widen one
+ * closed list. 0035 adds `point_pace()` and a `settings_check_pace` trigger instead, which is the
+ * same "a second function rather than a wider one" 0031 argues for at :358-361 — and this mirrors
+ * that pair, not `resolvePointRules()`.
+ *
+ * **The seconds are never the browser's.** Nothing in `src/` measures or sends a duration:
+ * `level3_draft_save()` accumulates the gap between one autosave and the next against the
+ * database's own `now()`. This module holds the rate a સંચાલક typed and the arithmetic a screen
+ * needs to explain it, and no clock at all.
+ */
+
+/** Seconds per તિક. 0 is "no pace rule", which is what every project runs today. */
+export const PACE_SECONDS_MIN = 0;
+export const PACE_SECONDS_MAX = 3600;
+
+/** Free seconds granted on top of the earned ones, for the யુવક who opened the page and read. */
+export const PACE_GRACE_MIN = 0;
+export const PACE_GRACE_MAX = 86_400;
+
+/**
+ * The longest silence between two autosaves that still counts as attention.
+ *
+ * The floor is 5 and not 0, unlike every other bound in this module, and the difference is real:
+ * 0 here would mean *no gap ever counts*, so no time could accumulate and every પુનરાવર્તન would
+ * be paid nothing — a value that reads like "no limit" everywhere else in this file and would
+ * silently mean "pay nobody". The ceiling is an hour, past which a phone left on a table is
+ * indistinguishable from a man sitting in front of it.
+ */
+export const PACE_MAX_GAP_MIN = 5;
+export const PACE_MAX_GAP_MAX = 3600;
+
+/** `pace`, for a settings row that has never heard of 0035. Mirrors `point_pace()`'s fallbacks. */
+export const DEFAULT_PACE = Object.freeze({
+  secondsPerTick: 0,
+  graceSeconds: 0,
+  // The one field with a working default, because it is an anti-abuse detail rather than a
+  // business decision: a project that never opens the panel should still be measuring honestly.
+  maxGapSeconds: 180,
+});
+
+/**
+ * settings['levels'].value.points.pace → the pace rule actually in force.
+ *
+ * `point_pace()`'s mirror (0035), branch for branch, and forgiving for `resolvePointRules()`'s
+ * reason: this runs on the award path, and a throw there reaches a યુવક as a failed પુનરાવર્તન
+ * for a mistake the સંચાલક made in a field he cannot see. Out of range **clamps** rather than
+ * discarding, matching the SQL, which drops the field and falls back — the two agree wherever a
+ * value can actually be stored, because `validatePointPace()` refuses everything outside the
+ * bounds before it ever reaches a row.
+ */
+export function resolvePointPace(points) {
+  const p = plainObject(points);
+  const pc = p ? plainObject(p.pace) : null;
+  if (!pc) return { ...DEFAULT_PACE };
+
+  const read = (v, min, max, fallback) => {
+    // `typeof`, never `Number()`: `Number(null)` and `Number('')` are both 0, so a coercing
+    // check turns "nothing here" into a rate of zero — which happens to be the safe direction
+    // for this field and is the wrong one for maxGapSeconds, where it would stop the clock.
+    if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
+    const n = Math.round(v);
+    return n < min || n > max ? fallback : n;
+  };
+
+  return {
+    secondsPerTick: read(pc.secondsPerTick, PACE_SECONDS_MIN, PACE_SECONDS_MAX, DEFAULT_PACE.secondsPerTick),
+    graceSeconds: read(pc.graceSeconds, PACE_GRACE_MIN, PACE_GRACE_MAX, DEFAULT_PACE.graceSeconds),
+    maxGapSeconds: read(pc.maxGapSeconds, PACE_MAX_GAP_MIN, PACE_MAX_GAP_MAX, DEFAULT_PACE.maxGapSeconds),
+  };
+}
+
+/**
+ * `settings_check_pace()`'s mirror — refuses what the resolver would silently clamp.
+ *
+ * The same division of labour every validate/resolve pair in this project keeps: the resolver
+ * forgives because a stored value must always produce a running award path; this refuses because
+ * a સંચાલક typing 1.5 into "seconds per tick" should be told it must be whole, not watch it
+ * quietly become 2.
+ *
+ * English, like the rest of this module's validators — a સંચાલક reads these, and the panel's
+ * `gu()` is the identity function (admin/src/lib/format.js:21).
+ */
+export function validatePointPace(points) {
+  const p = plainObject(points);
+  if (!p || p.pace === undefined) return { ok: true, pace: DEFAULT_PACE };
+
+  const pc = plainObject(p.pace);
+  if (!pc) {
+    return { ok: false, gu: 'Pace rule: expected an object like {"secondsPerTick": 1, "graceSeconds": 0}.' };
+  }
+
+  const BOUNDS = {
+    secondsPerTick: ['Seconds per tick', PACE_SECONDS_MIN, PACE_SECONDS_MAX, ' 0 means no pace rule.'],
+    graceSeconds: ['Grace seconds', PACE_GRACE_MIN, PACE_GRACE_MAX, ''],
+    maxGapSeconds: ['Longest counted gap', PACE_MAX_GAP_MIN, PACE_MAX_GAP_MAX, ''],
+  };
+
+  for (const [key, value] of Object.entries(pc)) {
+    const bound = BOUNDS[key];
+    if (!bound) {
+      return {
+        ok: false,
+        gu: `Pace rule: "${key}" is not one of ${Object.keys(BOUNDS).join(', ')}.`,
+      };
+    }
+    const [label, min, max, tail] = bound;
+    const problem = numberProblem(value, label, min, max, tail);
+    if (problem) return { ok: false, gu: problem };
+  }
+
+  return { ok: true, pace: resolvePointPace(p) };
+}
+
+/**
+ * How many of `ticks` the clock has earned, at this pace rule.
+ *
+ * `award_points()`'s તિક clamp, mirrored so a screen can say what the current પુનરાવર્તન is worth
+ * *before* it is submitted — and so it says the same number the server will. Integer division
+ * throughout, matching the SQL, so a part-second buys nothing and the arithmetic on screen is the
+ * arithmetic a યુવક can do in his head.
+ *
+ * Returns `ticks` unchanged when no rate is set, which is the honest reading of "there is no pace
+ * rule" and is what every project gets today.
+ */
+export function eligibleTicks(ticks, engagedMs, pace = DEFAULT_PACE) {
+  const n = Number.isFinite(ticks) && ticks > 0 ? Math.floor(ticks) : 0;
+  const rate = pace?.secondsPerTick;
+  if (!Number.isFinite(rate) || rate <= 0) return n;
+
+  const ms = Number.isFinite(engagedMs) && engagedMs > 0 ? Math.floor(engagedMs) : 0;
+  const grace = Number.isFinite(pace?.graceSeconds) ? pace.graceSeconds : 0;
+
+  return Math.max(0, Math.min(n, Math.floor((Math.floor(ms / 1000) + grace) / rate)));
+}
+
+/**
+ * How long a પુનરાવર્તન of `ticks` needs, in seconds. 0 when no rate is set.
+ *
+ * The number a screen prints as "આશરે N મિનિટ", and the reason `totalMinutes()` in
+ * shared/domain/viewing-speed.js returns 0 rather than a confident zero applies here too: with no
+ * rule configured there is no requirement, and the caller renders nothing rather than "૦ સેકંડ".
+ */
+export function requiredSeconds(ticks, pace = DEFAULT_PACE) {
+  const n = Number.isFinite(ticks) && ticks > 0 ? Math.floor(ticks) : 0;
+  const rate = pace?.secondsPerTick;
+  if (!Number.isFinite(rate) || rate <= 0 || n === 0) return 0;
+  return Math.max(0, n * rate - (Number.isFinite(pace?.graceSeconds) ? pace.graceSeconds : 0));
+}
+
+/**
  * The three refusals every numeric rule field shares, in 0031's order and words.
  *
  * One helper rather than seven copies, because the order is part of the contract: "enter a

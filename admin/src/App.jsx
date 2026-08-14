@@ -43,6 +43,16 @@ const DailyActivityPage = lazy(() => import('./features/points/pages/DailyActivi
   behind the figure.
 */
 const DailyRecordsPage = lazy(() => import('./features/points/pages/DailyRecordsPage'));
+/*
+  §29 — the લેવલ ૩ report, and it is a page rather than four more filters on Progress.
+
+  Progress adds its લેવલ ૩ columns from a second call that is handed the page of યુવકો the
+  report has *already* paginated, so a threshold asked there could only mean "on this page". This
+  one reads `admin_level3_users()` (0035), where every threshold, the sort and the count are
+  decided in Postgres — and which LEFT JOINs from profiles, so "who did not do લેવલ ૩ today" is
+  answerable at all.
+*/
+const Level3Page = lazy(() => import('./features/points/pages/Level3Page'));
 const LeaderboardPage = lazy(() => import('./features/points/pages/LeaderboardPage'));
 const SettingsPage = lazy(() => import('./features/settings/pages/SettingsPage'));
 const AuditLogPage = lazy(() => import('./features/audit/pages/AuditLogPage'));
@@ -132,27 +142,33 @@ export default function App() {
             {/*
               ગુણ — the rules, and what they have paid.
 
-              Four routes and two permissions, because the section really is two things. The
+              Six routes and two permissions, because the section really is two things. The
               rule page *configures* `settings['levels'].value.points`, so it names
-              `settings.read` like every other screen that edits a settings row; the three
-              reporting screens read the ledger through 0032's functions, every one of which
+              `settings.read` like every other screen that edits a settings row; the reporting
+              screens read the ledger through 0032's functions, every one of which
               opens with `admin_assert_progress_reader()`, so they name `progress.read`. The
               permission a route names is the one that decides whether the page can say
-              anything true — naming a single permission for all four would give one of the two
-              halves a door that opens onto a refusal.
+              anything true — naming a single permission for all of them would give one of the
+              two halves a door that opens onto a refusal.
 
               /points is the rule page rather than an overview that then links to a rule page.
               A સંચાલક who opens this section has come to change what an activity is worth far
               more often than to read a total, and the totals are on the page anyway.
 
-              The three static children are placed above nothing — there is no /points/:id for
+              The five static children are placed above nothing — there is no /points/:id for
               them to compete with — so their order here is only how they are read: the ledger
-              is the record, the day is a cut of it, the board is what it adds up to.
+              is the record, the day is a cut of it, the record is the યુવક's own account of it,
+              લેવલ ૩ is one rung of it asked about on its own, and the board is what it all adds
+              up to.
             */}
             <Route path="/points" element={<Gate need="settings.read"><PointsPage /></Gate>} />
             <Route path="/points/ledger" element={<Gate need="progress.read"><PointLedgerPage /></Gate>} />
             <Route path="/points/daily" element={<Gate need="progress.read"><DailyActivityPage /></Gate>} />
             <Route path="/points/records" element={<Gate need="progress.read"><DailyRecordsPage /></Gate>} />
+            {/* `progress.read` and not a name of its own: `admin_level3_users()` raises
+                `level3_report_forbidden` (42501) without exactly that permission, so the route
+                gate and the data gate agree without inventing a third spelling. */}
+            <Route path="/points/level3" element={<Gate need="progress.read"><Level3Page /></Gate>} />
             <Route path="/points/leaderboard" element={<Gate need="progress.read"><LeaderboardPage /></Gate>} />
             <Route path="/audit-logs" element={<Gate need="audit.read"><AuditLogPage /></Gate>} />
           </Route>

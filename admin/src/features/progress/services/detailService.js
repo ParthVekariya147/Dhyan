@@ -59,6 +59,13 @@ import { supabase } from '../../../lib/supabase';
  * house cursor contract, and already `security_invoker` - so the page imports those two
  * rather than growing a third copy of the same two queries here.
  *
+ * The one list that *is* here is `getUserLevel3Detail()`, and the difference is not a change of
+ * mind. It is not a paginated slice of a view that already exists: it is a per-revision
+ * itemisation joined to the ledger rows filed against each attempt, which no view carries and
+ * which PostgREST cannot express - and since 0035 made Level 3 accumulate across repeated
+ * revisions, it is the only place an admin can see how a total was arrived at (§20). Its own
+ * header sets out why it is a second RPC rather than another key on the document above.
+ *
  * No per-image figure for levels 1 and 2. Neither records scene ids: watching the વિડિયો
  * and doing દર્શન are not per-દ્રશ્ય acts, so every such attempt carries `total_items = 0`.
  * The document has no field to read and the page says so in words.
@@ -276,6 +283,107 @@ export async function getUserProgressDetail(uid, liveIds = null) {
     },
 
     lastActivityAt: lastActivityAt(d),
+  };
+}
+
+/**
+ * Every Level 3 revision this yuvak has finished, with what each one was paid - §20's screen.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why this exists at all, and why it is not part of the document above
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Since 0035 a repeated પુનરાવર્તન **accumulates**: 50 ticks, then 40, then 30 is 120 ticks and
+ * is paid for 120, each submission carrying its own ledger row keyed on the attempt id. Before
+ * it, Level 3 was one flat award a day however many times it was submitted, so there was
+ * nothing to itemise and `admin_user_progress_detail()` rightly carried only a best, a latest
+ * and a count of days.
+ *
+ * That is no longer enough. §20 asks that an admin be able to see **exactly how the total was
+ * produced** - not a total to be taken on trust - and a total whose parts cannot be shown is a
+ * total nobody can check against a yuvak's own memory of what he did. So this is a second RPC
+ * and not a widening of the first: that function is read on every visit to the page and returns
+ * a document that already spans four levels, and a per-revision list of up to two hundred rows
+ * has no business being fetched by a screen that may never scroll to it.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * The permission is raised, not hidden
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `admin_user_level3_detail()` opens with a `has_permission('progress.read')` check and raises
+ * `level3_detail_forbidden` (42501) rather than returning an empty document - the same choice
+ * the two functions above make, for the reason admin/src/lib/errors.js sets out: an empty list
+ * would be indistinguishable from "he has never revised anything", and the panel would
+ * eventually be believed about the wrong one.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What each field is, in the words the page has to use for it
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ *   revisions[]   one entry per submission, newest first. `n` is
+ *                 `activity_attempts.attempt_number` - which revision of that day it was, so
+ *                 (date, n) is the same key the attempt rows in the Daily history carry and is
+ *                 what lets a Points cell there find its own figure. `ticks` is what that one
+ *                 submission ticked; `points` is the ledger rows filed against that very
+ *                 attempt, never a share of the day divided out. `engagedMs` is the attention
+ *                 the **database** measured from the draft's own autosaves - no browser sends
+ *                 a duration anywhere in this project - and is null-shaped as a 0 because a
+ *                 revision submitted before 0035 genuinely accumulated none.
+ *   days[]        the roll-up: 14 August = 50 + 40 = 90. Its `points` is every Level 3 award
+ *                 filed under that business day, so it can exceed the sum of the revisions
+ *                 above it if a manual adjustment was made against the day.
+ *   totals        computed over the yuvak's whole history and **not** over the capped list, so
+ *                 a yuvak with more than `limit` revisions still reads a true total beside a
+ *                 partial list. The page says which is which.
+ *
+ * @param {string} uid    the yuvak
+ * @param {number} limit  how many revisions to itemise. The server clamps to 1..1000.
+ */
+export async function getUserLevel3Detail(uid, limit = 200) {
+  const { data, error } = await supabase.rpc('admin_user_level3_detail', {
+    p_user: uid,
+    p_limit: limit,
+  });
+  if (error) throw error;
+
+  const d = data || {};
+  const t = d.totals || {};
+
+  return {
+    userId: d.userId || uid,
+
+    totals: {
+      revisions: int(t.revisions),
+      // The additive sum across every revision, never the distinct set - see the two-numbers
+      // note in progressService.js. This one has no ceiling and is meant not to.
+      ticks: int(t.ticks),
+      days: int(t.days),
+      lastAt: at(t.lastAt),
+      points: int(t.points),
+    },
+
+    revisions: (Array.isArray(d.revisions) ? d.revisions : []).map((r) => ({
+      // A plain 'YYYY-MM-DD' - the IST business day the server filed the submission under.
+      date: r?.date || '',
+      n: int(r?.n),
+      at: at(r?.at),
+      ticks: int(r?.ticks),
+      // What the submission reported the collection to hold at the time. Kept as it was
+      // recorded rather than rescaled to today's total: a revision made before a darshan was
+      // published counted against a different collection, and rewriting that would be
+      // rewriting what he did (§62).
+      total: int(r?.total),
+      status: r?.status || '',
+      engagedMs: int(r?.engagedMs),
+      points: int(r?.points),
+    })),
+
+    days: (Array.isArray(d.days) ? d.days : []).map((r) => ({
+      date: r?.date || '',
+      revisions: int(r?.revisions),
+      ticks: int(r?.ticks),
+      points: int(r?.points),
+    })),
   };
 }
 

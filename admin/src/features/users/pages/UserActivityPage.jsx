@@ -283,8 +283,10 @@ export default function UserActivityPage() {
       <p className="card-note" style={note}>
         One row per submission. The same activity may appear more than once on a day - Level 3
         may be submitted as often as he likes, and an unlocked Level 4 test may be sat again -
-        and that is ordinary. What each attempt was worth is in Points history below, because
-        an activity is paid at most once a day however many times it is done.
+        and that is ordinary. What each attempt was worth is in Points history below. How many of
+        those repeats are paid is a rule an admin sets rather than a fixed fact: a Level 3
+        revision counted per tick or per revision earns every time it is submitted, so 50 ticks
+        then 40 is 90 and is paid as 90.
       </p>
 
       <AsyncBlock
@@ -391,9 +393,11 @@ export default function UserActivityPage() {
       <h2 className="section-title">Points history</h2>
       <p className="card-note" style={note}>
         One row per award. Each carries the number that was actually paid at the time, so
-        changing what a level is worth today never rewrites what he was paid last week. An
-        activity pays once per day, so a day with three attempts has one row here - and an
-        attempt that earned nothing did not use up the day's award.
+        changing what a level is worth today never rewrites what he was paid last week. How many
+        rows a day produces depends on how the level is set to earn: an activity paying once a
+        day gathers three attempts into one row, while a Level 3 revision counted per tick or per
+        revision is paid each time and has a row of its own each time. An attempt that earned
+        nothing never used up anything another attempt was entitled to.
       </p>
 
       <AsyncBlock

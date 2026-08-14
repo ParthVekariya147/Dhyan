@@ -4,9 +4,14 @@ import { useLevels } from '../../lib/useSettings';
 import { useScenes } from '../../lib/useScenes';
 import { useDailyProgress } from '../../lib/progress';
 import { useLevel4Gate } from '../../lib/level4';
-/* નોંધાવો — see the submit section at the foot of this file. Ticking is unchanged and still
-   saves itself; this records the day's answer as an attempt that keeps its own ક્રમાંક. */
-import { ACTIVITY_KEY, ATTEMPT_STATUS, newToken, submitActivity } from '../../lib/activity';
+/*
+  The પુનરાવર્તન in progress — the ticks, saved by themselves, and the revisions behind them
+  (0035). See the long note above the submit section for what changed and why, and
+  src/lib/level3.js for the division of labour between this and useDailyProgress().
+*/
+import { useLevel3Session } from '../../lib/level3';
+/* નોંધાવો — the fallback path, used only where 0035 has not been applied. */
+import { ACTIVITY_KEY, newToken, submitActivity } from '../../lib/activity';
 /* The two outcome words, from the module both this page and મારી પ્રગતિ render them with —
    one wording for one fact, and never `નિષ્ફળ` (§1 rule 4). */
 import { STATUS_LABEL } from '../../lib/history';
@@ -122,8 +127,27 @@ export default function LevelPage() {
   const { levels } = useLevels();
   const { scenes, total, loading } = useScenes();
   const P = useDailyProgress();
+  const L = useLevel3Session();
 
-  const { prune, toggle } = P;
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    Two sources, one of which is a fallback — and why both are still mounted
+    ────────────────────────────────────────────────────────────────────────────
+
+    `L.available` is false in exactly one situation: 0035 has not been applied to this project,
+    so PostgREST answers 404 for every function in it. The page then behaves precisely as it did
+    before — `useDailyProgress()` for the ticks, `submitActivity()` for નોંધાવો — because a
+    યુવક must never be shown an error about a migration, and a bundle that shipped before the
+    database caught up is an ordinary hour in a deploy, not a fault.
+
+    Where 0035 *is* applied, the session owns the boxes and `useDailyProgress()` is kept only for
+    what it has always been for: it is still mounted, still reads one row, and is still what the
+    fallback needs. It costs a single select and starts no traffic while its outbox is empty.
+  */
+  const live = L.available;
+  const ticked = live ? L.ticked : P.ticked3;
+  const prune = live ? L.prune : P.prune;
+
   const validIds = useMemo(() => new Set(scenes.map((s) => s.id)), [scenes]);
 
   /*
@@ -132,11 +156,17 @@ export default function LevelPage() {
     because the current list is useScenes()'s to know (§62) — prune() compares before it
     writes, so this effect is a no-op on every render but the one that matters.
   */
+  const settled = live ? L.ready : P.ready;
   useEffect(() => {
-    if (!loading && P.ready) prune(validIds);
-  }, [loading, P.ready, validIds, prune]);
+    if (!loading && settled) prune(validIds);
+  }, [loading, settled, validIds, prune]);
 
-  const onToggle = useCallback((id) => toggle(LEVEL, id), [toggle]);
+  const toggleSession = L.toggle;
+  const toggleDay = P.toggle;
+  const onToggle = useCallback(
+    (id) => (live ? toggleSession(id) : toggleDay(LEVEL, id)),
+    [live, toggleSession, toggleDay]
+  );
 
   // The name the સંચાલક chose (§36); the *behaviour* is never his to change (§37), which
   // is why only the name comes from settings.
@@ -164,11 +194,33 @@ export default function LevelPage() {
     decides on arrival and `level4_submit` re-checks it on every attempt (§37), so the worst
     case is a યુવક who taps through and is shown the same invitation on the other side.
   */
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    0035 — the door now opens on a **finished** પુનરાવર્તન, and that is the point
+    ────────────────────────────────────────────────────────────────────────────
+
+    `L.today.scenes` is the day's distinct દ્રશ્યો counted from finished પુનરાવર્તન only, so the
+    invitation appears when the work has actually been recorded and not merely ticked. That is
+    the deliberate change: "લેવલ ૪ પર જવા માટે હંમેશા ડેટા સેવ કરવો પડે", so the data is always
+    there and always real. A યુવક with unsaved ticks is offered નોંધાવો instead of the door —
+    see the submit section — rather than being told he has failed at anything (§1 rule 4).
+
+    Still not an over-promise, and now for a better reason than before. The old local half was
+    `P.score3`, a phone-side count that could be up to a minute ahead of the row the gate reads.
+    This one is the server's own answer to the same question the gate asks — distinct દ્રશ્યો for
+    the day — and `level3_commit()` writes `progress.level3_score` from that identical count in
+    the same transaction that records the પુનરાવર્તન. `level4_gate_open()` still decides on
+    arrival and `level4_submit` still re-checks on every attempt (§37).
+
+    The fallback keeps `P.score3` exactly as it was, because where 0035 is absent so is
+    everything above.
+  */
   const gate = useLevel4Gate();
+  const earnedToday = live ? L.today.scenes : P.score3;
   const level4Open =
     gate.ready &&
     gate.published &&
-    (!gate.requireGate || gate.gateOpen || P.score3 >= gate.gateThreshold);
+    (!gate.requireGate || gate.gateOpen || earnedToday >= gate.gateThreshold);
 
   /* What is said the day the threshold is crossed — from shared/domain/milestones.js, with
      every other finishing moment in the app. The level number is passed in rather than
@@ -211,7 +263,7 @@ export default function LevelPage() {
   const [outcome, setOutcome] = useState(null);
   const [saveError, setSaveError] = useState(null);
 
-  const onSubmit = useCallback(async () => {
+  const onLegacySubmit = useCallback(async () => {
     if (saving) return;
     if (sentSigRef.current !== signature || !tokenRef.current) tokenRef.current = newToken();
 
@@ -239,8 +291,21 @@ export default function LevelPage() {
     }
   }, [saving, signature, P.ticked3, total]);
 
+  /*
+    Where 0035 is live the button no longer needs a token, a signature or a retry rule, and it
+    is worth saying why all three moved rather than merely disappeared. They are still the
+    defence; they are simply the database's now. `level3_finalize()` answers a repeated token
+    with the attempt it already wrote, refuses to make a second પુનરાવર્તન out of an emptied
+    draft, and keys the award on the attempt id — three defences in that order, none of which
+    React can be trusted with (§7). The page mints one id per press and lets the server decide
+    what it means.
+  */
+  const onSubmit = live ? L.finalize : onLegacySubmit;
+  const busy = live ? L.busy : saving;
+  const problem = live ? L.error : saveError;
+
   // ---------------------------------------------------------------- states
-  if (loading || !P.ready) {
+  if (loading || !settled) {
     return (
       <div className="level-wrap">
         <LevelBar />
@@ -263,7 +328,23 @@ export default function LevelPage() {
     );
   }
 
-  const complete = P.score3 >= total;
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    Three numbers that must never be added to one another (§10)
+    ────────────────────────────────────────────────────────────────────────────
+
+      current   what is ticked right now. A session, and it goes back to ૦ every time a
+                પુનરાવર્તન is finished. This is what the ring shows.
+      today     the day's finished work — how many દ્રશ્યો, across how many પુનરાવર્તન.
+      total     every પુનરાવર્તન he has ever finished, and what the ledger paid for them.
+
+    The requirement is emphatic that the first must never be printed as the third: a યુવક who has
+    ticked ૩૦ this minute and earned ૧૨૦ over the week must see both numbers and neither in the
+    other's place. So they are three separate lines and no expression on this page adds one to
+    another.
+  */
+  const current = live ? L.ticks : P.score3;
+  const complete = current >= total;
 
   return (
     <div className="level-wrap">
@@ -273,11 +354,28 @@ export default function LevelPage() {
         <p className="level-eyebrow">લેવલ {gu(LEVEL)}</p>
         <h1>{name}</h1>
         <ProgressRing
-          score={P.score3}
+          score={current}
           total={total}
-          label="આજની પ્રગતિ"
+          label={live ? 'વર્તમાન રિવિઝન' : 'આજની પ્રગતિ'}
           sub="વર્ણન વાંચો, દ્રશ્ય મનમાં લાવો, પછી ટિક કરો."
         />
+
+        {/*
+          The autosave, said in one quiet line and never as an error (§28, §1 rule 4).
+
+          Three states and no fourth. 'saved' is the resting state after a tick has landed and is
+          the whole of the reassurance a યુવક needs that he may close the app: it is the answer
+          to the complaint this work began with. The failing state says what is true — the ticks
+          are on the phone, it is retrying by itself — because level3.js does retry by itself,
+          with a widening gap, and nothing is lost by the wait.
+        */}
+        {live && L.saveState !== 'idle' && (
+          <p className={`level-note level-autosave is-${L.saveState}`} aria-live="polite">
+            {L.saveState === 'saving' && 'સેવ થઈ રહ્યું છે…'}
+            {L.saveState === 'saved' && '✓ ડેટા સેવ થયો'}
+            {L.saveState === 'error' && 'ડેટા સેવ થઈ શક્યો નથી - ફરી પ્રયાસ થઈ રહ્યો છે.'}
+          </p>
+        )}
 
         {/*
           What this page is, in the યુવક's own words — and §9 said out loud.
@@ -312,7 +410,7 @@ export default function LevelPage() {
           retries by itself — on the next minute, on `online`, on the next visit. The
           button is there for the યુવક who would rather not wait.
         */}
-        {P.syncError && (
+        {!live && P.syncError && (
           <p className="level-note level-sync">
             તમારું ધ્યાન ફોનમાં સચવાયેલું છે. થોડી વારમાં આપોઆપ મોકલાઈ જશે.{' '}
             <button type="button" className="linklike" onClick={P.retry} disabled={P.saving}>
@@ -341,7 +439,7 @@ export default function LevelPage() {
             id={s.id}
             n={s.displayIndex}
             text={s.t}
-            ticked={P.ticked3.has(s.id)}
+            ticked={ticked.has(s.id)}
             onToggle={onToggle}
           />
         ))}
@@ -352,8 +450,25 @@ export default function LevelPage() {
           and a full stop here reads as a thing finished rather than a thing kept up. The
           wording is shared/domain/milestones.js, with the app's five other such moments. */}
       <p className="level-foot" aria-live="polite">
-        {complete ? dayComplete(gu(P.score3)) : `આજની ટિક: ${gu(P.score3)} / ${gu(total)}`}
+        {complete ? dayComplete(gu(current)) : `આ રિવિઝનમાં: ${gu(current)} / ${gu(total)}`}
       </p>
+
+      {/*
+        ────────────────────────────────────────────────────────────────────────
+        The pace rule, said before he is measured by it (§27)
+        ────────────────────────────────────────────────────────────────────────
+
+        Shown only when the સંચાલક has actually set one, and phrased as what this પુનરાવર્તન
+        will count for rather than as a warning about what it will not. `eligibleTicks` is the
+        server's own arithmetic read back — this page multiplies nothing (§19) — and the line is
+        absent entirely while every તિક counts, because a યુવક doing his સાધના at a normal pace
+        should never learn that a rule exists.
+      */}
+      {live && L.eligibleTicks !== null && L.eligibleTicks < current && (
+        <p className="level-note level-pace" aria-live="polite">
+          અત્યારે {gu(L.eligibleTicks)} ગણતરીમાં લેવાશે. થોડો વધુ સમય આપો, બાકીનાં પણ ગણાશે.
+        </p>
+      )}
 
       {/*
         ────────────────────────────────────────────────────────────────────────
@@ -384,38 +499,106 @@ export default function LevelPage() {
           type="button"
           className="btn-gold btn-inline"
           onClick={onSubmit}
-          disabled={saving}
+          disabled={busy || (live && current === 0)}
         >
-          {saving ? 'સાચવીએ છીએ…' : 'નોંધાવો'}
+          {busy ? 'સાચવીએ છીએ…' : 'ડેટા નોંધાવો'}
         </button>
 
+        {/*
+          ફરી શરૂ કરો — and it is not a delete button, which is the whole of §3 and §11.
+
+          Pressing it finishes what is on screen into its own પુનરાવર્તન, with its own number and
+          its own ગુણ, and only then clears the boxes. `level3_reset()` is `level3_finalize()`
+          with a different name for that reason: there is no code path anywhere that removes an
+          attempt or lowers a total. The line under it says so, because a યુવક about to clear a
+          hundred ticks deserves to be told what happens to them.
+
+          Absent when there is nothing ticked, because a reset that clears nothing is a button
+          that does nothing.
+        */}
+        {live && current > 0 && (
+          <button
+            type="button"
+            className="btn-quiet btn-inline"
+            onClick={L.reset}
+            disabled={busy}
+          >
+            ફરી શરૂ કરો
+          </button>
+        )}
+
         <p className="level-note" aria-live="polite">
-          {saveError
-            ? saveError
-            : outcome
-              ? `પ્રયાસ ${gu(outcome.attemptNumber)} - ${gu(outcome.completedItems)} / ${gu(outcome.totalItems)} - ${STATUS_LABEL[outcome.status]}`
-              : `આજની ટિક નોંધીને રાખો. ${gu(P.score3)} / ${gu(total)}`}
+          {problem
+            ? problem
+            : live
+              ? (L.outcome?.saved
+                ? `આ રિવિઝન નોંધાઈ ગયું. આજે ${gu(L.today.revisions)} રિવિઝન.`
+                : `ટિક પૂરી થાય એટલે નોંધાવો. અત્યારે ${gu(current)} / ${gu(total)}`)
+              : outcome
+                ? `પ્રયાસ ${gu(outcome.attemptNumber)} - ${gu(outcome.completedItems)} / ${gu(outcome.totalItems)} - ${STATUS_LABEL[outcome.status]}`
+                : `આજની ટિક નોંધીને રાખો. ${gu(P.score3)} / ${gu(total)}`}
         </p>
 
         {/*
-          Said only when it actually happened. `pointsAwarded` is 0 both when the સંચાલક has
-          not switched points on and when today's ગુણ for this level are already earned, and
-          in neither case is there anything to announce — a '+૦ ગુણ' would be the app drawing
-          attention to a number that means nothing to him. The award itself is the server's:
-          this line reports it and never computes it (§19).
+          Said only when it actually happened. The award is 0 both when the સંચાલક has not
+          switched points on and when the pace rule earned nothing yet, and in neither case is
+          there anything to announce — a '+૦ ગુણ' would be the app drawing attention to a number
+          that means nothing to him. The figure is the server's: this line reports it and never
+          computes it (§19).
         */}
-        {outcome?.pointsAwarded > 0 && (
-          <p className="level-note level-points">+{gu(outcome.pointsAwarded)} ગુણ</p>
-        )}
+        {live
+          ? L.outcome?.awarded > 0 && (
+            <p className="level-note level-points">+{gu(L.outcome.awarded)} ગુણ</p>
+          )
+          : outcome?.pointsAwarded > 0 && (
+            <p className="level-note level-points">+{gu(outcome.pointsAwarded)} ગુણ</p>
+          )}
 
-        {outcome && !saveError && (
+        {!live && outcome && !saveError && (
           <p className="level-note">તમારી આજની નોંધ સચવાઈ ગઈ.</p>
         )}
 
-        {saveError && (
+        {problem && (
           <p className="level-note">
             તમારી ટિક ફોનમાં એમ ને એમ જ છે. કંઈ ખોવાયું નથી.
           </p>
+        )}
+
+        {/*
+          ──────────────────────────────────────────────────────────────────────
+          The two figures §10 insists are different things
+          ──────────────────────────────────────────────────────────────────────
+
+          Above this line everything is about the પુનરાવર્તન on screen. Below it, everything is
+          history: what today's finished પુનરાવર્તન came to, and what લેવલ ૩ has earned him
+          altogether. Both come from the server and neither is added to the ring.
+
+          This is the answer to the complaint that resetting looked like losing: a યુવક who
+          clears a hundred ticks watches the ring go to ૦ and the total underneath it stay
+          exactly where it was.
+        */}
+        {live && L.total.revisions > 0 && (
+          <div className="level3-history">
+            <p className="level-note">
+              આજે: {gu(L.today.ticks)} ટિક - {gu(L.today.revisions)} રિવિઝન
+              {L.today.points > 0 && ` - ${gu(L.today.points)} ગુણ`}
+            </p>
+            <p className="level-note level3-total">
+              કુલ લેવલ {gu(LEVEL)} ગુણ: {gu(L.total.points)}
+            </p>
+
+            {/* §27's list, today only — the whole history is /history's to render. */}
+            {L.revisions.length > 0 && (
+              <ul className="level3-revisions">
+                {L.revisions.map((r) => (
+                  <li key={r.n}>
+                    રિવિઝન {gu(r.n)} - {gu(r.ticks)} ટિક
+                    {r.points > 0 && ` - +${gu(r.points)} ગુણ`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </section>
 
@@ -460,18 +643,39 @@ export default function LevelPage() {
               This asks progress.js to send the day now; navigation never waits on it, and
               Level4Page re-reads the gate on mount either way.
             */}
-            <Link to="/level/4" className="btn-gold btn-inline" onClick={() => P.retry()}>
+            <Link to="/level/4" className="btn-gold btn-inline" onClick={() => (live ? L.flush() : P.retry())}>
               લેવલ ૪ પર જાઓ<NavArrow />
             </Link>
           </section>
         ) : gate.requireGate ? (
           <section className="level-next">
-            <p className="level-next-line">
-              લેવલ ૩ માં {gu(gate.gateThreshold)} પૂરાં કરો, પછી લેવલ ૪ ખૂલશે
-            </p>
-            <p className="level-note">
-              એક જ દિવસમાં {gu(gate.gateThreshold)} દ્રશ્યો યાદ કરો - પછી એ લેવલ કાયમ માટે ખુલ્લું રહેશે.
-            </p>
+            {/*
+              ────────────────────────────────────────────────────────────────
+              0035 — the door needs the work *recorded*, not merely ticked
+              ────────────────────────────────────────────────────────────────
+
+              A યુવક who has ticked past the threshold but not pressed ડેટા નોંધાવો is one press
+              away, and the honest thing to show him is the press rather than the gate sentence
+              he has in fact already satisfied. That is also the decision behind the whole
+              change: લેવલ ૪ opens on saved data, so the data is always there and always real.
+
+              Said as the next step and never as a refusal (§1 rule 4) — nothing here tells him
+              he fell short, how far he is, or how many days it has taken.
+            */}
+            {live && current >= gate.gateThreshold ? (
+              <p className="level-next-line">
+                ડેટા નોંધાવો, પછી લેવલ {gu(LEVEL + 1)} ખૂલશે
+              </p>
+            ) : (
+              <>
+                <p className="level-next-line">
+                  લેવલ ૩ માં {gu(gate.gateThreshold)} પૂરાં કરો, પછી લેવલ ૪ ખૂલશે
+                </p>
+                <p className="level-note">
+                  એક જ દિવસમાં {gu(gate.gateThreshold)} દ્રશ્યો યાદ કરો - પછી એ લેવલ કાયમ માટે ખુલ્લું રહેશે.
+                </p>
+              </>
+            )}
             {/*
               The way back to the દર્શન, at the end of the list rather than only at the top.
 

@@ -97,8 +97,23 @@ export const BOARD_MAX = 500;
 export const AWARD_KINDS = Object.freeze([
   { id: 'DAY_FIRST', label: 'First of the day', tone: 'ok', hint: "The activity's own value, paid once for that day" },
   { id: 'REPEAT', label: 'Repeat', tone: 'info', hint: 'A test sat again after the day was already paid' },
-  { id: 'TICK', label: 'Per tick', tone: 'info', hint: 'Level 3, paid for darshan newly brought to mind that day' },
-  { id: 'REVISION', label: 'Per revision', tone: 'info', hint: 'Level 3, paid once per submission' },
+  /*
+    The two લેવલ ૩ kinds, and both hints were rewritten by 0035 rather than tidied.
+
+    TICK used to say "newly brought to mind that day", which described one of the two tick
+    counting modes as though it were the kind's meaning. It is not: `earn.tickCount` chooses
+    between FRESH - only દ્રશ્યો not already counted that day - and ALL, where every valid tick
+    of every submission is paid. Under ALL a repeated પુનરાવર્તન **accumulates**: ૫૦ then ૪૦ then
+    ૩૦ is ૧૨૦ ticks and ૧૨૦ ticks' worth of points, on દ્રશ્યો he may have named before. A
+    સંચાલક reading the old hint beside a row like that would have concluded the ledger was
+    wrong.
+
+    REVISION said "paid once per submission", which was right and read as a limit because it sat
+    beside a system where everything was paid once a day. It is a rate: every submission is paid,
+    with no ceiling but the daily cap.
+  */
+  { id: 'TICK', label: 'Per tick', tone: 'info', hint: 'Level 3, paid per darshan ticked - every revision, or only the first time each is named that day' },
+  { id: 'REVISION', label: 'Per revision', tone: 'info', hint: 'Level 3, paid for every submission - a repeated revision earns again' },
   { id: 'MANUAL', label: 'Manual adjustment', tone: 'warn', hint: 'Entered by an admin, with a reason' },
   { id: 'LEGACY', label: 'Before the new engine', tone: 'off', hint: 'Written before migration 0031 - no kind was recorded' },
 ]);

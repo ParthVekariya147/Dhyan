@@ -272,10 +272,26 @@ export default function DailyActivityPage() {
         key: 'ticks',
         label: 'Darshan brought to mind',
         align: 'right',
-        // The distinct union across the day's revision submissions, not the sum of their counts:
-        // a યુવક who ticks the same 40 દ્રશ્યો twice has brought 40 to mind, not 80. The server
-        // computes it the same way `activity_submit()` does, so the two cannot disagree.
-        render: (r) => <span className="mono">{gu(r.ticks)}</span>,
+        /*
+          The distinct union across the day's revision submissions, not the sum of their counts:
+          a યુવક who ticks the same 40 દ્રશ્યો twice has brought 40 to mind, not 80. The server
+          computes it the same way `activity_submit()` does, so the two cannot disagree.
+
+          It is **not** the figure the day's Level 3 points follow, and since 0035 that gap can
+          be wide. A repeated પુનરાવર્તન accumulates - 50 then 40 then 30 is 120 ticks of સાધના
+          and is paid for 120 - while this column still reads 50 or fewer, because it answers how
+          much of the collection he brought to mind rather than how much work he did. Both are
+          true. The additive figure is on the Progress page as "Level 3 ticks (total)", and every
+          revision behind it is itemised on a yuvak's own progress record.
+        */
+        render: (r) => (
+          <span
+            className="mono"
+            title="Distinct darshan for the day, counted once each however many times they were revised"
+          >
+            {gu(r.ticks)}
+          </span>
+        ),
         value: (r) => r.ticks,
         type: 'number',
       },
@@ -590,21 +606,28 @@ export default function DailyActivityPage() {
 
               {/*
                 The second sentence is precise about *why* a blank appears, and it has two
-                reasons rather than one. The ordinary one is the day rule. The other is
-                historical: the timeline joins an award to its attempt through
-                `point_transactions.attempt_id`, which 0031 added and which is null on every row
-                written before it - so an award from before the engine is real, is in the ledger,
-                and simply cannot be attached to the act that earned it. Saying only the first
-                reason would make an old day read as a day nobody was paid for.
+                reasons rather than one. The ordinary one is a rule the સંચાલક chose - the level
+                is set to pay once a day, so the second act of the day carries no award of its
+                own. That is a **setting** (`earn.levelN`) and not a property of the ledger, and
+                since 0035 it is emphatically not true of an accumulating લેવલ ૩, where every
+                પુનરાવર્તન has its own row. The other reason is historical: the timeline joins an
+                award to its attempt through `point_transactions.attempt_id`, which 0031 added and
+                which is null on every row written before it - so an award from before the engine
+                is real, is in the ledger, and simply cannot be attached to the act that earned
+                it. Saying only the first reason would make an old day read as a day nobody was
+                paid for; saying it as a law rather than as a setting would make an accumulating
+                લેવલ ૩ read as a fault.
               */}
               <p className="card-note">
                 Everything he did on this day, in the order it happened, with what each act was
                 paid attached to the act itself rather than listed beside it. A blank in Points
-                means no award is attached to that act: usually because an activity pays once a
-                day however many times it is done - a second attempt earning nothing is the rule
-                working, not a mark against anybody - and on older days because awards written
-                before the rules engine do not record which attempt paid for them. The Point
-                ledger has every award either way.
+                means no award is attached to that act. Usually that is a rule doing its work: a
+                level set to pay once a day gives the second attempt no award of its own, which is
+                not a mark against anybody. It is not a law - a Level 3 revision counted per tick
+                or per revision is paid every time it is submitted, so each revision on this day
+                carries its own figure. On older days a blank means the award was written before
+                the rules engine and does not record which attempt paid for it. The Point ledger
+                has every award either way.
               </p>
 
               <AsyncBlock

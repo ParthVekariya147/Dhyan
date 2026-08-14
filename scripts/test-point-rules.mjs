@@ -78,6 +78,18 @@ import {
   resolvePointRules,
   validatePointRules,
   validatePoints,
+  // 0035's pace rule — the mirror of point_pace() and settings_check_pace().
+  DEFAULT_PACE,
+  PACE_GRACE_MAX,
+  PACE_GRACE_MIN,
+  PACE_MAX_GAP_MAX,
+  PACE_MAX_GAP_MIN,
+  PACE_SECONDS_MAX,
+  PACE_SECONDS_MIN,
+  eligibleTicks,
+  requiredSeconds,
+  resolvePointPace,
+  validatePointPace,
 } from '../shared/domain/points.js';
 
 let pass = 0;
@@ -950,6 +962,170 @@ if (!existsSync(fileURLToPath(SQL_0031))) {
   // ---- the business day is the attempt own, and the timezone is IST ---------
   eq('the day is decided in Asia/Kolkata', has("timezone('Asia/Kolkata'"), true);
   eq('the resolvers run above RLS, so they can be read on the submit path', has('security definer'), true);
+}
+
+// ==================================================================== 0035 — the pace rule
+
+/*
+  "૫૦ ટિક માટે ૫૦ સેકંડ", and the four things that would break it silently.
+
+  The authority is supabase/migrations/0035_level3_revisions.sql — `point_pace()` and
+  `settings_check_pace()` — exactly as the groups above defer to 0031. What is protected here:
+
+    1. **An absent block resolving to anything but "no rule".** Every settings row in the wild
+       is missing `pace`, so a resolver that read a missing `secondsPerTick` as anything above
+       zero would start capping every પુનરાવર્તન in the project on the day 0035 deployed, and
+       the only symptom would be યુવકો quietly being paid less than they earned.
+
+    2. **`maxGapSeconds` falling back to 0.** It is the one bound in this module whose floor is
+       not zero, and the reason is that 0 here does not mean "no limit" as it does everywhere
+       else — it means no gap ever counts, so no attention ever accumulates and every
+       પુનરાવર્તન is paid nothing. The default has to be a working number.
+
+    3. **The cap becoming a gate.** ૫૦ ticks in ૪૫ seconds must be ૪૫ and never ૦. A gate would
+       punish a યુવક who was half a minute quick exactly as hard as one who flicked to the
+       bottom of the list, which §1 rule 4 refuses.
+
+    4. **Integer division drifting from the SQL's.** `award_points()` computes
+       `((engaged_ms / 1000) + grace) / secondsPerTick` in Postgres integer arithmetic. A JS
+       mirror that divided in floating point would promise a number the ledger then did not pay,
+       which is worse than promising nothing.
+*/
+
+group('0035 - constants and the absent block');
+{
+  eq('secondsPerTick spans 0 to an hour', [PACE_SECONDS_MIN, PACE_SECONDS_MAX], [0, 3600]);
+  eq('graceSeconds spans 0 to a day', [PACE_GRACE_MIN, PACE_GRACE_MAX], [0, 86400]);
+  eq('maxGapSeconds floors at 5, not 0', [PACE_MAX_GAP_MIN, PACE_MAX_GAP_MAX], [5, 3600]);
+
+  eq('DEFAULT_PACE is no rule at all', DEFAULT_PACE.secondsPerTick, 0);
+  eq('with a working gap ceiling under it', DEFAULT_PACE.maxGapSeconds, 180);
+  eq('and no grace', DEFAULT_PACE.graceSeconds, 0);
+
+  eq('an untouched settings row resolves to it', resolvePointPace({}), { ...DEFAULT_PACE });
+  eq('so does one with no points at all', resolvePointPace(undefined), { ...DEFAULT_PACE });
+  eq('so does a pace that is not an object', resolvePointPace({ pace: 5 }), { ...DEFAULT_PACE });
+  eq('so does a pace that is null', resolvePointPace({ pace: null }), { ...DEFAULT_PACE });
+}
+
+group('0035 - resolvePointPace forgives every way a stored value can be wrong');
+{
+  const r = (pace) => resolvePointPace({ pace });
+
+  eq('a whole number is kept', r({ secondsPerTick: 2 }).secondsPerTick, 2);
+  eq('a fraction is rounded, as round(...)::integer does', r({ secondsPerTick: 1.6 }).secondsPerTick, 2);
+  eq('a string is not a number', r({ secondsPerTick: '3' }).secondsPerTick, 0);
+  eq('null is not a number either, and must not coerce to 0 by accident',
+    r({ secondsPerTick: null }).secondsPerTick, 0);
+  eq('NaN falls back', r({ secondsPerTick: NaN }).secondsPerTick, 0);
+  eq('above the ceiling falls back rather than clamping, as the SQL does',
+    r({ secondsPerTick: 99999 }).secondsPerTick, 0);
+  eq('below the floor falls back', r({ secondsPerTick: -1 }).secondsPerTick, 0);
+
+  eq('an out-of-range maxGapSeconds falls back to the working default, never to 0',
+    r({ maxGapSeconds: 1 }).maxGapSeconds, 180);
+  eq('and a valid one is kept', r({ maxGapSeconds: 30 }).maxGapSeconds, 30);
+  eq('one field being wrong does not take the others with it',
+    r({ secondsPerTick: 2, maxGapSeconds: 'x' }), { secondsPerTick: 2, graceSeconds: 0, maxGapSeconds: 180 });
+}
+
+group('0035 - validatePointPace refuses what the resolver would forgive');
+{
+  const v = (pace) => validatePointPace({ pace });
+
+  eq('an absent block is fine', validatePointPace({}).ok, true);
+  eq('a whole number is accepted', v({ secondsPerTick: 1 }).ok, true);
+  eq('a fraction is refused', v({ secondsPerTick: 1.5 }).ok, false);
+  eq('a negative is refused', v({ secondsPerTick: -1 }).ok, false);
+  eq('a string is refused', v({ secondsPerTick: 'fast' }).ok, false);
+  eq('an unknown key is refused, exactly as settings_check_pace does',
+    v({ secondsPerTick: 1, wobble: 2 }).ok, false);
+  eq('a non-object block is refused', validatePointPace({ pace: 7 }).ok, false);
+  eq('maxGapSeconds under its floor is refused', v({ maxGapSeconds: 1 }).ok, false);
+  eq('above every ceiling is refused', v({ graceSeconds: 999999 }).ok, false);
+
+  eq('a refusal carries a sentence', typeof v({ secondsPerTick: -1 }).gu, 'string');
+  eq('and it names the field', v({ secondsPerTick: -1 }).gu.includes('Seconds per tick'), true);
+}
+
+group('0035 - eligibleTicks is a cap and never a gate');
+{
+  const pace = (secondsPerTick, graceSeconds = 0) =>
+    resolvePointPace({ pace: { secondsPerTick, graceSeconds } });
+
+  const one = pace(1);
+  eq('the requirement\'s own example: 50 ticks in 50 seconds is 50', eligibleTicks(50, 50_000, one), 50);
+  eq('50 ticks in 45 seconds is 45, not 0 - this is the whole argument for a cap',
+    eligibleTicks(50, 45_000, one), 45);
+  eq('108 ticks flicked past in 12 seconds is 12', eligibleTicks(108, 12_000, one), 12);
+  eq('108 ticks over three minutes is all 108', eligibleTicks(108, 180_000, one), 108);
+  eq('time beyond what was ticked buys nothing extra', eligibleTicks(10, 999_000, one), 10);
+
+  eq('with no rule configured nothing is capped', eligibleTicks(108, 0, DEFAULT_PACE), 108);
+  eq('and that is true however little time passed', eligibleTicks(108, 1, DEFAULT_PACE), 108);
+
+  eq('grace is added to the earned seconds', eligibleTicks(50, 40_000, pace(1, 10)), 50);
+
+  // Integer division throughout, matching the SQL. A part-second buys nothing.
+  eq('a part-second buys nothing', eligibleTicks(50, 45_999, one), 45);
+  eq('two seconds per tick halves it', eligibleTicks(50, 50_000, pace(2)), 25);
+  eq('and rounds down', eligibleTicks(50, 51_000, pace(2)), 25);
+
+  eq('nothing ticked is nothing owed', eligibleTicks(0, 50_000, one), 0);
+  eq('negative time is no time', eligibleTicks(50, -5, one), 0);
+}
+
+group('0035 - requiredSeconds is what a screen may promise');
+{
+  eq('no rule means no requirement, and the caller prints nothing',
+    requiredSeconds(108, DEFAULT_PACE), 0);
+  eq('one second a tick', requiredSeconds(108, resolvePointPace({ pace: { secondsPerTick: 1 } })), 108);
+  eq('grace comes off the requirement',
+    requiredSeconds(50, resolvePointPace({ pace: { secondsPerTick: 1, graceSeconds: 10 } })), 40);
+  eq('nothing ticked needs no time', requiredSeconds(0, resolvePointPace({ pace: { secondsPerTick: 1 } })), 0);
+}
+
+group('0035 - the SQL is the authority, and says the same thing');
+{
+  const path = fileURLToPath(new URL('../supabase/migrations/0035_level3_revisions.sql', import.meta.url));
+  eq('0035 is present', existsSync(path), true);
+  const sql = readFileSync(path, 'utf8');
+
+  eq('point_pace() exists', sql.includes('create or replace function public.point_pace()'), true);
+  eq('and knows the same three keys',
+    ['secondsPerTick', 'graceSeconds', 'maxGapSeconds'].every((k) => sql.includes(`'${k}'`)), true);
+  eq('its secondsPerTick ceiling is this module\'s', sql.includes('between 0 and 3600'), true);
+  eq('its graceSeconds ceiling is this module\'s', sql.includes('between 0 and 86400'), true);
+  eq('its maxGapSeconds floor is 5 and not 0', sql.includes('between 5 and 3600'), true);
+  eq('and its default gap is 180', /'maxGapSeconds'[\s\S]{0,400}?\), 180\)/.test(sql), true);
+
+  eq('settings_check_pace() is a trigger of its own, not a widening of settings_check_points()',
+    sql.includes('create trigger settings_check_pace'), true);
+  eq('and settings_check_points() is NOT reissued here',
+    sql.includes('create or replace function public.settings_check_points'), false);
+
+  // The clamp itself. If this expression moves, the two mirrors have parted.
+  eq('award_points() caps fresh ticks by the measured seconds',
+    sql.includes("allowed := ((engaged / 1000) + (pace ->> 'graceSeconds')::integer) / per_tick_s;"), true);
+  eq('and takes the smaller of that and what was ticked',
+    sql.includes('fresh   := greatest(least(fresh, allowed), 0);'), true);
+
+  /*
+    The clock is the server's, and this is the assertion that keeps it that way (§17).
+
+    Comments are stripped first, and that is not fussiness: 0035's own header says in as many
+    words that there is no `p_engaged_ms` parameter and must not be one, so a search over the raw
+    text finds the sentence promising the absence and reads it as the presence. What is being
+    checked is the code — that no function in the file declares a parameter a browser could put
+    a duration in.
+  */
+  const sqlCode = sql.replace(/^\s*--.*$/gm, '');
+  eq('no client may send a duration - no function in 0035 declares a parameter for one',
+    // `\b` at BOTH ends. Without the leading one, `p_ms` matches the local `gap_ms`, and the
+    // check fails on the very variable that makes the clock server-side.
+    /\b(p_engaged|p_seconds|p_duration|p_elapsed|p_ms)\b/.test(sqlCode), false);
+  eq('and the header does say so, which is why the comments had to be stripped',
+    sql.includes('p_engaged_ms'), true);
 }
 
 // ==================================================================== no em dash in a string

@@ -7,8 +7,10 @@ import {
   ACTIVITY_CODE_RE,
   DEFAULT_POINT_RULES,
   TICK_MODE,
+  resolvePointPace,
   resolvePointRules,
   resolvePoints,
+  validatePointPace,
   validatePointRules,
   validatePoints,
 } from '../../../../../shared/domain/points.js';
@@ -27,6 +29,7 @@ import OverviewStrip from '../components/OverviewStrip';
 import GlobalRulesCard from '../components/GlobalRulesCard';
 import LevelValueCard from '../components/LevelValueCard';
 import Level3Card from '../components/Level3Card';
+import PaceCard from '../components/PaceCard';
 import Level4Table from '../components/Level4Table';
 import EarningModeCard from '../components/EarningModeCard';
 import RepeatCard from '../components/RepeatCard';
@@ -85,6 +88,11 @@ import '../points.css';
  * activity codes) and inside `tick` (only `mode`, `perTick`, `perRevision`, `dailyCap`), so a
  * stray key there cannot be round-tripped: keeping it would mean every save from this page being
  * refused. Those two objects are therefore rebuilt, and everything beside them is carried.
+ *
+ * `pace` - how much attention one tick has to be worth - is a fourth such object, guarded by a
+ * trigger of its own (`settings_check_pace`) rather than by the one that guards `tick`, which is
+ * exactly why it is a sibling of `tick` and not a key inside it. Same treatment: rebuilt, written
+ * only when it says something, carried by the same single Save.
  *
  * `earn` - how often each level pays - is a third object of the same kind and is treated the same
  * way: rebuilt rather than merged, written only when it says something, and carried by the same
@@ -246,6 +254,16 @@ export default function PointsPage() {
 
   const patchTick = (part) => {
     setDraft((d) => ({ ...d, tick: { ...d.tick, ...part } }));
+    setTouched(true);
+    setMsg(null);
+  };
+
+  /**
+   * One field of the pace rule. Merged rather than replaced, exactly as `patchTick` is: the
+   * card hands back only the box that changed, and the other two must survive a keystroke.
+   */
+  const patchPace = (part) => {
+    setDraft((d) => ({ ...d, pace: { ...d.pace, ...part } }));
     setTouched(true);
     setMsg(null);
   };
@@ -446,6 +464,23 @@ export default function PointsPage() {
         disabled={locked}
       />
 
+      {/* ── 5b. The pace rule ──────────────────────────────────────────────
+          Directly under Level 3 and never anywhere else on this page, because it is not a
+          fifth rule but a qualifier on the one above it: the engine reads it inside the
+          per-tick branch, so a card placed after Level 4 would be read as a rule of its own
+          and its "not applied at the moment" state would be read as a fault. Beside the mode
+          that decides whether it binds, the two are one decision. */}
+      <PaceCard
+        pace={draft.pace}
+        /* The badge says what is *in force*, so it reads the resolved numbers rather than the
+           form's strings - `stored.pace` holds boxes, and a box that is blank still resolves
+           to a rule the engine is applying. */
+        storedPace={resolvePointPace(config.data.stored)}
+        mode={draft.tick.mode}
+        onChange={patchPace}
+        disabled={locked}
+      />
+
       {/* ── 6. Level 4 ─────────────────────────────────────────────────── */}
       <AsyncBlock state={activities} onRetry={activities.retry} skeleton={<FormSkeleton fields={4} />}>
         <Level4Table
@@ -602,6 +637,7 @@ const RENDERED = [
   'disabled',
   'repeat',
   'tick',
+  'pace',
   EARN_KEY,
 ];
 
@@ -648,6 +684,23 @@ function toDraft(stored) {
   const tick = isObj(rules.tick) ? rules.tick : {};
 
   /*
+    The pace rule is read by its **own** resolver and not by `resolvePointRules()`.
+
+    `points.pace` sits beside `tick` rather than inside it, because the trigger that guards
+    `tick` refuses an unknown key and widening that closed list would have meant reissuing the
+    whole three-hundred-line check. 0035 answered it with a second function and a second
+    trigger, and this mirrors that pair rather than the one above.
+
+    Which box is filled and which is left blank is decided per key, not per object: a stored
+    `pace` that names only `secondsPerTick` fills that box alone, so opening this page cannot
+    turn "the default is in force here" into "somebody chose this number". The placeholders on
+    the card show what a blank box actually resolves to.
+  */
+  const rawPace = isObj(raw.pace) ? raw.pace : null;
+  const paceLive = resolvePointPace(raw);
+  const paceBox = (key) => (rawPace && key in rawPace ? str(paceLive[key]) : '');
+
+  /*
     Per-કસોટી repeat prices are stored as code-shaped keys sitting directly inside `repeat`
     (0031:271-280 reads them that way and settings_check_points() refuses anything else), and
     `point_rules()` hands them back gathered into `byCode`. Both shapes are read here, so this
@@ -680,6 +733,7 @@ function toDraft(stored) {
       disabled: 'disabled' in raw,
       repeat: 'repeat' in raw,
       tick: 'tick' in raw,
+      pace: 'pace' in raw,
       [EARN_KEY]: EARN_KEY in raw,
     },
 
@@ -708,6 +762,12 @@ function toDraft(stored) {
       perTick: str(tick.perTick),
       perRevision: str(tick.perRevision),
       dailyCap: str(tick.dailyCap),
+    },
+
+    pace: {
+      secondsPerTick: paceBox('secondsPerTick'),
+      graceSeconds: paceBox('graceSeconds'),
+      maxGapSeconds: paceBox('maxGapSeconds'),
     },
 
     /*
@@ -782,6 +842,24 @@ function fromDraft(d) {
   if (d.present.tick || tick.mode !== TICK_MODE.ACTIVITY || Object.keys(tick).length > 1) out.tick = tick;
 
   /*
+    `pace` follows `tick`'s rule, with one difference that matters.
+
+    **Rebuilt, not merged**, and **written only when it says something**: `settings_check_pace()`
+    refuses a key it does not know, and a row that never carried the object must not acquire it
+    because somebody opened this page - that is an audit entry for a change nobody made (§41).
+
+    The difference is that `pace` has no `mode`, so an object with no keys at all is a real and
+    honest state: it means "every field is at its default". It is written when the row already
+    had the key, so clearing all three boxes on a configured row stores `{}` - which resolves
+    to the same defaults an absent key does - rather than silently keeping the old numbers.
+  */
+  const pace = {};
+  if (String(d.pace.secondsPerTick).trim() !== '') pace.secondsPerTick = whole(d.pace.secondsPerTick);
+  if (String(d.pace.graceSeconds).trim() !== '') pace.graceSeconds = whole(d.pace.graceSeconds);
+  if (String(d.pace.maxGapSeconds).trim() !== '') pace.maxGapSeconds = whole(d.pace.maxGapSeconds);
+  if (d.present.pace || Object.keys(pace).length) out.pace = pace;
+
+  /*
     `earn` follows `tick`'s rule exactly.
 
     **Rebuilt, not merged**, because the trigger accepts only its own keys inside it - the four
@@ -810,11 +888,20 @@ function fromDraft(d) {
  *
  * The values half is asked first, because it is the half a સંચાલક is most likely to be in the
  * middle of typing and the more specific message of the two.
+ *
+ * `validatePointPace()` is a **third** validator and not a widening of either, because
+ * `points.pace` is guarded by its own trigger rather than by `settings_check_points()` - it
+ * sits beside `tick` precisely because that trigger's key list is closed. Calling two of the
+ * three would let a malformed pace rule reach the database and come back as a refusal this
+ * form never mentioned. It is asked last because it qualifies a rule rather than pricing one:
+ * a Level 3 that pays nothing is the more useful message of the two.
  */
 function rulesProblem(candidate) {
   const values = validatePoints(candidate);
   if (!values.ok) return values.gu;
   const rules = validatePointRules(candidate);
   if (!rules.ok) return rules.gu;
+  const pace = validatePointPace(candidate);
+  if (!pace.ok) return pace.gu;
   return '';
 }

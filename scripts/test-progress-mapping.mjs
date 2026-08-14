@@ -82,11 +82,30 @@ const MIGRATION = 'supabase/migrations/0030_admin_progress_live_scenes.sql';
  * one as invented.
  */
 const COUNTS_MIGRATION = 'supabase/migrations/0032_admin_points_reporting.sql';
+/**
+ * And a third, for the same reason there is a second.
+ *
+ * `admin_level3_report()` (0035) carries the figures a day of repeated પુનરાવર્તન needs and that
+ * neither function above can express: how many પુનરાવર્તન, the **additive** તિક total across
+ * them, the distinct દ્રશ્યો behind it, what the ledger paid, and the same three again for one
+ * chosen day. It is joined onto the report by uid in the browser exactly as the counts are, so
+ * the service now has three mappers and three read surfaces — and §C reports every field of an
+ * unlisted one as invented, which is precisely what it did when this was added.
+ *
+ * Note that `ticks` is declared by **two** of the three functions and means a different thing in
+ * each: `admin_activity_counts.ticks` is the distinct દ્રશ્યો over the window, and
+ * `admin_level3_report.ticks` is the sum across પુનરાવર્તન. Both are true, the panel shows both
+ * in separate columns, and the union below is only asked whether a name is declared anywhere —
+ * which is the right question for the failure it hunts (a misspelling that prints an empty cell)
+ * and deliberately not a claim about which function a field came from.
+ */
+const LEVEL3_MIGRATION = 'supabase/migrations/0035_level3_revisions.sql';
 const SERVICE = 'admin/src/features/progress/services/progressService.js';
 const DETAIL = 'admin/src/features/progress/services/detailService.js';
 
 const sql = read(MIGRATION);
 const countsSql = read(COUNTS_MIGRATION);
+const level3Sql = read(LEVEL3_MIGRATION);
 const service = read(SERVICE);
 
 /**
@@ -122,6 +141,7 @@ function reportColumns(source, fn = 'admin_progress_report') {
 
 const COLUMNS = reportColumns(sql);
 const COUNTS_COLUMNS = reportColumns(countsSql, 'admin_activity_counts');
+const LEVEL3_COLUMNS = reportColumns(level3Sql, 'admin_level3_report');
 
 /**
  * The counts columns the service deliberately does NOT map, and why each is dropped.
@@ -136,6 +156,16 @@ const COUNTS_COLUMNS = reportColumns(countsSql, 'admin_activity_counts');
  * writes down here instead of an omission this suite cannot see.
  */
 const COUNTS_NOT_MAPPED = new Set(['points_total', 'video_sessions', 'exam_attempts', 'exam_passed']);
+
+/**
+ * The same list for `admin_level3_report()`, and it starts empty on purpose.
+ *
+ * Every column that function declares was added because §19 or §20 names it, so there is no
+ * column it is currently right to drop. Kept as a set rather than as an absence so that dropping
+ * a first one has to be a decision somebody writes down here, exactly as `COUNTS_NOT_MAPPED`
+ * forces for the counts.
+ */
+const LEVEL3_NOT_MAPPED = new Set([]);
 
 group('§A  the report function still declares the shape this suite reads');
 
@@ -188,6 +218,28 @@ const missedCounts = (COUNTS_COLUMNS || []).filter(
 );
 eq('no counts column is dropped by the counts mapper without a reason', missedCounts, []);
 
+// And the third function, whose whole point is that a column dropped here is a figure the
+// સંચાલક asked for and would silently not get (§19, §20).
+ok('admin_level3_report has a returns-table block',
+  Array.isArray(LEVEL3_COLUMNS) && LEVEL3_COLUMNS.length > 0,
+  `parsed ${LEVEL3_COLUMNS ? LEVEL3_COLUMNS.length : 'nothing'} from ${LEVEL3_MIGRATION}`);
+
+for (const required of [
+  // The three §19 names outright, and the three that make "who did લેવલ ૩ today" answerable.
+  'revisions', 'ticks', 'points',
+  'today_revisions', 'today_ticks', 'today_points',
+  // The distinct count, which is a different and also true number from `ticks` and must not be
+  // quietly dropped in favour of it.
+  'scenes_distinct', 'last_at',
+]) {
+  ok(`admin_level3_report declares ${required}`, (LEVEL3_COLUMNS || []).includes(required));
+}
+
+const missedLevel3 = (LEVEL3_COLUMNS || []).filter(
+  (c) => !LEVEL3_NOT_MAPPED.has(c) && !readFields.has(c)
+);
+eq('no Level 3 column is dropped by its mapper without a reason', missedLevel3, []);
+
 ok('total_rows is read somewhere in the service', /total_rows/.test(service),
   'the pager needs the full filtered count; without it the page cannot say "of 487"');
 
@@ -201,7 +253,11 @@ group('§C  the service reads nothing the function does not return');
  * not a claim about which of the two functions a field came from, so the union is the right
  * surface: a field belonging to neither is still caught, which is the failure being hunted.
  */
-const declared = new Set([...(COLUMNS || []), ...(COUNTS_COLUMNS || [])]);
+const declared = new Set([
+  ...(COLUMNS || []),
+  ...(COUNTS_COLUMNS || []),
+  ...(LEVEL3_COLUMNS || []),
+]);
 const invented = [...readFields].filter((f) => !declared.has(f));
 eq('the mapper reads no field either function returns', invented, []);
 

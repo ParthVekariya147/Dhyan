@@ -54,10 +54,11 @@ export const NAV = [
   { to: '/progress', label: 'Progress', icon: '◔', need: 'progress.read' },
   { to: '/sessions', label: 'Sessions', icon: '◷', need: 'sessions.read' },
   /*
-    ગુણ — four entries, and two permissions between them.
+    ગુણ — six entries, and two permissions between them.
 
-    The ledger, the day and the board read 0032's functions, every one of which opens with
-    `admin_assert_progress_reader()`, so all three name `progress.read` — the same permission
+    The five reading screens go to functions that each check `progress.read` before they answer
+    — 0032's open with `admin_assert_progress_reader()` and 0035's લેવલ ૩ report raises
+    `level3_report_forbidden` itself — so all five name `progress.read`, the same permission
     Progress names, and for the same reason: it is the one that decides whether the page can
     say anything true. Point Management edits `settings['levels'].value.points`, so it names
     `settings.read` like every other screen that edits a settings row, and its saves are
@@ -79,6 +80,17 @@ export const NAV = [
   // ◨ against Daily Activity's ◧ - the mirrored half, because the two are the same day seen from
   // opposite sides: what the app observed, and what the યુવક wrote down himself.
   { to: '/points/records', label: 'Daily Records', icon: '◨', need: 'progress.read' },
+  /*
+    §29's લેવલ ૩ report. `progress.read` like the other reading screens, because that is the
+    permission `admin_level3_users()` raises 42501 without.
+
+    It is a section rather than a filter on Progress for the reason its page states at length:
+    Progress adds its લેવલ ૩ columns to a page of યુવકો it has already paginated, so a threshold
+    asked there would silently mean "on this page". ◫ - a square with one band filled - against
+    Daily Activity's ◧ and Daily Records' ◨, from the same Geometric Shapes block as every icon
+    here so it renders from the same font on the same machines.
+  */
+  { to: '/points/level3', label: 'Level 3 Report', icon: '◫', need: 'progress.read' },
   { to: '/points/leaderboard', label: 'Leaderboard', icon: '◭', need: 'progress.read' },
   { to: '/levels', label: 'Level', icon: '⧉', need: 'settings.read' },
   // Its own entry rather than a link buried inside Levels: લેવલ ૪ is a container the સંચાલક
@@ -140,6 +152,9 @@ export const NAV_GROUPS = [
       at('/points/ledger'),
       at('/points/daily'),
       at('/points/records'),
+      // Beside the two daily reports rather than under System: "who has done 50 points of
+      // પુનરાવર્તન, and who did none today" is a question about યુવકો, which is what this group is.
+      at('/points/level3'),
       at('/points/leaderboard'),
     ],
   },

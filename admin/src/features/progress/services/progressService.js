@@ -265,6 +265,26 @@ const fromReportRow = (r) => ({
   ticks: 0,
   attemptsAll: 0,
   rank: null,
+
+  /**
+   * 0035's લેવલ ૩ columns, from a third function — `admin_level3_report()` — and neutral here
+   * for exactly the reason the five above are: a row nobody enriched must read as a યુવક with
+   * no પુનરાવર્તન rather than as a broken cell, and `l3Counted` is what tells the two apart.
+   *
+   * `l3LastAt` is null and not a date, because "he has never submitted one" is an absence and
+   * an invented instant would be a claim.
+   */
+  l3Counted: false,
+  l3Revisions: 0,
+  l3Ticks: 0,
+  l3ScenesDistinct: 0,
+  l3Points: 0,
+  l3Days: 0,
+  l3LastAt: null,
+  l3TodayRevisions: 0,
+  l3TodayTicks: 0,
+  l3TodayPoints: 0,
+  l3EngagedMs: 0,
 });
 
 /**
@@ -287,6 +307,48 @@ const fromCountsRow = (r) => ({
   ticks: int(r.ticks),
   attemptsAll: int(r.attempts_all),
   rank: rankOrNull(r.rank),
+});
+
+/**
+ * One row of `admin_level3_report()` (0035).
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Two numbers called "ticks", both true, and neither may become the other
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `admin_activity_counts.ticks` — mapped above as `ticks` — is the **distinct set** of દ્રશ્યો
+ * a યુવક has brought to mind, minus the withheld ones. It answers "how much of the collection
+ * does he hold", and it is by construction never larger than the collection.
+ *
+ * `admin_level3_report.ticks` — mapped here as `l3Ticks` — is the **sum across પુનરાવર્તન**.
+ * Since 0035 a યુવક who ticks ૫૦, then ૪૦, then ૩૦ has done ૧૨૦ ticks of સાધના on ૫૦ or fewer
+ * દ્રશ્યો, and is paid for ૧૨૦. It answers "how much work has he done", and it has no ceiling.
+ *
+ * They are different questions with different answers and the report needs both, which is why
+ * this mapper keeps them under two names rather than letting the later call overwrite the
+ * earlier one. `scenes_distinct` is carried too — it is this function's own de-duplicated
+ * count, cut on the same date window as its other figures, and so is the honest thing to
+ * compare `l3Ticks` against when a સંચાલક asks how the two can differ so widely.
+ *
+ * `points` is deliberately **not** dropped the way `admin_activity_counts.points_total` is.
+ * That one was a second opinion about the same quantity the report already carries; this is a
+ * different quantity — the ledger's લેવલ ૩ rows only — and it is the number §20 asks the panel
+ * to be able to show beside the પુનરાવર્તન that produced it.
+ */
+const fromLevel3Row = (r) => ({
+  l3Counted: true,
+  l3Revisions: int(r.revisions),
+  l3Ticks: int(r.ticks),
+  l3ScenesDistinct: int(r.scenes_distinct),
+  l3Points: int(r.points),
+  l3Days: int(r.days),
+  // A timestamptz or null, passed through as the ISO string PostgREST returned — format.js is
+  // where an instant becomes words (§62).
+  l3LastAt: r.last_at || null,
+  l3TodayRevisions: int(r.today_revisions),
+  l3TodayTicks: int(r.today_ticks),
+  l3TodayPoints: int(r.today_points),
+  l3EngagedMs: int(r.engaged_ms),
 });
 
 /**
@@ -365,6 +427,48 @@ export async function activityCounts(userIds = [], { from = '', to = '' } = {}) 
 }
 
 /**
+ * The લેવલ ૩ columns, for the યુવકો already on the screen (0035).
+ *
+ * `activityCounts()`'s twin, deliberately built the same way and for the same three reasons:
+ * `p_users` is the page the report has already decided rather than a filter re-derived here
+ * (§39), the date window is the report's own so no cell answers a different question from the
+ * row it sits in, and an empty page costs no round trip at all.
+ *
+ * `p_day` is the one parameter with no counterpart. It decides which day the three `today_*`
+ * figures describe and defaults to today in IST **on the server**, which is where it belongs:
+ * a browser in another timezone must not be able to move the boundary of the business day, and
+ * a date computed here would do exactly that at half past midnight in Surat. It is passed only
+ * when a caller genuinely means a different day.
+ *
+ * `admin_level3_report()` is SECURITY DEFINER and, unlike its neighbours, does **not** assert a
+ * permission of its own — so it may only be called from a screen already gated on
+ * `progress.read`. Every caller in this panel reaches it through the Progress route, which is.
+ *
+ * Returns a Map for the lookup, as above.
+ */
+export async function level3Report(userIds = [], { from = '', to = '', day: forDay = '' } = {}) {
+  const ids = (Array.isArray(userIds) ? userIds : []).map((id) => String(id ?? '')).filter(Boolean);
+  if (ids.length === 0) return new Map();
+
+  // `day: forDay` because `day()` is this module's date-bound helper and a plain `day` in the
+  // parameter list would shadow it for the whole body - the three calls below would then be
+  // calling a string.
+  const { data, error } = await supabase.rpc('admin_level3_report', {
+    p_users: ids,
+    p_from: day(from),
+    p_to: day(to),
+    p_day: day(forDay),
+  });
+  if (error) throw error;
+
+  const out = new Map();
+  for (const r of Array.isArray(data) ? data : []) {
+    if (r?.user_id) out.set(r.user_id, fromLevel3Row(r));
+  }
+  return out;
+}
+
+/**
  * One page of the report, and the size of the whole filtered set beside it.
  *
  * `total` comes off the first row rather than from a second query, so the pager can never
@@ -378,10 +482,16 @@ export async function activityCounts(userIds = [], { from = '', to = '' } = {}) 
  * export — which walks up to ten chunks — pays once per chunk only when the file asked for
  * them. The counts are merged onto the rows here rather than carried alongside so that no cell
  * can ever read a count from a different query than the row it sits in.
+ *
+ * `withLevel3` is the same bargain over `admin_level3_report()` (0035) and is a **separate**
+ * flag rather than a widening of the first, because the two answer to different columns: a
+ * સંચાલક reading "Level 3 revisions" should not pay for a leaderboard rank computed over the
+ * whole ledger, and one reading the rank should not pay for a scan of every પુનરાવર્તન. Both
+ * on is two extra round trips and is what a file holding both sets of columns costs.
  */
 export async function progressReport(
   filters = {},
-  { page = 0, pageSize = PAGE_SIZE, withCounts = false } = {}
+  { page = 0, pageSize = PAGE_SIZE, withCounts = false, withLevel3 = false } = {}
 ) {
   const size = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(Number(pageSize) || PAGE_SIZE)));
   const { data, error } = await supabase.rpc(
@@ -408,6 +518,21 @@ export async function progressReport(
     });
     rows = rows.map((row) => {
       const c = counts.get(row.uid);
+      return c ? { ...row, ...c } : row;
+    });
+  }
+
+  if (withLevel3 && rows.length) {
+    // Merged by uid and never by position, for the reason the block above gives: the two calls
+    // are ordered independently and a positional merge would put one યુવક's પુનરાવર્તન beside
+    // another's name the first time the sort changed between them. See the note above about
+    // the deliberate spelling of `row`.
+    const l3 = await level3Report(rows.map((row) => row.uid), {
+      from: filters.from,
+      to: filters.to,
+    });
+    rows = rows.map((row) => {
+      const c = l3.get(row.uid);
       return c ? { ...row, ...c } : row;
     });
   }
@@ -537,7 +662,7 @@ export async function progressFilterOptions() {
  */
 export async function buildProgressReport(
   filters = {},
-  { cap = EXPORT_CAP, chunk = EXPORT_CHUNK, withCounts = false } = {}
+  { cap = EXPORT_CAP, chunk = EXPORT_CHUNK, withCounts = false, withLevel3 = false } = {}
 ) {
   const size = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(Number(chunk) || EXPORT_CHUNK)));
   const rows = [];
@@ -546,7 +671,7 @@ export async function buildProgressReport(
   let truncated = false;
 
   for (;;) {
-    const res = await progressReport(filters, { page, pageSize: size, withCounts });
+    const res = await progressReport(filters, { page, pageSize: size, withCounts, withLevel3 });
     total = res.total;
     rows.push(...res.rows);
 
