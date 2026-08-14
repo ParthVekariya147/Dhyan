@@ -60,11 +60,23 @@ import {
   MOBILE_BOTTOM_KEY,
   MOBILE_NAV_MAX,
   MOBILE_NAV_MIN,
+  NAV_CUSTOM_MAX,
+  NAV_CUSTOM_PREFIX,
   NAV_ICONS,
   NAV_LABEL_MAX,
   NAV_REGISTRY,
   NAV_REQUIRED_KEY,
+  NAV_ROUTES,
+  duplicateNavItem,
+  isCustomKey,
+  isValidCustomKey,
+  makeCustomKey,
+  navDestination,
   navRegistryEntry,
+  navRouteEntry,
+  navRouteError,
+  newCustomItem,
+  normalizeNavRoute,
   reorder,
   resolveMobileNav,
   resolveMobileNavConfig,
@@ -915,6 +927,44 @@ group('acceptance 14 - drift, the registry against the database trigger');
     ], [true, true]);
   }
 
+  /*
+    ---- the icons, against the latest definition of nav_icons() ----
+
+    Read from the latest migration that DEFINES `nav_icons()`, for exactly the reason the
+    registry checks above are read from the latest definition of `nav_registry()`: this list
+    grew in 0028 when custom buttons arrived, and a check pinned to 0019 would go on asserting
+    the truth of a function the database has not run since — a test doing worse than nothing,
+    because it also reports that it checked.
+
+    That is not hypothetical here. Pinning this to 0019 is precisely what failed the moment
+    NAV_ICONS gained `chart`, and the failure was the useful kind: it named the four icons the
+    migration had not yet been written for.
+  */
+  const ICON_DEFINES = 'create or replace function public.nav_icons';
+  const iconFiles = files.filter((f) =>
+    readFileSync(new URL(f, MIGRATIONS), 'utf8').includes(ICON_DEFINES)
+  );
+  const latestIcons = iconFiles[iconFiles.length - 1] || null;
+
+  if (!latestIcons) {
+    skip('icons vs the latest nav_icons() migration', 'no migration defines nav_icons() yet');
+  } else {
+    const sql = readFileSync(new URL(latestIcons, MIGRATIONS), 'utf8');
+    console.log(`    nav_icons() last defined in ${latestIcons}`);
+    // The function body only, so a name mentioned in the file's header prose cannot stand in
+    // for a name in the array — 0028's header discusses the four new icons at length.
+    const start = sql.indexOf(ICON_DEFINES);
+    const body = sql.slice(start, sql.indexOf('$$;', start));
+    const missingIcons = NAV_ICONS.filter((i) => !body.includes(`'${i}'`));
+    eq('every icon name is named in the latest nav_icons() definition', missingIcons, []);
+    // The other direction: a name the database admits and this build cannot draw is an icon
+    // the panel would refuse and a curl could set, which resolves to the registry's picture
+    // rather than to the one that was asked for.
+    const quoted = [...body.matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+    const extraIcons = quoted.filter((n) => !NAV_ICONS.includes(n));
+    eq('the database admits no icon this build has never heard of', extraIcons, []);
+  }
+
   // ---- the trigger and the bounds, which live in 0019 and have not moved ----
   const SQL_0019 = new URL('../supabase/migrations/0019_mobile_navigation.sql', import.meta.url);
   if (!existsSync(fileURLToPath(SQL_0019))) {
@@ -922,14 +972,514 @@ group('acceptance 14 - drift, the registry against the database trigger');
   } else {
     const sql = readFileSync(SQL_0019, 'utf8');
 
-    const missingIcons = NAV_ICONS.filter((i) => !sql.includes(i));
-    eq('every icon name is named in the migration', missingIcons, []);
-
     eq('the migration names the settings key it guards', sql.includes(MOBILE_BOTTOM_KEY), true);
     eq('the migration names the item that cannot be hidden', sql.includes(NAV_REQUIRED_KEY), true);
     // The two counts and the label cap are numbers, and a number that disagrees between the
     // trigger and this module is a Save the panel accepts and the database refuses.
     eq('the migration carries the same bounds', [String(MOBILE_NAV_MIN), String(MOBILE_NAV_MAX), String(NAV_LABEL_MAX)].every((n) => sql.includes(n)), true);
+  }
+}
+
+// ============================================================ 15 - the destination table
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  NAV_ROUTES against the router it claims to describe
+  ────────────────────────────────────────────────────────────────────────────
+
+  Acceptance 13 does this for NAV_REGISTRY and this is the same check for the list a CUSTOM
+  button chooses from — and it matters more here, not less. A registry entry has a `ready`
+  flag, so a route the router does not serve can at least be marked unavailable and sit in the
+  panel as a future item. NAV_ROUTES has no such flag by design: every row in it is offered to
+  the સંચાલક as a page he may point a button at, today. A route in this table that src/App.jsx
+  does not serve is therefore not a mislabelled row, it is a button that navigates to the
+  catch-all and lands the યુવક back on the મુખપૃષ્ઠ with no explanation.
+
+  The reverse direction is deliberately NOT asserted. A route the app serves and this table
+  omits is a perfectly good decision - /login, /register and the two password screens are
+  routed and must never be bar destinations, and /level/4/:activityId is a parameterised path
+  that cannot be one. Which routes are offered is a judgement; that the offered ones exist is a
+  fact, and only the fact is checkable here.
+*/
+group('acceptance 15 - every destination exists in src/App.jsx');
+{
+  const APP = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+  const routed = new Set([...APP.matchAll(/<Route\s[^>]*path="([^"]+)"/g)].map((m) => m[1]));
+
+  eq('the router was parsed at all', routed.size > 0, true);
+
+  const missing = NAV_ROUTES.filter((r) => !routed.has(r.route)).map((r) => r.route);
+  eq('every destination is a path src/App.jsx routes', missing, []);
+
+  /*
+    Every built-in that is ready must also be in the table, and this is not redundancy with
+    acceptance 13. It is what makes Duplicate work on a built-in: duplicateNavItem() turns any
+    row into a CUSTOM one, and a custom item's route has to resolve through NAV_ROUTES. A ready
+    registry entry whose route is missing here would give the સંચાલક a Duplicate button that
+    silently produces nothing.
+  */
+  const unreachable = NAV_REGISTRY.filter((r) => r.ready && !navRouteEntry(r.route)).map((r) => r.key);
+  eq('every ready built-in destination can also be reached by a custom button', unreachable, []);
+
+  // A table with a route in it twice is a <select> with two identical options, and a lookup
+  // whose answer depends on which one Map.set() saw last.
+  eq('no destination is listed twice', NAV_ROUTES.length, new Set(NAV_ROUTES.map((r) => r.route)).size);
+
+  const badIcon = NAV_ROUTES.filter((r) => !NAV_ICONS.includes(r.icon)).map((r) => r.route);
+  eq('every destination falls back to an icon this app can draw', badIcon, []);
+
+  const badLabel = NAV_ROUTES.filter(
+    (r) => typeof r.label !== 'string' || !r.label.trim() || r.label.length > NAV_LABEL_MAX
+  ).map((r) => r.route);
+  eq('every destination falls back to a label that fits under an icon', badLabel, []);
+
+  // The normaliser, which is the one piece of string handling between what a route is written
+  // as and what it is looked up as. `//x` is the case worth naming: repairing it into `/`
+  // would turn a protocol-relative URL into a legal path.
+  eq('a trailing slash is not a different page', normalizeNavRoute('/learn/'), '/learn');
+  eq('the root keeps its slash', normalizeNavRoute('/'), '/');
+  eq('surrounding whitespace is typing, not meaning', normalizeNavRoute('  /learn  '), '/learn');
+  eq('a protocol-relative URL is NOT repaired into a path', normalizeNavRoute('//evil.example'), '//evil.example');
+  eq('a trailing slash still finds the page', navRouteEntry('/learn/')?.route, '/learn');
+}
+
+// ============================================================ 16 - custom buttons
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  The સંચાલક's own buttons
+  ────────────────────────────────────────────────────────────────────────────
+
+  The feature this file grew for. Everything above proves the nine built-ins behave; this
+  proves the tenth kind of item behaves, and — the half that actually matters — that the one
+  new field which decides a destination cannot be made to decide a bad one.
+
+  The security assertions are the ones to read first. A custom item is the only place in this
+  system where a stored value influences where a button goes, so `route` is now the field the
+  file header's rule is about, and it is asserted from three directions: the resolver drops
+  what it cannot look up, the validator refuses it, and what comes out of the resolver is
+  identity-equal to a frozen object from NAV_ROUTES rather than merely string-equal to it.
+  The last of those is the one a future refactor would break silently.
+*/
+group('acceptance 16 - custom buttons');
+{
+  /** One custom item in the shape the panel writes. */
+  const cust = (n, over = {}) => ({
+    key: `${NAV_CUSTOM_PREFIX}btn-${n}`,
+    label: 'યાત્રા',
+    icon: 'book',
+    route: '/learn',
+    visible: true,
+    enabled: true,
+    ...over,
+  });
+
+  /** Two built-ins that satisfy the floor and §8, plus whatever is being tested. */
+  const withHome = (...extra) => stored(nav('home'), nav('darshan'), ...extra);
+
+  // ---- 2. create ----------------------------------------------------------
+  const made = newCustomItem({ route: '/learn', label: 'યાત્રા', icon: 'book' }, ['custom:btn-1']);
+  eq('a new custom button takes the first free key', made.key, 'custom:btn-2');
+  eq('it knows which kind it is without being told', [made.isCustom, made.type], [true, 'custom']);
+  /*
+    Created switched off, and asserted rather than left to the panel. A visible new button is
+    an immediate sixth cell in a five-cell bar, so the whole list would be refused for a
+    reason the સંચાલક did not choose - and the refusal would name the ceiling rather than the
+    button he just made.
+  */
+  eq('it is created hidden so it cannot break the bar it joins', [made.visible, made.enabled], [false, true]);
+  eq('a custom button cannot be created on a page this app has no route for',
+    newCustomItem({ route: '/nope', label: 'x', icon: 'book' }), null);
+  eq('nor on an off-site URL',
+    newCustomItem({ route: 'https://evil.example', label: 'x', icon: 'book' }), null);
+  eq('the key counter stops at the ceiling',
+    makeCustomKey(Array.from({ length: NAV_CUSTOM_MAX }, (_, i) => `custom:btn-${i + 1}`)), null);
+
+  // ---- the happy path resolves ---------------------------------------------
+  const good = withHome(cust(1));
+  eq('a custom button is valid alongside built-ins', validateMobileNav(good).ok, true);
+  eq('and it stands in the bar', keysOf(resolveMobileNav(good)), ['home', 'darshan', 'custom:btn-1']);
+  eq('carrying the destination table\'s route', routesOf(resolveMobileNav(good)), ['/', '/darshan', '/learn']);
+  eq('and the સંચાલક\'s own word', resolveMobileNav(good)[2].label, 'યાત્રા');
+  eq('a built-in beside it is still a built-in', resolveMobileNav(good).map((i) => i.type),
+    ['builtin', 'builtin', 'custom']);
+
+  // ---- 3. edit -------------------------------------------------------------
+  const edited = withHome(cust(1, { label: 'મારો ઇતિહાસ', icon: 'star', route: '/history' }));
+  eq('editing a custom button changes its word, picture and page',
+    [resolveMobileNav(edited)[2].label, resolveMobileNav(edited)[2].icon, resolveMobileNav(edited)[2].route],
+    ['મારો ઇતિહાસ', 'star', '/history']);
+  eq('and the edit is valid', validateMobileNav(edited).ok, true);
+
+  // ---- 4. delete -----------------------------------------------------------
+  /*
+    Deleting is the ABSENCE of a row and nothing else - there is no tombstone and no deleted
+    flag. That is the whole assertion: a list without the item resolves to a bar without the
+    button, and nothing anywhere resurrects it. The page it opened is untouched by definition,
+    because no part of this system has ever written a page.
+  */
+  const afterDelete = withHome();
+  eq('a deleted custom button leaves no trace in the bar', keysOf(resolveMobileNav(afterDelete)), ['home', 'darshan']);
+  eq('and the destination it used is still a page this app serves', navRouteEntry('/learn')?.route, '/learn');
+
+  // ---- 5. duplicate --------------------------------------------------------
+  const copy = duplicateNavItem(cust(1), ['custom:btn-1']);
+  eq('a copy gets a new identity, never the original\'s', copy.key !== 'custom:btn-1', true);
+  eq('the copy is a custom item', copy.isCustom, true);
+  eq('it points at the same page', copy.route, '/learn');
+  eq('and arrives switched off', copy.visible, false);
+  /*
+    Copying a BUILT-IN is the useful half, and the reason duplicateNavItem() is not restricted
+    to custom rows: "the same page, under a second word, further along the bar" is a thing only
+    a custom item can express, because a built-in's key IS its destination and there is exactly
+    one of it.
+  */
+  const copiedBuiltin = duplicateNavItem(navRegistryEntry('darshan'), ['custom:btn-1']);
+  eq('a built-in can be copied into a custom button', [copiedBuiltin.key, copiedBuiltin.route],
+    ['custom:btn-2', '/darshan']);
+  eq('the copy of a built-in is not itself a built-in', copiedBuiltin.isCustom, true);
+  eq('there is no room for a copy at the ceiling',
+    duplicateNavItem(cust(1), Array.from({ length: NAV_CUSTOM_MAX }, (_, i) => `custom:btn-${i + 1}`)), null);
+
+  // ---- 6. reorder ----------------------------------------------------------
+  const mixed = [nav('home'), cust(1), nav('darshan')];
+  eq('a custom button moves like any other row', reorder(mixed, 1, 2).map((i) => i.key),
+    ['home', 'darshan', 'custom:btn-1']);
+  eq('and the saved order is the order that resolves',
+    keysOf(resolveMobileNav(toStoredMobileNav(reorder(mixed, 1, 2)))),
+    ['home', 'darshan', 'custom:btn-1']);
+  eq('a custom button can be moved to the front, behind home\'s position only by order',
+    keysOf(resolveMobileNav(toStoredMobileNav(reorder([nav('home'), nav('darshan'), cust(1)], 2, 0)))),
+    ['custom:btn-1', 'home', 'darshan']);
+
+  // ---- 7 & 8. hidden and disabled ------------------------------------------
+  const hidden = withHome(cust(1, { visible: false }));
+  eq('a hidden custom button is not in the bar', keysOf(resolveMobileNav(hidden)), ['home', 'darshan']);
+  eq('but it is still in the configuration', keysOf(resolveMobileNavConfig(hidden)),
+    ['home', 'darshan', 'custom:btn-1']);
+  const disabled = withHome(cust(1, { enabled: false }));
+  eq('a disabled custom button is not in the bar', keysOf(resolveMobileNav(disabled)), ['home', 'darshan']);
+  eq('and it too is remembered', keysOf(resolveMobileNavConfig(disabled)), ['home', 'darshan', 'custom:btn-1']);
+  eq('hiding one is a valid configuration', validateMobileNav(hidden).ok, true);
+
+  // ---- 9-12. the routes that must be refused --------------------------------
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    THE GROUP THAT MATTERS
+    ────────────────────────────────────────────────────────────────────────────
+
+    `settings` is writable through PostgREST by anyone `has_permission('settings.update')`
+    admits, with no obligation to go anywhere near admin/src. Every string below is therefore
+    something that CAN arrive in the row, and each is asserted twice: refused on the way in,
+    and dropped on the way out. Either alone would be a hole - the first because a row written
+    before this build existed was never offered to the validator, the second because a stored
+    row that looks authoritative in psql is a trap for the next person to read it.
+  */
+  const BAD_ROUTES = [
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'https://evil.example/steal',
+    'http://evil.example',
+    '//evil.example',
+    'mailto:someone@example.com',
+    '/admin',
+    '/admin/users',
+    '/leaderbord',
+    '/learn?next=https://evil.example',
+    '/learn#/../admin',
+    'learn',
+    '',
+    '   ',
+  ];
+  const rejected = BAD_ROUTES.filter((r) => navRouteError(r) === null);
+  eq('every dangerous or unknown route is named as a problem', rejected, []);
+
+  const accepted = BAD_ROUTES.filter((r) => validateMobileNav(withHome(cust(1, { route: r }))).ok);
+  eq('and none of them can be saved', accepted, []);
+
+  const rendered = BAD_ROUTES.filter((r) =>
+    keysOf(resolveMobileNav(withHome(cust(1, { route: r })))).includes('custom:btn-1')
+  );
+  eq('and none of them can be rendered', rendered, []);
+
+  eq('a bad custom route costs one button, not the bar',
+    keysOf(resolveMobileNav(withHome(cust(1, { route: 'https://evil.example' })))), ['home', 'darshan']);
+
+  // The messages are distinct, because "this app has no page at https://evil.example" is true
+  // and useless: a સંચાલક who pasted a link has made a specific mistake and should be told
+  // which one it was.
+  eq('an off-site URL is named as an off-site URL',
+    /link to somewhere outside this app/.test(navRouteError('https://evil.example')), true);
+  eq('a javascript: URL is named as one too',
+    /link to somewhere outside this app/.test(navRouteError('javascript:alert(1)')), true);
+  eq('a protocol-relative URL is named as another site',
+    /link to another site/.test(navRouteError('//evil.example')), true);
+  eq('an unrouted path is named as a page that does not exist yet',
+    /has no page at/.test(navRouteError('/leaderbord')), true);
+
+  /*
+    Identity, not equality. `===` against the frozen NAV_ROUTES object proves the resolved
+    route came OUT of the table rather than being a string that happens to match one - which
+    is the difference a future refactor would erase silently. The whole file header is one
+    sentence about this line.
+  */
+  const resolvedRoute = resolveMobileNav(withHome(cust(1)))[2].route;
+  eq('the resolved route is the frozen table\'s own value',
+    resolvedRoute === NAV_ROUTES.find((r) => r.route === '/learn').route, true);
+  const allResolved = resolveMobileNav(withHome(cust(1), cust(2, { route: '/history', label: 'પ્રગતિ' })));
+  const legalRoutes = new Set([...NAV_ROUTES.map((r) => r.route), ...NAV_REGISTRY.map((r) => r.route)]);
+  eq('nothing resolvable carries a route from outside code', allResolved.filter((i) => !legalRoutes.has(i.route)), []);
+
+  // A built-in still cannot be re-pointed, and the custom mechanism did not open a back door
+  // into doing so: `route` on a built-in row is ignored by the resolver and refused by the
+  // validator, exactly as before custom items existed.
+  eq('a built-in row carrying a custom destination is still refused',
+    validateMobileNav(stored(nav('home', { route: '/learn' }), nav('darshan'))).ok, false);
+  eq('and still resolves to its own page',
+    routesOf(resolveMobileNav(stored(nav('home', { route: '/learn' }), nav('darshan')))),
+    DEFAULT_ROUTES);
+
+  // ---- 13. icons -----------------------------------------------------------
+  eq('a custom button cannot carry a picture this app cannot draw',
+    validateMobileNav(withHome(cust(1, { icon: 'skull' }))).ok, false);
+  eq('a custom button must say which picture it uses',
+    validateMobileNav(withHome(cust(1, { icon: undefined }))).ok, false);
+  /*
+    A list carrying an undrawable icon falls back WHOLE, and this is the behaviour rather than
+    a per-field repair. The domain file argues it at length and the reasoning is the same for
+    a custom item as for a built-in: a configuration that is not valid is damage, and honouring
+    the half of it that parses is how a યુવક ends up with a bar somebody else designed. So the
+    assertion is the default four, not a corrected third button.
+  */
+  eq('a list with an undrawable icon falls back to the built-in four',
+    keysOf(resolveMobileNav(withHome(cust(1, { icon: 'skull' })))), DEFAULT_KEYS);
+
+  /*
+    Where the per-field fallback IS reachable: the panel's projection, which is handed working
+    items rather than stored ones and may be given one that is not finished. It substitutes the
+    destination's own word and picture rather than writing an empty label - so no path through
+    this module can put a cell with no word in front of a યુવક.
+  */
+  const bare = toStoredMobileNav([{ key: 'custom:btn-1', route: '/learn', visible: true, enabled: true }]);
+  eq('an unfinished custom item is completed from its destination',
+    [bare[0].label, bare[0].icon, bare[0].route], ['યાત્રા', 'book', '/learn']);
+  eq('an undrawable icon is replaced on the way to the row',
+    toStoredMobileNav([{ key: 'custom:btn-1', route: '/learn', icon: 'skull' }])[0].icon, 'book');
+  eq('and an item with no destination at all never reaches the row',
+    toStoredMobileNav([{ key: 'custom:btn-1', route: 'javascript:alert(1)', label: 'x', icon: 'book' }]), []);
+
+  // ---- 14. identities ------------------------------------------------------
+  eq('two items cannot share one id', validateMobileNav(withHome(cust(1), cust(1, { label: 'બીજું' }))).ok, false);
+  eq('and the refusal says so', /appears twice/.test(validateMobileNav(withHome(cust(1), cust(1))).gu), true);
+  eq('a malformed id is refused', validateMobileNav(withHome(cust(1, { key: 'custom:Bad Key!' }))).ok, false);
+  eq('and dropped rather than rendered',
+    keysOf(resolveMobileNav(withHome(cust(1, { key: 'custom:Bad Key!' })))), ['home', 'darshan']);
+  eq('an id with no slug at all is refused', isValidCustomKey('custom:'), false);
+  eq('an id that only looks custom is not one', isCustomKey('customish'), false);
+  eq('a registry key is never mistaken for a custom one', NAV_REGISTRY.filter((r) => isCustomKey(r.key)), []);
+
+  // ---- labels ---------------------------------------------------------------
+  eq('a custom button must have a name', validateMobileNav(withHome(cust(1, { label: '' }))).ok, false);
+  eq('whitespace is not a name', validateMobileNav(withHome(cust(1, { label: '   ' }))).ok, false);
+  eq('a name longer than the cap is refused',
+    validateMobileNav(withHome(cust(1, { label: 'ક'.repeat(NAV_LABEL_MAX + 1) }))).ok, false);
+  eq('Gujarati is a name like any other', validateMobileNav(withHome(cust(1, { label: 'લીડરબોર્ડ' }))).ok, true);
+  /*
+    A custom item with no label RESOLVES to the destination's word rather than to nothing -
+    the resolver forgives what the validator refuses, so no configuration can produce a cell
+    with a picture and no word for a યુવક to read.
+  */
+  /*
+    A nameless custom item is refused on the way in, and a list containing one falls back
+    whole on the way out — the same "damage is damage" rule as the icon above. What guarantees
+    a યુવક never sees a cell with a picture and no word is the projection, asserted under
+    icons: an empty label becomes the destination's own before it can reach the row.
+  */
+  eq('a list with a nameless custom button falls back to the built-in four',
+    keysOf(resolveMobileNav(withHome(cust(1, { label: '' })))), DEFAULT_KEYS);
+  eq('and a nameless one that reaches the projection is given the destination\'s word',
+    toStoredMobileNav([{ key: 'custom:btn-1', route: '/learn', label: '', icon: 'book' }])[0].label, 'યાત્રા');
+
+  // ---- 18. the ceilings -----------------------------------------------------
+  const sixShown = stored(
+    nav('home'), nav('darshan'), nav('revision'), nav('profile'),
+    cust(1), cust(2, { label: 'બીજું' })
+  );
+  eq('six visible buttons is refused however they are made up', validateMobileNav(sixShown).ok, false);
+  eq('and the refusal names the ceiling', /at most 5/.test(validateMobileNav(sixShown).gu), true);
+  eq('a bar over the ceiling falls back whole, rather than being trimmed',
+    keysOf(resolveMobileNav(sixShown)), DEFAULT_KEYS);
+
+  const tooManyCustom = stored(
+    nav('home'), nav('darshan'),
+    ...Array.from({ length: NAV_CUSTOM_MAX + 1 }, (_, i) =>
+      cust(i + 1, { visible: false, label: `બ${i}` }))
+  );
+  eq(`more than ${NAV_CUSTOM_MAX} custom buttons is refused`, validateMobileNav(tooManyCustom).ok, false);
+  const atCeiling = stored(
+    nav('home'), nav('darshan'),
+    ...Array.from({ length: NAV_CUSTOM_MAX }, (_, i) => cust(i + 1, { visible: false, label: `બ${i}` }))
+  );
+  eq(`exactly ${NAV_CUSTOM_MAX} is allowed`, validateMobileNav(atCeiling).ok, true);
+
+  // ---- §8, which a custom button cannot satisfy ------------------------------
+  /*
+    A custom button to `/` is a button to the મુખપૃષ્ઠ and is NOT the way home.
+
+    The guarantee §8 makes is that there is a button back which the configuration cannot take
+    away - and a custom item is by definition one that can be deleted, so honouring it here
+    would reduce the guarantee to "there was one at the moment you saved". The refusal is
+    therefore correct and is asserted so that a future change which "helpfully" accepts it has
+    to argue with this line first.
+  */
+  const homeReplaced = stored(nav('darshan'), cust(1, { route: '/', label: 'ઘર' }));
+  eq('a custom button to / does not stand in for home', validateMobileNav(homeReplaced).ok, false);
+  eq('and the refusal names the item that is missing',
+    validateMobileNav(homeReplaced).gu.includes(navRegistryEntry(NAV_REQUIRED_KEY).label), true);
+  eq('and the bar falls back to one that has a way home',
+    keysOf(resolveMobileNav(homeReplaced)), DEFAULT_KEYS);
+
+  // ---- 19. what a configuration written before any of this still does ---------
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    The migration assertion, and it asserts that there is nothing to migrate
+    ────────────────────────────────────────────────────────────────────────────
+
+    Every settings row in existence holds built-in keys only. The claim being made is the
+    strongest available one: such a row does not merely go on working, it round-trips to the
+    IDENTICAL bytes. `type` and `isCustom` are derived on read and written nowhere, and
+    `toStoredMobileNav()` emits the same seven fields in the same order it always did - so a
+    save that changes nothing produces a value byte for byte equal to the stored one, the
+    panel's dirty check stays honest, and no deploy rewrites anybody's row.
+  */
+  const legacy = [
+    { key: 'home', label: 'મુખપૃષ્ઠ', icon: 'home', route: '/', visible: true, enabled: true, sortOrder: 1 },
+    { key: 'darshan', label: 'દર્શન', icon: 'darshan', route: '/darshan', visible: true, enabled: true, sortOrder: 2 },
+    { key: 'revision', label: 'પુનરાવર્તન', icon: 'list', route: '/level/3', visible: true, enabled: true, sortOrder: 3 },
+    { key: 'profile', label: 'મારું', icon: 'person', route: '/profile', visible: true, enabled: true, sortOrder: 4 },
+  ];
+  eq('a row written before custom buttons existed is still valid', validateMobileNav(legacy).ok, true);
+  eq('and resolves to the same four', keysOf(resolveMobileNav(legacy)), DEFAULT_KEYS);
+  eq('and re-serialises to the identical bytes', toStoredMobileNav(resolveMobileNavConfig(legacy)), legacy);
+  eq('the seeded default still round-trips too',
+    toStoredMobileNav(resolveMobileNavConfig(DEFAULT_MOBILE_NAV)).map((i) => i.key), DEFAULT_KEYS);
+  /*
+    The `sort_order` spelling the brief uses, on a custom item. Read but never written, exactly
+    as on a built-in: an integration or a hand-run SQL patch may have used it, and an item
+    whose position silently became 0 because the key was spelled the other way is a bar that
+    reorders itself with nothing on any screen to say why.
+  */
+  eq('snake case is read on a custom item too',
+    keysOf(resolveMobileNav([
+      { ...cust(1), sortOrder: undefined, sort_order: 1 },
+      nav('home', { sortOrder: 2 }),
+      nav('darshan', { sortOrder: 3 }),
+    ])),
+    ['custom:btn-1', 'home', 'darshan']);
+
+  // ---- what the panel and the app agree about ---------------------------------
+  eq('navDestination answers for a built-in', navDestination({ key: 'darshan' })?.route, '/darshan');
+  eq('and for a custom item', navDestination({ key: 'custom:btn-1', route: '/learn' })?.route, '/learn');
+  eq('and refuses a custom item with no destination', navDestination({ key: 'custom:btn-1', route: '/nope' }), null);
+  eq('and refuses an unknown built-in', navDestination({ key: 'nonsense' }), null);
+  eq('a built-in cannot borrow a destination from its stored route',
+    navDestination({ key: 'nonsense', route: '/learn' }), null);
+}
+
+// ============================================================ 17 - the SQL, again
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  NAV_ROUTES against the database's copy of it
+  ────────────────────────────────────────────────────────────────────────────
+
+  Acceptance 14's argument, applied to the second table. The panel offers what NAV_ROUTES
+  holds; the trigger admits what `nav_routes()` holds. Two copies that disagree produce the
+  specific, miserable failure 14 describes: the સંચાલક picks a page from a list the panel
+  showed him, and the database refuses the save with an error about it.
+
+  ────────────────────────────────────────────────────────────────────────────
+  Why this group is SHORTER than 14 rather than longer
+  ────────────────────────────────────────────────────────────────────────────
+
+  Because nine of the ten destinations are not written down twice at all. Both sides DERIVE
+  them from the registry — `NAV_REGISTRY.filter(ready)` here, `select … from nav_registry()
+  where ready` there — and acceptance 14 has already asserted that the registry's two copies
+  agree, routes included. So for those nine the two tables cannot disagree without 14 failing
+  first, and re-checking them here would be asserting the same fact twice while implying it
+  had been checked two ways.
+
+  What is genuinely written twice is the extras list — one row today — and the SHAPE of the
+  derivation, which is the thing that would quietly stop being true if somebody replaced the
+  select with a literal list "for clarity". Both are checked below.
+*/
+group('acceptance 17 - drift, the destination table against the database');
+{
+  const MIGRATIONS = new URL('../supabase/migrations/', import.meta.url);
+  const DEFINES = 'create or replace function public.nav_routes';
+
+  const files = existsSync(fileURLToPath(MIGRATIONS))
+    ? readdirSync(fileURLToPath(MIGRATIONS)).filter((f) => f.endsWith('.sql')).sort()
+    : [];
+  const defining = files.filter((f) => readFileSync(new URL(f, MIGRATIONS), 'utf8').includes(DEFINES));
+  const latest = defining[defining.length - 1] || null;
+
+  if (!latest) {
+    skip('NAV_ROUTES vs nav_routes()', 'no migration defines nav_routes() yet - re-run once one lands');
+  } else {
+    const sql = readFileSync(new URL(latest, MIGRATIONS), 'utf8');
+    console.log(`    nav_routes() last defined in ${latest}`);
+
+    // The function body only, so a route mentioned in the file's header prose cannot stand in
+    // for a row in the table - 0028's header discusses /learn and /admin at length.
+    const start = sql.indexOf(DEFINES);
+    const body = sql.slice(start, sql.indexOf('$$;', start));
+
+    /*
+      The derivation itself. If this stops being true, the nine built-in destinations become a
+      second hand-written list and every guarantee above evaporates - so the shape is asserted
+      rather than assumed, and the `ready` filter with it: without it, the database would admit
+      a destination for a page src/App.jsx does not serve.
+    */
+    eq('the built-in destinations are derived from the registry, not repeated',
+      /from\s+public\.nav_registry\(\)/.test(body), true);
+    eq('and only the ones this build actually serves', /where\s+r\.ready/.test(body), true);
+
+    /** Every destination that is NOT a ready built-in's - the part written twice. */
+    const extras = NAV_ROUTES.filter((r) => !NAV_REGISTRY.some((b) => b.ready && b.route === r.route));
+    eq('there is at least one destination no built-in names', extras.length > 0, true);
+
+    const drift = [];
+    for (const r of extras) {
+      if (!body.includes(`'${r.route}'`)) {
+        drift.push(`${r.route} is offered by the panel and absent from ${latest}`);
+        continue;
+      }
+      if (!body.includes(`'${r.icon}'`)) drift.push(`${r.route}: icon ${r.icon} is not in ${latest}`);
+      if (!body.includes(r.label)) drift.push(`${r.route}: label ${r.label} is not in ${latest}`);
+    }
+    eq('every extra destination agrees with the SQL', drift, []);
+
+    /*
+      The other direction, and it is the one that matters for safety: a route the DATABASE
+      admits and this build does not offer is a destination a curl could put under a button
+      while the panel has no idea it exists. Every quoted path in the body must be one of the
+      extras - the derived nine are not quoted anywhere in it, which is the point.
+    */
+    const sqlPaths = [...body.matchAll(/'(\/[^']*)'/g)].map((m) => m[1]);
+    const unknown = sqlPaths.filter((p) => !NAV_ROUTES.some((n) => n.route === p));
+    eq('the database admits no destination this build has never heard of', unknown, []);
+    const undeclared = sqlPaths.filter((p) => !extras.some((e) => e.route === p));
+    eq('and none of the derived nine has been quietly written out again', undeclared, []);
+
+    // The custom-key namespace and the ceiling, which the trigger enforces independently of
+    // the panel. A prefix or a number that disagrees is a save the panel accepts and the
+    // database refuses.
+    eq('the migration knows the custom key namespace', sql.includes(`${NAV_CUSTOM_PREFIX}%`), true);
+    eq('and carries the same ceiling on custom items', sql.includes(String(NAV_CUSTOM_MAX)), true);
+    eq('and the normaliser it shares with this module',
+      sql.includes('nav_normalize_route'), true);
   }
 }
 

@@ -123,6 +123,54 @@ const PATHS = {
       <path d="M20 4.8h-4.9a3 3 0 0 0-3 3v11.6a2.6 2.6 0 0 1 2.6-2.4H20Z" />
     </>
   ),
+
+  /*
+    The four below arrived with custom buttons (NAV_ROUTES in shared/domain/navigation.js).
+
+    Ten pictures were enough while there were nine buttons and each had an obvious one. A
+    સંચાલક who may now put his own word on his own button is choosing a picture to tell it
+    apart from four others in a 64px cell, and 'star or trophy' is not a choice. These are the
+    four generic shapes that carry meaning without naming a particular page — a measurement, a
+    group, a note and a question — drawn to the same rules as the ten above: 24x24, stroked in
+    currentColor at 1.7, nothing filled and nothing fetched.
+  */
+
+  // Three bars on a baseline. Ascending, because a chart that goes up is the one shape that
+  // reads as "how much" rather than as an abstract set of rectangles at this size.
+  chart: (
+    <>
+      <path d="M3.8 20.2h16.4" />
+      <path d="M7.4 20.2v-5.8M12 20.2V7.4M16.6 20.2v-9" />
+    </>
+  ),
+  // Two people, the second one behind and partial. Only the front figure is a closed shape:
+  // drawing both in full at 24px puts two heads of equal weight in the cell and reads as a
+  // pattern rather than as a group.
+  users: (
+    <>
+      <circle cx="9.4" cy="8.3" r="3.4" />
+      <path d="M3.3 20.3a6.1 6.1 0 0 1 12.2 0" />
+      <path d="M16.1 5.3a3.4 3.4 0 0 1 0 6M17.5 14.4a5.5 5.5 0 0 1 3.2 5.9" />
+    </>
+  ),
+  // A note. The stem below the dot rather than above it, which is the only arrangement that
+  // is not a lower-case L at a glance.
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.8" />
+      <path d="M12 11.2v5.4" />
+      <circle cx="12" cy="7.9" r="0.95" />
+    </>
+  ),
+  // A question. The hook is drawn open at the bottom so it does not close into a blob where
+  // it meets the dot at small sizes.
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.8" />
+      <path d="M9.5 9.5a2.6 2.6 0 0 1 5.1.6c0 1.7-2.6 2.2-2.6 4" />
+      <circle cx="12" cy="17.1" r="0.95" />
+    </>
+  ),
 };
 
 /*

@@ -530,7 +530,15 @@ export default function GalleryViewer({
               <span className="gv-desc-i" aria-hidden="true">
                 ⓘ
               </span>
-              <span>વર્ણન</span>
+              {/*
+                The label says what the વર્ણન IS, not what the tap will do. A યુવક who
+                cannot tell an open panel from a closed one by the colour of the pill alone
+                can read it off the word: ચાલુ while the text is under his thumb, બંધ while
+                it is not. The aria-label keeps saying what the tap does, because a screen
+                reader already announces the state through aria-expanded and would otherwise
+                say it twice.
+              */}
+              <span>વર્ણન {descOpen && hasDesc ? 'ચાલુ' : 'બંધ'}</span>
             </button>
           </div>
 
@@ -543,7 +551,9 @@ export default function GalleryViewer({
             onClick={() => setIsAuto((a) => !a)}
           >
             <span aria-hidden="true">{isAuto ? '⏸' : '▶'}</span>
-            <span>ઓટો સ્લાઇડશો</span>
+            {/* Same reading as the વર્ણન pill: the word reports the state, ⏸/▶ and the
+                gold fill repeat it, and only the aria-label speaks in the imperative. */}
+            <span>ઓટો સ્લાઇડશો {isAuto ? 'ચાલુ' : 'બંધ'}</span>
           </button>
         </div>
       </div>

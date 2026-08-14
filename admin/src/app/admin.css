@@ -173,8 +173,22 @@ a:hover { text-decoration: underline; }
 :focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; border-radius: var(--r-sm); }
 
 /* Gujarati and English mixed in one string must never be clipped or overlapped: word-break
- * keeps a long Drive URL or an unbroken વર્ણન inside its column instead of widening it. */
-h1, h2, h3, p, dd, td, th, li, label { overflow-wrap: anywhere; }
+ * keeps a long Drive URL or an unbroken વર્ણન inside its column instead of widening it.
+ *
+ * `td` and `th` are deliberately NOT in this list, and that is a fix rather than an
+ * oversight. `overflow-wrap: anywhere` does two things: it permits a break at any character,
+ * *and* it makes the browser compute the element's min-content width as one character wide.
+ * The second half is the damage. A table is sized from its cells' min-content widths, so
+ * with `anywhere` on every cell the layout engine believes every column can shrink to a
+ * single glyph and happily does it — which is how a 19-column progress report rendered
+ * "Surat" as "Sur / at", "Varachha" as "Vara / chha" and a name as three stacked fragments.
+ * No amount of `min-width` on the column wins that argument, because the table had already
+ * been told the cell was willing.
+ *
+ * Cells get `break-word` instead, in the table block below: it still breaks a word that
+ * genuinely cannot fit, so a long Drive URL is still contained, but it leaves min-content
+ * sizing alone so an ordinary word is never split. */
+h1, h2, h3, p, dd, li, label { overflow-wrap: anywhere; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -454,12 +468,35 @@ h1, h2, h3, p, dd, td, th, li, label { overflow-wrap: anywhere; }
 .dt th, .dt td {
   padding: var(--sp-3) var(--sp-4);
   text-align: start; border-bottom: 1px solid var(--border); vertical-align: middle;
+  /* Not `anywhere` — see the note on the overflow-wrap rule near the top of this file.
+   * `break-word` still contains an unbreakable Drive URL; it just refuses to split an
+   * ordinary word to make a column narrower than the word. */
+  overflow-wrap: break-word;
 }
 .dt th {
   background: var(--surface-sunken); color: var(--text-muted);
   font-weight: var(--fw-semi); font-size: var(--fs-help);
   letter-spacing: .03em; white-space: nowrap;
   position: sticky; top: 0; z-index: 1;
+}
+
+/*
+  A header that stays put while the rows scroll.
+
+  `.dt th` has carried `position: sticky; top: 0` for a long time and it has never worked,
+  because `.table-wrap` sets `overflow-x: auto` — and a box that scrolls in one axis is a
+  scroll container in both. The header was dutifully sticking to the top of *that box*,
+  which is itself off-screen once the page scrolls past it, so there was nothing to see.
+
+  Sticky needs a scroll container it can stick inside, so the wrap gets a height and owns
+  the vertical scrolling for tables that opt in. Opt-in via a modifier rather than applied
+  to `.table-wrap` everywhere: a five-row table inside a fixed-height scroller would gain a
+  pointless inner scrollbar and lose the page's own rhythm.
+*/
+.table-wrap.is-tall {
+  max-height: min(72vh, 780px);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 .dt tbody tr:last-child td { border-bottom: 0; }
 .dt tbody tr:hover { background: var(--surface-hover); }
@@ -905,7 +942,13 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 /* §37 — a finger needs more room than a cursor. This raises every control at once
  * rather than per component, and only where the pointer is actually coarse. */
 @media (pointer: coarse) {
-  :root { --tap: 44px; --ctl-h-sm: 38px; }
+  /* --ctl-h-sm was 38px here, which is below the 44px §36 asks for and which every other
+     control on a touch screen honours. It went unnoticed because the only checker that
+     measured tap targets (verify-admin-mobile) is unauthenticated and never reaches a screen
+     with a `.btn-sm` on it; scripts/verify-progress-ui.mjs gets past the gate and found a
+     38px "Reset to default columns" sitting inside the column picker. A small button is a
+     denser button on a desktop, not a smaller finger target on a phone. */
+  :root { --tap: 44px; --ctl-h-sm: 44px; }
 
   /* 16px is not a taste decision. iOS Safari zooms the page when a field smaller than
    * this takes focus, and it does not zoom back out on blur — so one tap on a filter

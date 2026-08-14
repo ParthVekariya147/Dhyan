@@ -143,6 +143,28 @@ const Profile = lazy(() => import('./pages/Profile'));
 const History = lazy(() => import('./pages/History'));
 
 /**
+ * આજની પ્રગતિ — the day a યુવક writes down himself, and lazy for two reasons.
+ *
+ * The ordinary one first: it is the only screen that touches 0034's three functions, so the
+ * chunk boundary is what keeps `src/lib/dailyRecord.js` — the RPCs, the shapes, the countdown —
+ * out of the bundle a visitor downloads to see the નોંધણી form. §14 asks the app to work on
+ * slow networks and this page is on nobody's first visit: an account has to exist before there
+ * is a day to record.
+ *
+ * The sharper one: it is the app's only *writing* screen outside auth and the levels
+ * themselves, and the only place a યુવક may state a figure the app did not observe. Keeping it
+ * in a chunk of its own means the code that does that is reachable from this route and from no
+ * other — so a future edit that put a count field on the મુખપૃષ્ઠ or inside a level would have
+ * to import it there and would be visible in the build the moment it did.
+ *
+ * There is deliberately **no NAV_REGISTRY key for it**. `ready: true` is a claim about this
+ * file, and shared/domain/navigation.js is not this task's to edit; a બોટમ બાર entry would also
+ * be a fifth default in a bar that holds five. It is reached from મારું, beside મારી પ્રગતિ,
+ * exactly the way /history and /settings are reached — see src/pages/Profile.jsx.
+ */
+const DailyActivity = lazy(() => import('./pages/DailyActivity'));
+
+/**
  * ક્રમાંક — lazy, and here the reason is about what the chunk contains rather than its size.
  *
  * This is the one screen in the app that shows a યુવક another યુવક's name, and everything that
@@ -541,6 +563,37 @@ export default function App() {
                 <Guarded>
                   <Suspense fallback={<Loading />}>
                     <History />
+                  </Suspense>
+                </Guarded>
+              }
+            />
+
+            {/*
+              આજની પ્રગતિ — the one screen a યુવક writes his own day into.
+
+              Inside the shell, so it keeps the bottom bar: he arrives from મારું and leaves the
+              same way, and a form without the bar would strand him at the foot of it. That
+              nesting IS the statement that this page gets the bar; nothing in AppShell.jsx
+              knows a single path.
+
+              <Guarded> and nothing more. `daily_record_get`, `daily_record_save` and
+              `daily_record_status` all derive the યુવક from `auth.uid()` and none takes a user
+              parameter, so the session this already requires IS the authorisation, and a second
+              check here would be a weaker copy of the one that actually holds (§13, §30). The
+              twenty-four hour window is enforced by the same functions: this route grants
+              nothing, and the countdown on the page is a display of the server's answer rather
+              than a permission of its own.
+
+              There is no :date segment and no :userId. The day is component state — a way of
+              looking at one page rather than a place — and a path parameter would turn a record
+              into a lookup, which is the thing §13 refuses.
+            */}
+            <Route
+              path="/daily"
+              element={
+                <Guarded>
+                  <Suspense fallback={<Loading />}>
+                    <DailyActivity />
                   </Suspense>
                 </Guarded>
               }

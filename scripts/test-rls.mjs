@@ -54,6 +54,15 @@
  *
  *  §K  **The leaderboard is an aperture, not a hole.** It is the one place a યુવક reads
  *      another યુવક, so what it does *not* return is the assertion.
+ *
+ *  §L  **The સંચાલક's progress report is not a public API** (0029). Its three functions run as
+ *      the owner and take arguments naming other people, so — exactly as `level4_publish()`
+ *      and `award_points()` do — they state the permission check in their own bodies rather
+ *      than inheriting one from a policy that does not apply to them. They **raise** instead of
+ *      returning nothing, which is the one place in this file where an empty result would be
+ *      the wrong assertion: a report that cannot tell "no યુવક has passed twenty" from "you
+ *      may not ask" will eventually be believed about the wrong one. What the numbers those
+ *      functions return actually mean is asserted in scripts/test-admin-progress.mjs.
  */
 import { asAnon, asUser, attempt, dockerAvailable, startDatabase } from './lib/pgtest.mjs';
 
@@ -125,6 +134,10 @@ const U = {
   // role through the bootstrap allowlist and has no row. The two are not interchangeable: only
   // a row can be updated, so the "cannot change your own role" guard is only reachable here.
   superadmin: '99999999-9999-4999-8999-999999999999',
+  // A CONTENT_MANAGER, who holds `darshan.*` and `settings.read` and neither `progress.read`
+  // nor `users.read` (0004:96). He is the role §L exists to refuse: the panel signs him in, the
+  // reports appear in his navigation, and the database is the only thing that says no.
+  contentmgr: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
 };
 
 const ACT = {};
@@ -142,6 +155,7 @@ async function fixtures(db) {
     [U.admin, 'ADM005', 'સંચાલક', '9800000005', 'ACTIVE'],
     [U.attacker, 'ATK006', 'હુમલાખોર', '9800000006', 'ACTIVE'],
     [U.superadmin, 'SUP007', 'મુખ્ય સંચાલક', '9800000007', 'ACTIVE'],
+    [U.contentmgr, 'CNT008', 'સામગ્રી સંચાલક', '9800000008', 'ACTIVE'],
   ];
   for (const [id, smk, name, mobile, status] of people) {
     await db.query('insert into auth.users (id, email) values ($1, $2)', [id, `${smk}@t.test`]);
@@ -164,6 +178,9 @@ async function fixtures(db) {
   await db.query(`insert into public.admin_profiles (id, role, status) values ($1, 'ADMIN', 'ACTIVE')`, [U.admin]);
   await db.query(`insert into public.admin_profiles (id, role, status) values ($1, 'SUPER_ADMIN', 'ACTIVE')`, [
     U.superadmin,
+  ]);
+  await db.query(`insert into public.admin_profiles (id, role, status) values ($1, 'CONTENT_MANAGER', 'ACTIVE')`, [
+    U.contentmgr,
   ]);
 
   for (let i = 1; i <= 12; i++) {
@@ -788,6 +805,184 @@ async function run(db) {
       return r.fields.map((f) => f.name).filter((n) => /id|uuid|mobile|email|smk/i.test(n));
     }),
     []
+  );
+
+  // ══════════════════════════════════════════════════════ §L the progress report (0029)
+  group('§L  the સંચાલક\'s progress report refuses, and does not merely return nothing');
+
+  eq('the CONTENT_MANAGER holds CONTENT_MANAGER', await roleOf(U.contentmgr), 'CONTENT_MANAGER');
+  eq(
+    'and holds neither permission 0029 asks for',
+    await asUser(db, U.contentmgr, async () =>
+      (
+        await db.query(
+          `select public.has_permission('progress.read') p, public.has_permission('users.read') u`
+        )
+      ).rows[0]
+    ),
+    { p: false, u: false }
+  );
+
+  const REPORT = 'select * from public.admin_progress_report()';
+  const SUMMARY = 'select public.admin_progress_summary()';
+
+  /*
+    42501 in all three cases, and it is worth naming which 42501 each one is.
+
+    For a signed-in caller it is `admin_assert_progress_reader()` raising with an explicit
+    errcode — the function is granted to `authenticated`, so the statement runs and the guard
+    on its first line is what stops it. For `anon` it is the missing EXECUTE grant, refused
+    before the body is entered at all. Two different defences reporting the same SQLSTATE, and
+    both of them have to hold: a grant widened to `anon` would leave the body's check standing,
+    and a body's check deleted would leave the grant standing for every signed-in યુવક.
+  */
+  refusedWith(
+    'a યુવક cannot run the report',
+    await asUser(db, U.yuvakA, () => attempt(db, REPORT)),
+    ['42501']
+  );
+  refusedWith(
+    'a યુવક cannot run the summary',
+    await asUser(db, U.yuvakA, () => attempt(db, SUMMARY)),
+    ['42501']
+  );
+  refusedWith(
+    'a યુવક cannot open his own detail document — it is a સંચાલક\'s function, not a self-service one',
+    await asUser(db, U.yuvakA, () => attempt(db, 'select public.admin_user_progress_detail($1)', [U.yuvakA])),
+    ['42501']
+  );
+  // The one that matters. `admin_user_progress_detail` takes a uuid and runs as the owner, so
+  // without the check in its body it would be a way for any signed-in યુવક to read another
+  // યુવક's name, mobile number, every દ્રશ્ય he has recalled and his whole લેવલ ૪ history —
+  // the exact hole §13 exists to refuse, reachable in one request.
+  refusedWith(
+    'and cannot open યુવક બી\'s',
+    await asUser(db, U.yuvakA, () => attempt(db, 'select public.admin_user_progress_detail($1)', [U.yuvakB])),
+    ['42501']
+  );
+
+  refusedWith(
+    'a SUSPENDED account cannot either',
+    await asUser(db, U.suspended, () => attempt(db, REPORT)),
+    ['42501']
+  );
+
+  refusedWith('an anonymous visitor cannot run the report', await asAnon(db, () => attempt(db, REPORT)), ['42501']);
+  refusedWith('nor the summary', await asAnon(db, () => attempt(db, SUMMARY)), ['42501']);
+  refusedWith(
+    'nor open anybody\'s detail document',
+    await asAnon(db, () => attempt(db, 'select public.admin_user_progress_detail($1)', [U.yuvakB])),
+    ['42501']
+  );
+
+  // A CONTENT_MANAGER is signed in, holds a real admin_profiles row, and is still refused —
+  // by the *body*, not by a missing grant. That is the distinction 0029's header draws: he is
+  // told he may not ask, rather than shown an empty report he would read as "nobody has done
+  // anything yet".
+  refusedWith(
+    'a CONTENT_MANAGER is refused the report',
+    await asUser(db, U.contentmgr, () => attempt(db, REPORT)),
+    ['42501']
+  );
+  refusedWith(
+    'a CONTENT_MANAGER is refused the summary',
+    await asUser(db, U.contentmgr, () => attempt(db, SUMMARY)),
+    ['42501']
+  );
+  refusedWith(
+    'a CONTENT_MANAGER is refused a detail document',
+    await asUser(db, U.contentmgr, () => attempt(db, 'select public.admin_user_progress_detail($1)', [U.yuvakB])),
+    ['42501']
+  );
+  eq(
+    'and refused by name, so the panel can tell this apart from an empty project',
+    (await asUser(db, U.contentmgr, () => attempt(db, REPORT))).message.includes(
+      'progress reporting requires progress.read and users.read'
+    ),
+    true
+  );
+
+  // The other direction, and it is the half a fix that locked everybody out would fail. A
+  // VIEWER and an ADMIN both hold `progress.read` and `users.read`, so both must get rows —
+  // and the row count is asserted against `profiles` itself rather than against a literal, so
+  // a fixture added later does not turn this into a false alarm.
+  const peopleCount = (await db.query('select count(*)::int c from public.profiles')).rows[0].c;
+
+  for (const [label, uid] of [['VIEWER', U.viewer], ['ADMIN', U.admin], ['SUPER_ADMIN', U.superadmin]]) {
+    eq(
+      `a ${label} runs the report and it covers every profile`,
+      await asUser(db, uid, async () => {
+        const r = await db.query(REPORT);
+        return [r.rows.length, Number(r.rows[0].total_rows)];
+      }),
+      [peopleCount, peopleCount]
+    );
+    eq(
+      `a ${label} runs the summary`,
+      await asUser(db, uid, async () => Number((await db.query(SUMMARY)).rows[0].admin_progress_summary.totalUsers)),
+      peopleCount
+    );
+    eq(
+      `a ${label} opens યુવક બી's detail document`,
+      await asUser(
+        db,
+        uid,
+        async () =>
+          (await db.query('select public.admin_user_progress_detail($1) d', [U.yuvakB])).rows[0].d.user.userId
+      ),
+      U.yuvakB
+    );
+  }
+
+  /*
+    And 0029 must not have widened the two functions it calls.
+
+    `level4_activity_states()` and `level4_completed_activity_ids()` both take a યુવક's uuid and
+    are granted to nobody (0010:239-241, 0012:125). 0029 reaches them from inside a function
+    that has already checked `progress.read`, which is the whole reason it can — and the
+    temptation while writing that file is to grant them instead. A grant here would hand every
+    signed-in યુવક the lock state and completion set of every other યુવક, with nothing in the
+    panel or in the migration to show that it had happened.
+
+    §H already asserts the first of these for the two-argument shape. This is the pair, stated
+    together, because they are one decision.
+  */
+  refusedWith(
+    'level4_activity_states is still not granted to authenticated',
+    await asUser(db, U.yuvakA, () => attempt(db, 'select * from public.level4_activity_states($1, $2)', [
+      U.yuvakB,
+      ACT.config,
+    ])),
+    ['42501']
+  );
+  refusedWith(
+    'not even about himself',
+    await asUser(db, U.yuvakA, () => attempt(db, 'select * from public.level4_activity_states($1, $2)', [
+      U.yuvakA,
+      ACT.config,
+    ])),
+    ['42501']
+  );
+  refusedWith(
+    'level4_completed_activity_ids is still not granted to authenticated',
+    await asUser(db, U.yuvakA, () => attempt(db, 'select public.level4_completed_activity_ids($1, $2)', [
+      U.yuvakB,
+      ACT.config,
+    ])),
+    ['42501']
+  );
+  refusedWith(
+    'and neither is level4_covered_scene_ids, which is how the coverage credit is computed',
+    await asUser(db, U.yuvakA, () => attempt(db, 'select public.level4_covered_scene_ids($1)', [U.yuvakB])),
+    ['42501']
+  );
+  refusedWith(
+    'a VIEWER holds no execute grant on them either — 0029 is the only way in',
+    await asUser(db, U.viewer, () => attempt(db, 'select * from public.level4_activity_states($1, $2)', [
+      U.yuvakB,
+      ACT.config,
+    ])),
+    ['42501']
   );
 }
 

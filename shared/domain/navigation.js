@@ -57,6 +57,30 @@
  * stored `route` were honoured, one curl would put an arbitrary path, or an off-site URL,
  * under a button that 2,000 people press without reading. The row is data; a destination is
  * not (§37).
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Custom buttons, and why they do not break the rule above
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The સંચાલક can now make buttons of his own — his word, his picture, his position, pointed
+ * at a page of his choosing. That last clause is the one that looks like it contradicts the
+ * sentence in bold, and it does not, because "of his choosing" means *chosen from
+ * NAV_ROUTES*: a second closed table, below the registry, holding every page this build
+ * serves. A custom item's stored `route` is a SELECTOR into that table and the resolver takes
+ * its answer from the frozen entry the lookup returns — so a route the table does not contain
+ * resolves to no button at all, and `javascript:`, an off-site URL and an unrouted path are
+ * all simply values the lookup misses.
+ *
+ * What changed is only that `key` stopped doing two jobs. It was the identity AND the
+ * destination-chooser, which is why there could only ever be nine buttons: naming anything
+ * meant naming one of nine keys. Now `key` is the identity alone (`home`, or `custom:btn-3`)
+ * and `route` chooses the destination for the custom kind. Every built-in behaves exactly as
+ * it did, down to the bytes in the row — see toStoredMobileNav().
+ *
+ * The developer still owns every page: NAV_ROUTES is in code, beside src/App.jsx's <Route>
+ * list, and scripts/test-navigation.mjs checks both directions of the claim. A સંચાલક decides
+ * WHERE, WHEN, WHETHER, in WHAT ORDER, under WHICH WORD and with WHICH PICTURE. He does not
+ * decide what a page does, and he cannot invent one.
  */
 
 /** The settings row. Sits beside 'app', 'levels' and 'journey' in the same table. */
@@ -86,6 +110,13 @@ export const MOBILE_BOTTOM_KEY = 'mobileBottom';
  * The names describe the drawing, not the destination ('grid', not 'level4'), because the
  * whole point of making the icon configurable is that a સંચાલક may want a different picture
  * on a button without changing where it goes.
+ *
+ * The last four arrived with custom buttons (NAV_ROUTES below) and are the reason the list
+ * grew at all: a સંચાલક who may now put his own word on his own button needs more than ten
+ * pictures to tell one from another, and every one of them still has to be a name in this
+ * list with a drawing behind it in src/components/NavIcon.jsx. Adding a name here without
+ * adding the drawing is a blank square on a phone, which is what the assertion under PATHS
+ * in that file exists to catch at build time.
  */
 export const NAV_ICONS = Object.freeze([
   'home',
@@ -98,6 +129,10 @@ export const NAV_ICONS = Object.freeze([
   'trophy',
   'star',
   'book',
+  'chart',
+  'users',
+  'info',
+  'help',
 ]);
 
 /**
@@ -223,6 +258,144 @@ export const NAV_REGISTRY = Object.freeze([
 ]);
 
 /**
+ * ────────────────────────────────────────────────────────────────────────────
+ * THE DESTINATION REGISTRY — every page a button of ANY kind may open.
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * NAV_REGISTRY above answers "which nine buttons does this app ship with". This answers a
+ * different and smaller question — "which pages exist to be pointed at" — and the two are
+ * separated because a custom button needs the second without inheriting the first.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What a custom button actually is
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Until this list existed, `key` was doing two jobs at once: it was the item's identity AND
+ * it was how the destination got chosen. That conflation is the whole reason the panel could
+ * only ever offer nine buttons — there was no way to say "a second button, to a page that
+ * already has one" or "a button to /learn, which no registry entry names", because saying
+ * anything at all meant naming one of the nine keys.
+ *
+ * So the two jobs are now separate fields:
+ *
+ *   key      the identity. `home`, `darshan`, … for the nine built-ins, exactly as before;
+ *            `custom:btn-3` for one the સંચાલક made. Nothing about a stored built-in row
+ *            changed, which is why every configuration saved before this list existed goes on
+ *            resolving byte for byte the same way.
+ *   route    the destination, and ONLY meaningful on a custom item. It is looked up in the
+ *            table below and the answer is taken from the frozen entry that lookup returns —
+ *            never from the row. A built-in still takes its route from NAV_REGISTRY and its
+ *            stored `route` is still refused if it disagrees.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why this is still not "the row may name a destination"
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The file header's one rule is intact and this is the paragraph that has to prove it. A
+ * stored `route` is a *selector*, not a destination: it is matched against this table, and a
+ * value that is not in it resolves to nothing at all. `javascript:`, `https://evil.example`,
+ * `/admin`, `/level/4/../../wherever` — none of them is in the list, so none of them can come
+ * out of the resolver, and the row that carried one is refused at write time by
+ * validateMobileNav() and by the database trigger besides. What comes out of navRouteEntry()
+ * is one of the frozen objects below, defined in code, beside src/App.jsx's <Route> list,
+ * where the build can check it (scripts/test-navigation.mjs, acceptance 15).
+ *
+ * The practical difference between a closed table of ten and a closed table of nine keys is
+ * that the સંચાલક may now aim a button at a page which has no built-in entry — /learn is the
+ * one this ships with — and may have two buttons to one page under two different words. What
+ * he still cannot do is invent a page. A tenth destination arrives the way the ninth did: a
+ * developer writes the screen, routes it in src/App.jsx, and adds a line here.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * `label` and `icon` on a destination
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * They are the fallback, not the answer. A custom item carries the સંચાલક's own word and
+ * picture and both are required of him at write time; these are what the resolver falls back
+ * to if a row arrives from somewhere that is not the panel with a label it cannot use. Same
+ * argument as the registry's own label: a cell with an icon and no word is a button whose
+ * meaning a યુવક has to learn by pressing it.
+ */
+/**
+ * The destinations that are NOT already a built-in's — the whole of what this table adds.
+ *
+ * Written out, while the nine built-in destinations below are derived, and the asymmetry is
+ * the point: a route that a built-in already points at is the same page under the same word
+ * with the same picture, and writing those out again would be nine Gujarati labels that can
+ * drift from the registry's. Deriving them means the drift cannot happen and costs nothing —
+ * this module is in the યુવક app's entry chunk, and nine duplicated strings there are bytes
+ * every phone downloads to hold the same words twice.
+ *
+ * /learn is a route src/App.jsx has served since long before any of this and no registry entry
+ * names it: the guided journey is reached from the મુખપૃષ્ઠ and from nowhere else. That is not
+ * an oversight there — a tenth built-in would spend one of five bar slots on a screen most સંઘો
+ * do not want a button for. It is exactly the case a custom button answers, and it is the proof
+ * that this table is not merely the registry's routes copied out.
+ */
+const EXTRA_NAV_ROUTES = Object.freeze([
+  Object.freeze({ route: '/learn', label: 'યાત્રા', icon: 'book' }),
+]);
+
+export const NAV_ROUTES = Object.freeze([
+  /*
+    Every built-in destination this build actually serves, in the registry's own order.
+
+    `ready` is what filters it, and that filter is load-bearing rather than tidy: a custom
+    button pointed at a page the app has not built yet is the same button-that-goes-nowhere
+    that `ready` exists to prevent on a built-in, arriving by the other door. There is
+    deliberately no `ready` column on this table — every row in it is a page that exists, so
+    a not-yet-built destination is one that is simply absent until it is built.
+  */
+  ...NAV_REGISTRY.filter((r) => r.ready).map((r) =>
+    Object.freeze({ route: r.route, label: r.label, icon: r.icon })
+  ),
+  ...EXTRA_NAV_ROUTES,
+]);
+
+/**
+ * The prefix that says "this item is the સંચાલક's, not the app's".
+ *
+ * A prefix rather than a `type` field beside the key, and that is a deliberate choice about
+ * where identity lives. A `type: 'custom'` next to `key: 'home'` is two fields that can
+ * disagree, and the one that would win is whichever the reader looked at — the resolver, the
+ * trigger, the panel and a psql session would each have to be told which. A key that carries
+ * its own kind cannot disagree with itself. No registry key contains a colon, so the two
+ * namespaces cannot collide, and `key.startsWith('custom:')` is the whole of the test in all
+ * four places.
+ *
+ * The resolved item still carries `isCustom` and `type` for a panel that wants to render a
+ * badge — but they are DERIVED from the key on the way out, and they are not stored.
+ */
+export const NAV_CUSTOM_PREFIX = 'custom:';
+
+/**
+ * What may stand after that prefix.
+ *
+ * Lower-case letters, digits and inner hyphens, 1..24 characters. It is an identity and never
+ * anything else: it is not shown to a યુવક, it is not shown to a સંચાલક except as the small
+ * grey string on the row, and it is not a slug of the label — Gujarati does not survive being
+ * slugified into ASCII, and a key that tried would either be empty or be a transliteration
+ * nobody asked for. So keys are counted, not named (see makeCustomKey below).
+ *
+ * Constrained rather than accepted-as-typed because a key ends up in a DOM attribute
+ * (`data-nav-key`), in a React `key`, in an `id=` on the panel's form controls and in an
+ * audit trail. Any of those is a place where a hostile string is worth not having.
+ */
+export const NAV_CUSTOM_SLUG = /^[a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?$/;
+
+/**
+ * How many custom buttons may exist AT ALL — not how many may be shown.
+ *
+ * MOBILE_NAV_MAX is the ceiling on the bar and is a measurement of a 320px screen. This is a
+ * different ceiling, on the LIST, and it is a bound on the settings row rather than on the
+ * phone: hidden items are configuration a સંચાલક is keeping for later, they cost nothing on
+ * any screen, and there is no reason to allow an unbounded number of them in a jsonb value
+ * that is read on every visit by every યુવક. Twelve is a number nobody will reach for a bar
+ * that shows five — it is a guard against a script, not a budget for a person.
+ */
+export const NAV_CUSTOM_MAX = 12;
+
+/**
  * §8 — the item no configuration may hide.
  *
  * The bottom bar is the only chrome the app has on a phone: there is no sidebar, no
@@ -270,6 +443,211 @@ const BY_KEY = new Map(NAV_REGISTRY.map((r) => [r.key, r]));
 
 /** The registry entry for a key, or null. Exported for the panel's read-only columns. */
 export const navRegistryEntry = (key) => BY_KEY.get(key) || null;
+
+/** The destination table, by path. Same reasoning as BY_KEY: ten entries, fixed at build. */
+const BY_ROUTE = new Map(NAV_ROUTES.map((r) => [r.route, r]));
+
+/** Is this key one the સંચાલક made? A prefix test, and the only one anywhere. */
+export const isCustomKey = (key) =>
+  typeof key === 'string' && key.startsWith(NAV_CUSTOM_PREFIX);
+
+/**
+ * …and is it a well-formed one. Both halves, because a key that merely starts with the
+ * prefix has told us its kind and nothing about whether it is usable as an identity.
+ */
+export const isValidCustomKey = (key) =>
+  isCustomKey(key) && NAV_CUSTOM_SLUG.test(key.slice(NAV_CUSTOM_PREFIX.length));
+
+/**
+ * One written route, reduced to the one spelling this project stores.
+ *
+ * Only two liberties are taken and both are typing, not meaning: surrounding whitespace, and
+ * a trailing slash on anything longer than `/` itself. react-router treats `/darshan` and
+ * `/darshan/` as the same place and a સંચાલક typing the second should not be told his page
+ * does not exist — but the row must hold one of them or two items pointing at one page look
+ * like two pages in every list that groups by route.
+ *
+ * Everything else is left exactly as written, because this is a normaliser and not a repair
+ * shop: `//evil.example` comes back as `//evil.example` and NOT as `/`, which is the one
+ * case where being clever would turn a protocol-relative URL into a legal path. It fails the
+ * lookup, which is what it is supposed to do.
+ *
+ * The database's `nav_normalize_route()` (0028) is the same two rules and is tested against
+ * this one.
+ */
+export function normalizeNavRoute(route) {
+  if (typeof route !== 'string') return '';
+  const trimmed = route.trim();
+  if (trimmed.length <= 1) return trimmed;
+  return trimmed.replace(/\/+$/, '');
+}
+
+/**
+ * The frozen destination for a written route, or null.
+ *
+ * This is the lookup the whole custom-button feature rests on: what comes back is an object
+ * from NAV_ROUTES — defined in code — and every field the resolver then uses is read off
+ * THAT, never off the row that asked for it.
+ */
+export const navRouteEntry = (route) => BY_ROUTE.get(normalizeNavRoute(route)) || null;
+
+/**
+ * The destination of any item at all, built-in or custom, or null if it has none.
+ *
+ * One function so that a caller which does not care which kind of item it is holding — the
+ * resolver's map, the panel's preview, scripts/verify-nav.mjs reading rendered anchors — is
+ * not the place where the two rules get written down a second time.
+ */
+export function navDestination(item) {
+  if (!item || typeof item !== 'object') return null;
+  if (isCustomKey(item.key)) {
+    return isValidCustomKey(item.key) ? navRouteEntry(item.route) : null;
+  }
+  const reg = BY_KEY.get(item.key);
+  return reg && reg.ready ? reg : null;
+}
+
+/**
+ * Why a written route cannot be used, in the સંચાલક's own terms — or null if it can.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why validateMobileNav() does NOT call this, though it is about to ask the same question
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The set-membership test at the bottom is the only line here that is load-bearing: a route
+ * that is not in NAV_ROUTES is refused, and every dangerous string is refused by that line
+ * alone. Everything above it exists to produce a better SENTENCE — "this app has no page at
+ * javascript:alert(1)" is true and useless, and a સંચાલક who pasted a link has made a
+ * different mistake from one who mistyped a path.
+ *
+ * Those sentences are worth their bytes in the panel, where somebody is looking at the field,
+ * and they are dead weight in the યુવક app — which imports this module into its ENTRY CHUNK
+ * (BottomNav is mounted beside every route, so nothing about the bar can be lazy) and which
+ * has no screen that could ever display them. So the validator asks `navRouteEntry()` and says
+ * one short thing, this function is reached only from the panel's dialog, and Rollup drops it
+ * from the phone's bundle entirely. scripts/verify-admin-separation.mjs enforces the budget
+ * that makes that matter.
+ *
+ * Nothing is lost where it counts. The dialog runs this on every keystroke, so the specific
+ * sentence arrives before Save is even reachable; and for a write that never went near the
+ * panel, `nav_config_error()` in 0028 carries the same five refusals in the same order and is
+ * the copy a curl actually meets.
+ *
+ * Order matters: the scheme test runs before the leading-slash test, because `https://x` fails
+ * both and "that is a link to another site" is the more useful of the two sentences.
+ */
+export function navRouteError(route) {
+  const raw = typeof route === 'string' ? route.trim() : '';
+  if (!raw) return 'Choose the page this button opens.';
+
+  // `scheme:` — javascript:, data:, http:, https:, mailto:, anything. A URL with a scheme is
+  // by definition not a page of this app, whatever the scheme happens to be.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) {
+    return `"${raw}" is a link to somewhere outside this app. A button may only open a page of this app.`;
+  }
+  // `//host/path` — protocol-relative, and a browser treats it as another site with no scheme
+  // to give it away. It is the one external URL that looks like a path.
+  if (raw.startsWith('//')) {
+    return `"${raw}" is a link to another site. A button may only open a page of this app.`;
+  }
+  if (!raw.startsWith('/')) {
+    return `"${raw}" is not a page of this app - a page starts with /.`;
+  }
+  // A query or a fragment is not a destination, it is an instruction to one, and nothing in
+  // the app reads either from the bar. Accepting them would store text that changes nothing.
+  if (/[?#]/.test(raw)) {
+    return `"${raw}" cannot carry a ? or a # - choose the page itself.`;
+  }
+  if (!navRouteEntry(raw)) {
+    return `This app has no page at "${normalizeNavRoute(raw)}" yet. It has to be built and routed before a button can open it.`;
+  }
+  return null;
+}
+
+/**
+ * The next unused custom key, given the keys already in the list.
+ *
+ * Counted rather than named, for the reason NAV_CUSTOM_SLUG gives: the label is Gujarati and
+ * a slug of it would be either empty or a transliteration. Counted from 1 and skipping what
+ * is taken, rather than "highest + 1", so a list that has had `btn-2` deleted reuses the
+ * number instead of climbing forever — the key is an identity within one settings row and
+ * nothing outside that row ever refers to it, so reuse costs nothing.
+ *
+ * Deterministic, and that is worth stating: no clock and no random source, so
+ * scripts/test-navigation.mjs can assert the exact key this returns.
+ *
+ * @returns a key, or null if NAV_CUSTOM_MAX has already been reached.
+ */
+export function makeCustomKey(takenKeys = []) {
+  const taken = new Set(takenKeys);
+  for (let n = 1; n <= NAV_CUSTOM_MAX; n++) {
+    const key = `${NAV_CUSTOM_PREFIX}btn-${n}`;
+    if (!taken.has(key)) return key;
+  }
+  return null;
+}
+
+/**
+ * A new custom item, ready for the panel's working list.
+ *
+ * It arrives `visible: false`, and that is the same decision navigationService.js makes about
+ * the registry items it appends: an item that has just been created is not something anybody
+ * asked to be in the bar yet, the bar holds at most five, and a form whose Save silently
+ * pushed the bar over its ceiling would refuse the whole write for a reason the સંચાલક did
+ * not choose. He switches it on when he means to, and the preview shows him the count.
+ *
+ * @returns the item, or null if the route is not one this app has.
+ */
+export function newCustomItem({ route, label, icon, visible = false, enabled = true }, takenKeys = []) {
+  const dest = navRouteEntry(route);
+  if (!dest) return null;
+  const key = makeCustomKey(takenKeys);
+  if (!key) return null;
+
+  const word = String(label ?? '').replace(/\s+/g, ' ').trim();
+  return {
+    key,
+    type: 'custom',
+    isCustom: true,
+    route: dest.route,
+    label: word && word.length <= NAV_LABEL_MAX ? word : dest.label,
+    icon: NAV_ICONS.includes(icon) ? icon : dest.icon,
+    visible: visible === true,
+    enabled: enabled !== false,
+    required: false,
+    ready: true,
+  };
+}
+
+/**
+ * A copy of any item — built-in or custom — as a NEW custom item.
+ *
+ * Copying a built-in is the useful half of this and is why it is not restricted to custom
+ * rows: "the same destination, under a second word, further along the bar" is a thing a
+ * સંચાલક may want, and it is precisely what a built-in cannot express on its own because its
+ * key is its identity and there is only one of it.
+ *
+ * The copy is switched off, for the reason newCustomItem() gives, and it takes a new key from
+ * makeCustomKey() — never the source's. A duplicate that shared a key would not be a
+ * duplicate, it would be the same item twice, which validateMobileNav() refuses and which is
+ * exactly the fault "do not rely on array index as identity" is about.
+ *
+ * @returns the copy, or null if there is no room or the source has no destination.
+ */
+export function duplicateNavItem(item, takenKeys = []) {
+  const dest = navDestination(item);
+  if (!dest) return null;
+  return newCustomItem(
+    {
+      route: dest.route,
+      label: item.label || dest.label,
+      icon: item.icon,
+      visible: false,
+      enabled: item.enabled !== false,
+    },
+    takenKeys
+  );
+}
 
 /**
  * The four the app opens with, and the four it falls back to.
@@ -387,29 +765,49 @@ export function resolveMobileNavConfig(stored) {
   // must not be able to throw away the bar.
   const clean = Array.isArray(stored) ? stored.filter((i) => i && typeof i === 'object') : [];
 
-  // Unknown and not-yet-built keys go before validation, not after: they are the two ways a
-  // perfectly good configuration can arrive at a build that is older or newer than the one
-  // that wrote it, and neither is damage.
-  const known = clean.filter((i) => BY_KEY.get(i.key)?.ready);
+  /*
+    Unknown and not-yet-built keys go before validation, not after: they are the two ways a
+    perfectly good configuration can arrive at a build that is older or newer than the one
+    that wrote it, and neither is damage.
+
+    navDestination() is what makes that sentence cover custom items too, and it covers them
+    with the SAME rule rather than a parallel one. A custom row whose route this build has
+    never heard of is the identical situation to a built-in key it has never heard of — a
+    newer panel wrote a destination an older phone does not serve — and it must cost that one
+    button and not the bar. It is also, incidentally, the line that makes an injected route
+    unrenderable: no destination, no item, whatever the row claims.
+  */
+  const known = clean.filter((i) => navDestination(i));
 
   const list = known.length && validateMobileNav(known).ok ? known : DEFAULT_MOBILE_NAV;
 
   return (
     list
       .map((s, i) => {
-        const reg = BY_KEY.get(s.key);
+        // The frozen entry — NAV_REGISTRY's for a built-in, NAV_ROUTES' for a custom one.
+        // Both are defined in code; neither is the row. Every field taken off `dest` below
+        // is therefore the app's answer and not the સંચાલક's.
+        const dest = navDestination(s);
+        const custom = isCustomKey(s.key);
         const label = typeof s.label === 'string' ? s.label.replace(/\s+/g, ' ').trim() : '';
         const order = readOrder(s);
         return {
-          key: reg.key,
+          key: custom ? s.key : dest.key,
           // Code's, always. The whole file header is about this line.
-          route: reg.route,
-          label: label && label.length <= NAV_LABEL_MAX ? label : reg.label,
-          icon: NAV_ICONS.includes(s.icon) ? s.icon : reg.icon,
+          route: dest.route,
+          label: label && label.length <= NAV_LABEL_MAX ? label : dest.label,
+          icon: NAV_ICONS.includes(s.icon) ? s.icon : dest.icon,
           visible: s.visible !== false,
           enabled: s.enabled !== false,
           sortOrder: Number.isInteger(order) && order >= 1 ? order : i + 1,
-          required: reg.required === true,
+          // A custom item is never `required` and never can be: NAV_REQUIRED_KEY is a
+          // registry key, and §8's guarantee is about the way home rather than about
+          // whichever button a સંચાલક happens to have made.
+          required: !custom && dest.required === true,
+          // Derived here and stored nowhere — see NAV_CUSTOM_PREFIX. Both spellings because
+          // the panel reads one as a flag and renders the other as a word.
+          isCustom: custom,
+          type: custom ? 'custom' : 'builtin',
         };
       })
       // Ties fall back to the key so the order is total and never depends on sort stability —
@@ -441,43 +839,117 @@ export function validateMobileNav(items) {
     return { ok: false, gu: 'The navigation list is empty.' };
   }
 
+  let customCount = 0;
   const seen = new Set();
   for (const item of items) {
     if (!item || typeof item !== 'object') {
       return { ok: false, gu: 'The navigation list has an entry that is not an item.' };
     }
 
-    const reg = BY_KEY.get(item.key);
-    if (!reg) {
+    const custom = isCustomKey(item.key);
+    const reg = custom ? null : BY_KEY.get(item.key);
+
+    if (custom) {
+      /*
+        A custom key is refused on its shape rather than looked up, because there is nothing
+        to look it up in: it is an identity the સંચાલક's panel invented, and the only facts
+        about it that can be checked are that it is well-formed and that it is not already
+        in use. NAV_CUSTOM_SLUG says what well-formed is and why it is constrained at all.
+      */
+      if (!isValidCustomKey(item.key)) {
+        return { ok: false, gu: `"${item.key}" is not a usable id for a button.` };
+      }
+      customCount++;
+      if (customCount > NAV_CUSTOM_MAX) {
+        return {
+          ok: false,
+          gu: `At most ${NAV_CUSTOM_MAX} custom buttons - the bar shows ${MOBILE_NAV_MAX} and the rest are a list nobody can read.`,
+        };
+      }
+    } else if (!reg) {
       return { ok: false, gu: `"${item.key}" is not a navigation item this app has.` };
     }
+
+    /*
+      The word this item's refusals are spoken in.
+
+      A built-in is named by the registry, never by `item.label`: the સંચાલક may be halfway
+      through renaming it, and a message about "મા" while he types મારું is a message about
+      nothing. A custom item has no registry word, so its own label is the only name it has —
+      and the label checks below run before it is used for anything that matters.
+    */
+    const name = reg ? reg.label : String(item.label ?? '').trim() || item.key;
+
     if (seen.has(item.key)) {
-      return { ok: false, gu: `"${reg.label}" appears twice in the list.` };
+      return { ok: false, gu: `"${name}" appears twice in the list.` };
     }
     seen.add(item.key);
 
     if (typeof item.visible !== 'boolean' || typeof item.enabled !== 'boolean') {
-      return { ok: false, gu: `"${reg.label}": shown and enabled must each be set.` };
+      return { ok: false, gu: `"${name}": shown and enabled must each be set.` };
     }
 
     const order = readOrder(item);
     if (!Number.isInteger(order) || order < 1) {
-      return { ok: false, gu: `"${reg.label}" has no position in the order.` };
+      return { ok: false, gu: `"${name}" has no position in the order.` };
     }
 
-    /*
-      A route may be stored — the brief asks for the field — but it may only be the one the
-      registry already holds. The resolver ignores it entirely, so this refusal is not what
-      keeps a yuvak safe; it is what stops the panel from *displaying* a destination that no
-      button will ever go to. A row whose route disagrees with the registry is a row
-      something other than the panel wrote, and saying so is more useful than correcting it.
-    */
-    if (item.route !== undefined && item.route !== reg.route) {
-      return { ok: false, gu: `"${reg.label}" cannot be pointed at a different page.` };
-    }
+    if (custom) {
+      /*
+        THE line. Everything else in this function is a bound; this is the boundary.
 
-    if (item.icon !== undefined && !NAV_ICONS.includes(item.icon)) {
-      return { ok: false, gu: `"${reg.label}" has an icon this app cannot draw.` };
+        A custom item's route is the one field of any stored item that actually decides where
+        a button goes, so it is checked against NAV_ROUTES here, checked again by the database
+        trigger (0028), and — the part that makes the other two belts rather than the trousers
+        — ignored entirely by the resolver unless the same lookup succeeds there too. An
+        external URL, a `javascript:` string or a path this app does not route cannot become a
+        button by any of the three routes into this row.
+
+        A membership test and one short sentence, rather than navRouteError()'s five specific
+        ones — see that function's own comment for why the specific ones must not be reachable
+        from here. This is the check; the diagnosis lives in the panel's dialog, where somebody
+        is looking at the field, and in the database trigger, which is what a write that
+        bypassed the panel actually meets.
+      */
+      if (!navRouteEntry(item.route)) {
+        return { ok: false, gu: `"${name}" does not open a page this app has.` };
+      }
+
+      /*
+        Required of a custom item, optional on a built-in, and the asymmetry is the whole
+        difference between the two kinds. A built-in that carries no label falls back to the
+        registry's own word, which is a word the app chose and stands behind. A custom button
+        has no such word — the resolver falls back to the destination's, which is the name of
+        the PAGE and not of the button, and a સંચાલક who meant to write "લીડરબોર્ડ" and saved
+        nothing would get a button reading ક્રમાંક with no indication that his name was
+        dropped. So it is refused at the moment he saves rather than replaced behind him.
+      */
+      if (typeof item.label !== 'string' || !item.label.replace(/\s+/g, ' ').trim()) {
+        return { ok: false, gu: 'A custom button needs a name to show under its icon.' };
+      }
+      if (!NAV_ICONS.includes(item.icon)) {
+        return { ok: false, gu: `"${name}" needs a picture this app can draw.` };
+      }
+    } else {
+      /*
+        A route may be stored — the brief asks for the field — but on a BUILT-IN it may only
+        be the one the registry already holds. The resolver ignores it entirely, so this
+        refusal is not what keeps a yuvak safe; it is what stops the panel from *displaying* a
+        destination that no button will ever go to. A row whose route disagrees with the
+        registry is a row something other than the panel wrote, and saying so is more useful
+        than correcting it.
+
+        This is also what keeps the two kinds honestly separate: the way to point a button
+        somewhere else is to make a custom one, not to edit a built-in's destination out from
+        under the key that names it.
+      */
+      if (item.route !== undefined && item.route !== reg.route) {
+        return { ok: false, gu: `"${name}" cannot be pointed at a different page.` };
+      }
+
+      if (item.icon !== undefined && !NAV_ICONS.includes(item.icon)) {
+        return { ok: false, gu: `"${name}" has an icon this app cannot draw.` };
+      }
     }
 
     if (item.label !== undefined) {
@@ -495,14 +967,14 @@ export function validateMobileNav(items) {
         Two copies of one rule that disagree are worse than one rule, so they agree.
       */
       if (typeof item.label !== 'string') {
-        return { ok: false, gu: `"${reg.label}" must have a name written as text.` };
+        return { ok: false, gu: `"${name}" must have a name written as text.` };
       }
       const label = item.label.replace(/\s+/g, ' ').trim();
-      if (!label) return { ok: false, gu: `"${reg.label}" cannot have an empty name.` };
+      if (!label) return { ok: false, gu: `"${name}" cannot have an empty name.` };
       if (label.length > NAV_LABEL_MAX) {
         return {
           ok: false,
-          gu: `"${reg.label}": ${NAV_LABEL_MAX} characters or fewer - the name has to fit under an icon on a phone.`,
+          gu: `"${name}": ${NAV_LABEL_MAX} characters or fewer - the name has to fit under an icon on a phone.`,
         };
       }
     }
@@ -511,12 +983,17 @@ export function validateMobileNav(items) {
       §4 — a future item may sit in the list; it may not stand in the bar.
 
       Checked against the registry's `ready`, which is a fact about src/App.jsx and not
-      anything the row can claim. This is what keeps ક્રમાંક a placeholder: the panel can
-      show it, the સંચાલક can read why it is off, and no save and no curl can turn it into a
-      button that navigates to a route that does not exist.
+      anything the row can claim. This is what kept ક્રમાંક a placeholder for as long as it was
+      one: the panel can show such a row, the સંચાલક can read why it is off, and no save and
+      no curl can turn it into a button that navigates to a route that does not exist.
+
+      A custom item has no `ready` and needs none. Its equivalent question was asked and
+      answered above, by navRouteError(): every entry in NAV_ROUTES is a route src/App.jsx
+      serves — scripts/test-navigation.mjs asserts exactly that, in both directions — so an
+      item that survived the route check is pointing at a page this build has.
     */
-    if (item.visible && item.enabled && !reg.ready) {
-      return { ok: false, gu: `"${reg.label}" is not built yet, so it cannot be shown.` };
+    if (!custom && item.visible && item.enabled && !reg.ready) {
+      return { ok: false, gu: `"${name}" is not built yet, so it cannot be shown.` };
     }
   }
 
@@ -574,21 +1051,39 @@ export function validateMobileNav(items) {
  */
 export function toStoredMobileNav(items) {
   return items
-    .filter((i) => BY_KEY.has(i.key))
+    .filter((i) => navDestination(i))
     .map((i, idx) => {
-      const reg = BY_KEY.get(i.key);
+      const custom = isCustomKey(i.key);
+      const dest = navDestination(i);
       const label = String(i.label ?? '').replace(/\s+/g, ' ').trim();
       return {
-        key: reg.key,
-        label: label && label.length <= NAV_LABEL_MAX ? label : reg.label,
-        icon: NAV_ICONS.includes(i.icon) ? i.icon : reg.icon,
-        route: reg.route,
+        key: custom ? i.key : dest.key,
+        label: label && label.length <= NAV_LABEL_MAX ? label : dest.label,
+        icon: NAV_ICONS.includes(i.icon) ? i.icon : dest.icon,
+        // The registry's for a built-in, the destination table's for a custom one. Both are
+        // read off a frozen object in code; what the caller handed in was only ever used to
+        // FIND that object, never copied out of. That is the sentence the whole file header
+        // is about, and it is why a `route` written here can be trusted by whoever reads the
+        // row next in psql.
+        route: dest.route,
         visible: i.visible !== false,
         enabled: i.enabled !== false,
         sortOrder: idx + 1,
       };
     });
 }
+
+/*
+  Nothing here writes `type` or `isCustom`, and that is deliberate rather than an omission.
+
+  The key already says which kind an item is, and a second field saying the same thing is a
+  second field that can disagree with the first — see NAV_CUSTOM_PREFIX. The panel gets
+  `type` and `isCustom` from the RESOLVER, derived, on every read. What goes into jsonb is the
+  seven fields above and nothing else, exactly as it was before custom items existed: for a
+  built-in row the output of this function is byte for byte what it always was, which is what
+  makes the panel's saved-vs-working comparison, and every configuration already stored,
+  survive this change untouched.
+*/
 
 /**
  * Move one item to a new index, returning a new list — the whole of what a drag, or an

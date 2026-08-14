@@ -2,6 +2,7 @@
  * Apply SQL migrations to Supabase, or run a one-off query.
  *
  *   SUPABASE_DB_PASSWORD=... node scripts/db.mjs migrate
+ *   SUPABASE_DB_PASSWORD=... node scripts/db.mjs apply 0031_point_engine.sql
  *   SUPABASE_DB_PASSWORD=... node scripts/db.mjs query "select count(*) from public.profiles"
  *
  * SUPABASE_DB_PASSWORD is the Postgres password from Supabase → Settings → Database. It
@@ -69,8 +70,76 @@ if (cmd === 'query') {
   process.exit(0);
 }
 
+/**
+ * Apply named files, in the order given, whether or not they are recorded as applied.
+ *
+ *   SUPABASE_DB_PASSWORD=... node scripts/db.mjs apply 0031_point_engine.sql 0032_...sql
+ *
+ * `migrate` is the wrong tool on a database whose bookkeeping has drifted from its schema.
+ * Production's `schema_migrations` lists only 0001-0003 while the schema itself is far ahead,
+ * so `migrate` would replay two dozen files that are already in place — and a replay is only
+ * safe for a file written to be re-applied. This command names the files instead, so what runs
+ * is a decision rather than an inference from a table that is known to be wrong.
+ *
+ * The bookkeeping is repaired as it goes: each file applied is recorded, so the drift shrinks
+ * by one row per apply instead of being papered over.
+ *
+ * Each file still runs inside its own transaction. That is what makes this safe to re-run: a
+ * file that fails half way leaves nothing behind, which is exactly the property 0031 needed
+ * when 0032 failed behind it.
+ */
+if (cmd === 'apply') {
+  if (rest.length === 0) {
+    console.error('usage: node scripts/db.mjs apply <file.sql> [more.sql ...]');
+    await client.end();
+    process.exit(1);
+  }
+
+  await client.query(`
+    create table if not exists public.schema_migrations (
+      name       text primary key,
+      applied_at timestamptz not null default now()
+    );
+  `);
+
+  for (const name of rest) {
+    const file = path.join(DIR, path.basename(name));
+    if (!fs.existsSync(file)) {
+      console.error(`  ✗ ${name} is not a file in supabase/migrations/`);
+      await client.end();
+      process.exit(1);
+    }
+
+    try {
+      await client.query('begin');
+      await client.query(fs.readFileSync(file, 'utf8'));
+      await client.query(
+        `insert into public.schema_migrations (name) values ($1)
+         on conflict (name) do update set applied_at = now()`,
+        [path.basename(name)]
+      );
+      await client.query('commit');
+      console.log(`  + ${path.basename(name)}`);
+    } catch (e) {
+      await client.query('rollback');
+      console.error(`\n  ✗ ${path.basename(name)} failed and was rolled back:\n    ${e.message}`);
+      await client.end();
+      process.exit(1);
+    }
+  }
+
+  // PostgREST answers from a cached picture of the schema, so a function that exists is still
+  // a 404 (PGRST202) to the panel until the cache is told. Supabase reloads it on its own event
+  // trigger, and this is the nudge for the case where that has not happened yet — it is what
+  // turns "applied" into "callable".
+  await client.query(`notify pgrst, 'reload schema'`);
+  console.log('\n  schema cache reload requested.\n');
+  await client.end();
+  process.exit(0);
+}
+
 if (cmd !== 'migrate') {
-  console.error('usage: node scripts/db.mjs migrate | query "<sql>"');
+  console.error('usage: node scripts/db.mjs migrate | apply <file.sql> ... | query "<sql>"');
   await client.end();
   process.exit(1);
 }

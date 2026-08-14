@@ -1,0 +1,380 @@
+/* Progress — the "how much is remembered" bands, the filter drawer and the column picker.
+ *
+ * Loaded only by ProgressPage, so it rides that page's chunk and costs nothing on any other
+ * screen (§51). Every colour, size, radius and gap below is a token from admin.css: this is
+ * the same console, and a section with its own palette reads as a different product. There
+ * is not one raw colour value in this file. Breakpoints are the four admin.css documents —
+ * 1200 / 900 / 640 / 380 — and no others.
+ *
+ * There is no red anywhere in this file, and there is no bar for "remembered nothing".
+ * A યુવક who has not started is not on the chart; he is not a short bar (§10, §14).
+ */
+
+/* ---------------------------------------------------------------- the bands */
+
+.rb-list { display: flex; flex-direction: column; gap: var(--sp-1); margin-top: var(--sp-4); }
+
+/* A row is a button, not a div with an onClick: it is a filter, it is reachable by Tab, and
+   it says so to a screen reader without any aria being invented for it (§56). */
+.rb-row {
+  display: grid;
+  grid-template-columns: 132px 1fr 76px;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--sp-2) var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  font: inherit;
+  color: var(--text-body);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.rb-row:hover { background: var(--surface-hover); }
+.rb-row.is-on { background: var(--brand-50); border-color: var(--brand-200); }
+
+.rb-band { font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--text-body); min-width: 0; }
+.rb-band small { display: block; font-size: var(--fs-micro); font-weight: var(--fw-normal); color: var(--text-muted); }
+
+/* The track is drawn even when the bar is empty, so the row keeps its height and the list
+   does not comb itself into different-sized rows as the numbers move. */
+.rb-track {
+  height: 14px;
+  border-radius: var(--r-full);
+  background: var(--surface-sunken);
+  overflow: hidden;
+  min-width: 0;
+}
+.rb-fill {
+  /* `display: block`, and without it this element was invisible.
+   *
+   * It is a <span> inside a <span>, and an inline box ignores width and height outright - so
+   * every bar rendered as an empty grey track no matter what the counts were. The track
+   * itself escaped the same fate by accident: it is a grid item of `.rb-row`, and grid items
+   * are blockified, so its own `height: 14px` took effect and the row looked deliberate.
+   * Found by looking at a screenshot of the rendered page, which is why that check now
+   * exists (scripts/verify-progress-ui.mjs). */
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--brand-500);
+  /* A band with a real count is never invisible: a hairline is the difference between "one
+     yuvak" and "none", and a 0.4%-wide bar rounds to nothing on a phone. */
+  min-width: 3px;
+  transition: width var(--dur) var(--ease);
+}
+.rb-fill.is-empty { min-width: 0; background: none; }
+
+.rb-count { text-align: end; font-size: var(--fs-table); color: var(--text-body); }
+.rb-count small { display: block; font-size: var(--fs-micro); color: var(--text-muted); }
+
+/* ---------------------------------------------------------------- table cells */
+
+/* A figure with its badge underneath, rather than beside: "87 / 108" and "In progress" on
+   one line makes the row taller than the number is wide and pushes the next column off a
+   1200px screen. Aligned to the end because both cells that use it are numeric, and below
+   ~820px DataTable's card layout puts the value at the end of the line too. */
+.pf-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* The fifth badge tone the progress page needs and the console did not have: "high
+   progress" is nearly-complete, so it reads in the same green as Complete but as an outline
+   rather than a fill. The word inside is what carries the meaning; the tint only repeats it,
+   which is what keeps the two readable to someone who cannot separate the hues (§43). */
+.pill-high { color: var(--ok-ink); background: var(--surface-card); border-color: var(--ok-line); }
+
+/* The count line inside .pf-cell. `nowrap` so "107 / 108" cannot be folded into three lines
+   by a column that is briefly narrow while the table is measuring itself. */
+.pf-count { white-space: nowrap; }
+
+/*
+  ---------------------------------------------------------------- column widths
+
+  Why this block exists at all.
+
+  A table is laid out from its cells' min-content widths, and `admin.css` used to put
+  `overflow-wrap: anywhere` on every `td`. That does not merely permit a mid-word break — it
+  tells the layout engine the cell is willing to be **one character wide**. So with nineteen
+  columns competing for a 1900px row, the engine took the offer: "Surat" rendered as "Sur"
+  over "at", "Varachha" as "Vara" over "chha", and a name as three stacked fragments. It was
+  measured in Chrome at 18px and nine lines per cell.
+
+  That rule is fixed (cells are `break-word` now, which still contains an unbreakable Drive
+  URL but refuses to split an ordinary word). These widths are the second half: `break-word`
+  stops a column going narrower than its longest *word*, and a floor stops it going narrower
+  than its longest plausible *value*. Without them "Kevadiya paresh" still wraps to two lines
+  at a squeeze, which is legible but ragged.
+
+  Set on the column rather than the table so the picker can hide any of them and the rest
+  keep their floors. `DataTable` puts each column's className on both its th and its td, so
+  there is one declaration and the two cannot drift.
+*/
+.pf-c-user { min-width: 180px; }
+.pf-c-smk { min-width: 100px; white-space: nowrap; }
+.pf-c-city { min-width: 110px; white-space: nowrap; }
+.pf-c-zone { min-width: 120px; white-space: nowrap; }
+.pf-c-remembered { min-width: 130px; }
+.pf-c-pct { min-width: 110px; white-space: nowrap; }
+
+/* The name is the one value here that can be genuinely long — three given names and a
+   surname — so it is the one that may be trimmed. Every row carries the full text in a
+   `title`, so hovering shows what the ellipsis took. Nothing else on the row is truncated:
+   a clipped SMK or a clipped મંડળ is a value the સંચાલક cannot act on. */
+.dt td.pf-c-user > a,
+.dt td.pf-c-user > span {
+  display: inline-block;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* ---------------------------------------------------------------- the filter drawer */
+
+/* Empty on a desktop — the button inside it is `.only-narrow`, which admin.css hides above
+   900px — so this row collapses to nothing and costs no vertical space there. */
+.pf-bar { display: flex; }
+
+/* ---------------------------------------------------------------- the column picker */
+
+/* A <details> rather than a managed popover: it opens on click and on Enter, closes on
+   Escape, and is reachable by Tab without a line of JavaScript or a focus trap to maintain. */
+.pf-cols { position: relative; }
+.pf-cols > summary {
+  /* Firefox draws the disclosure triangle through `list-style`, WebKit through the
+     pseudo-element below. Both have to go, or the button carries a stray marker. */
+  list-style: none;
+  cursor: pointer;
+}
+.pf-cols > summary::-webkit-details-marker { display: none; }
+.pf-cols > summary::marker { content: ''; }
+
+.pf-cols-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--sp-2));
+  inset-inline-end: 0;
+  width: min(300px, calc(100vw - 2 * var(--sp-5)));
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-3);
+  padding: var(--sp-3);
+}
+
+.pf-cols-list { list-style: none; margin: var(--sp-2) 0; }
+.pf-cols-list .check { min-height: var(--tap); }
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .pf-bar { margin-bottom: var(--sp-3); }
+  /* A control that opens the whole filter bar is worth the width of the row. */
+  .pf-bar .btn { width: 100%; }
+
+  /* §29 — the list first, the controls on request. The bar is a card when it is open so it
+     reads as one thing pushed above the rows, not as fields loose on the page. */
+  .filters.pf-filters:not(.is-open) { display: none; }
+  .filters.pf-filters.is-open {
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-1);
+    padding: var(--sp-4);
+  }
+}
+
+@media (max-width: 640px) {
+  /* The band label and its count survive; the track gives up the slack, because the number
+     is the fact and the bar is only the comparison. */
+  .rb-row { grid-template-columns: 104px 1fr 58px; gap: var(--sp-2); }
+
+  /* An absolutely positioned panel anchored to a button that has wrapped to the start of
+     its row would hang off the leading edge of a narrow screen, which is the one thing
+     verify:admin will not allow. Below this width it stops floating and takes its place in
+     the flow instead. */
+  .pf-cols { width: 100%; }
+  .pf-cols > summary { width: 100%; }
+  .pf-cols-panel {
+    position: static;
+    width: auto;
+    max-height: none;
+    box-shadow: none;
+    margin-top: var(--sp-2);
+  }
+}
+
+/*
+  ---------------------------------------------------------------- the mobile card
+
+  Below ~820px admin.css turns every row into a stack of label/value pairs. Twelve of those
+  is a card a thumb scrolls past rather than reads, so the phone gets the six the brief
+  names - User, SMK, Remembered, %, Level 4, Last activity - and the rest are hidden.
+
+  Hidden in CSS and not dropped from `tableColumns`, deliberately. The same array builds the
+  CSV and the Excel file, and a export that changed shape depending on the width of the
+  window it was pressed in would be indefensible. The data is fetched, exported and simply
+  not painted; tapping the card opens the detail page, where all of it is.
+
+  The breakpoint matches admin.css's own card breakpoint. If that moves, this must move with
+  it, which is why the number is written here rather than left implicit.
+*/
+@media (max-width: 820px) {
+  .dt td.pf-c-city,
+  .dt td.pf-c-zone,
+  .dt td[data-label='Level 1'],
+  .dt td[data-label='Level 2'],
+  .dt td[data-label='Level 3'],
+  .dt td[data-label='Out of (darshan)'],
+  .dt td[data-label='Revision remaining'],
+  .dt td[data-label='All-level attempts'],
+  .dt td[data-label='Level 4 gate'],
+  .dt td[data-label='Points'],
+  .dt td[data-label='Registered'],
+  .dt td[data-label='Account status'] {
+    display: none;
+  }
+
+  /* The floors above are desktop column widths. On a card each value sits on its own line,
+     so a 180px floor only makes the card wider than the phone. */
+  .pf-c-user,
+  .pf-c-smk,
+  .pf-c-city,
+  .pf-c-zone,
+  .pf-c-remembered,
+  .pf-c-pct {
+    min-width: 0;
+  }
+
+  /* The name may use the whole card rather than 22ch of it - and it is the way into the
+     detail page, so on a phone it has to be a target a thumb can actually hit. A 20px line
+     of text is a link a mouse can hit and a finger cannot (§36). */
+  .dt td.pf-c-user > a,
+  .dt td.pf-c-user > span {
+    max-width: none;
+    white-space: normal;
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+}
+
+/*
+  ---------------------------------------------------------------- the filter grid
+
+  `.filters` in admin.css is a wrapping flexbox with `align-items: flex-end`, which is right
+  for the three or four controls every other screen puts in it. This page has thirteen, and
+  several carry a line or two of help text under the input - so the flex rows took different
+  heights, wrapped at different points, and the block rendered as a ragged staircase with
+  "Sort by" stranded beside the date presets.
+
+  A grid instead: fixed tracks, so a column is a column all the way down however many rows
+  the viewport allows. `auto-fit` with a floor means the same rule serves a 1920px desktop
+  (five or six across) and a 380px phone (one), which is why there is no second breakpoint
+  here for it.
+*/
+.filters.pf-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--sp-3) var(--sp-4);
+  align-items: start;
+}
+
+/* The flex sizing from admin.css would otherwise fight the grid tracks. */
+.filters.pf-filters .field {
+  flex: none;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/*
+  Every field the same height, so the inputs line up in a row rather than stepping down.
+
+  The help text is what made them uneven - one field has none, another wraps to two lines. A
+  floor of two lines on the hint makes every cell the same height and keeps the text, which
+  is better than deleting sentences that tell the સંચાલક the filter asks the database rather
+  than the page. `justify-content: end` on the hint keeps it against the bottom of its cell,
+  so a one-line hint does not float away from the input it belongs to.
+*/
+.filters.pf-filters .field > .hint {
+  display: flex;
+  align-items: flex-end;
+  min-height: 2.6em;
+  line-height: 1.3;
+}
+
+/* The action row under the grid: presets, then Apply, then Reset. Its own line, so a press
+   that re-runs the query is never mistaken for one that only narrows a control. */
+.pf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+/*
+  ---------------------------------------------------------------- active filter chips
+
+  One chip per condition currently narrowing the report, each its own button so a single
+  filter can be dropped. A button and not a div with an onClick: it is reachable by Tab and it
+  announces itself, without any aria being invented for it (§56).
+
+  The × is decorative and `aria-hidden`; the accessible name comes from the label plus an
+  `.sr-only` "remove", so a screen reader reads "City: Surat remove" rather than "City: Surat
+  times".
+*/
+.pf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.pf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--ctl-h-sm);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--brand-200);
+  border-radius: var(--r-full);
+  background: var(--brand-50);
+  color: var(--text-body);
+  font: inherit;
+  font-size: var(--fs-help);
+  cursor: pointer;
+  /* A chip holds a value the સંચાલક typed or chose - "Search: prakash" - so it must not be
+     folded mid-word by a narrow viewport. It wraps to the next line as a whole instead. */
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pf-chip:hover { background: var(--brand-100, var(--brand-50)); border-color: var(--brand-500); }
+.pf-chip > span[aria-hidden] { color: var(--text-muted); font-size: var(--fs-table); line-height: 1; }
+
+/* ---------------------------------------------------------------- column picker groups */
+
+/* Five headings turn nineteen checkboxes into something scannable. A real <h3> rather than a
+   styled div, so the panel has an outline a screen reader can navigate by (§56). */
+.pf-cols-group + .pf-cols-group { margin-top: var(--sp-3); }
+.pf-cols-head {
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semi);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-1);
+}
+.pf-cols-group .pf-cols-list { margin: 0; }

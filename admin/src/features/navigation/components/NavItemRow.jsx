@@ -47,15 +47,30 @@ export default function NavItemRow({
   onDragEnd,
   onMove,
   onPatch,
+  onEdit,
+  onDuplicate,
+  onDelete,
 }) {
   const reg = navRegistryEntry(item.key);
-  // The registry's own word for this destination, used as the row's identity in the heading
-  // and in every accessible name. Not `item.label`: that is the સંચાલક's wording and he is
-  // in the middle of changing it, so an aria-label built from it would rename the button
-  // that moves the row while he types into the row.
-  const name = reg?.label || item.key;
+  const custom = item.isCustom === true;
+  /*
+    The word this row is called by, in its heading and in every accessible name.
 
-  const locked = item.key === NAV_REQUIRED_KEY;
+    For a built-in it is the REGISTRY's, not `item.label`: that is the સંચાલક's wording and he
+    may be in the middle of changing it, so an aria-label built from it would rename the button
+    that moves the row while he types into the row.
+
+    A custom item has no registry word, so its own label is the only name it has — and the
+    renaming-while-typing problem is real there too. It is accepted rather than solved: the
+    alternative is naming the row by its key, and "Move custom:btn-3 up" is a worse accessible
+    name than one that briefly lags a keystroke.
+  */
+  const name = reg?.label || String(item.label || '').trim() || item.key;
+
+  // Only a registry key can be the required one. A custom button pointing at `/` does not
+  // become the way home - see the §8 note in nav_config_error() (0028) for why that is the
+  // guarantee rather than an omission.
+  const locked = !custom && item.key === NAV_REQUIRED_KEY;
   const notReady = !item.ready;
   // One switch for both checkboxes, because both of them are ways of taking a destination off
   // the screen and the two reasons for refusing that are the two below.
@@ -101,6 +116,11 @@ export default function NavItemRow({
               the label - so it is the string to quote when asking why a bar changed. */}
           <span className="navcfg-key mono">{item.key}</span>
         </span>
+
+        {/* Which kind of item this is, said in a word rather than left to be inferred from
+            which controls the row happens to have. It is the answer to "why can I delete that
+            one and not this one", and a સંચાલક should not have to work that out by trying. */}
+        <StatusBadge tone={custom ? 'info' : 'off'}>{custom ? 'Custom' : 'Built-in'}</StatusBadge>
 
         <StatusBadge tone={notReady ? 'off' : inBar ? 'ok' : 'warn'}>
           {notReady ? 'Not built yet' : inBar ? 'In the bar' : 'Hidden'}
@@ -204,19 +224,28 @@ export default function NavItemRow({
         </div>
 
         {/*
-          The destination, as text. Never an input, and this is the one rule
-          shared/domain/navigation.js is built around: a stored row may choose among
-          destinations, it may never name one. `settings` is writable through PostgREST by
-          anyone holding settings.update, so if a typed route were honoured, one request would
-          put an arbitrary path - or an off-site URL - under a button 2,000 people press
-          without reading. The resolver takes the route from the registry and ignores whatever
-          the row carries, so a field here would not be dangerous so much as a lie: it would
-          accept typing that changed nothing.
+          The destination, as text on every row and as an input on none.
+
+          On a BUILT-IN it is fixed outright: the key names the destination, and the resolver
+          takes the route from NAV_REGISTRY while ignoring whatever the row carries - so a
+          field here would not be dangerous so much as a lie, accepting typing that changed
+          nothing. The way to point a button somewhere else is to make a custom one.
+
+          On a CUSTOM item it is chosen, but chosen in the dialog and from a list: NAV_ROUTES
+          is closed, and a control in which every choice is already valid is the shape of "the
+          route must exist" that cannot be typed around. `settings` is writable through
+          PostgREST by anyone holding settings.update, so a free-text destination anywhere in
+          this panel would be a promise the panel cannot keep - what keeps it is that both the
+          resolver and the trigger look the value up rather than honouring it.
         */}
         <div className="field navcfg-f-route">
           <span className="navcfg-route-label">Goes to</span>
           <code className="navcfg-route">{item.route}</code>
-          <span className="hint">Fixed by the app - it cannot be pointed somewhere else.</span>
+          <span className="hint">
+            {custom
+              ? 'Chosen from the pages this app has - change it with Edit.'
+              : 'Fixed by the app - it cannot be pointed somewhere else.'}
+          </span>
         </div>
 
         <div className="field navcfg-f-switch">
@@ -246,6 +275,59 @@ export default function NavItemRow({
           <span className="hint">Both must be on for the button to appear.</span>
         </div>
       </div>
+
+      {/*
+        ────────────────────────────────────────────────────────────────────────
+        What can be done to the row as a whole - and only on a custom one
+        ────────────────────────────────────────────────────────────────────────
+
+        Edit, Duplicate and Delete exist for custom items and for no built-in, and the reason
+        is not symmetry for its own sake:
+
+          * Edit changes the DESTINATION, which a built-in has no version of - its key is its
+            destination. Its word, picture and position are already editable in the row above.
+          * Duplicate is offered on both, and is on the page rather than here (see
+            NavigationPage) precisely because copying a BUILT-IN is the useful half: "the same
+            page, under a second word, further along the bar" is a thing only a custom item
+            can express.
+          * Delete is refused on a built-in because deleting one would not remove a page, it
+            would remove the panel's only way of ever showing that page again - the item would
+            come back on the next load as a switched-off row, so the button would appear to do
+            nothing. Hiding is what a built-in has instead, and it is the same outcome with a
+            memory of the name and position.
+      */}
+      {custom && (
+        <div className="navcfg-actions">
+          <button
+            className="btn btn-quiet btn-sm"
+            type="button"
+            onClick={() => onEdit(item.key)}
+            disabled={!mayEdit || busy}
+          >
+            Edit
+          </button>
+          <button
+            className="btn btn-quiet btn-sm"
+            type="button"
+            onClick={() => onDuplicate(item.key)}
+            disabled={!mayEdit || busy}
+          >
+            Duplicate
+          </button>
+          {/* Danger styling and a confirmation behind it (§57), because this is the one
+              control on the page that destroys something rather than switching it off. What
+              it destroys is the configuration and nothing else: the page it opened is a file
+              in src/pages and is untouched by any of this. */}
+          <button
+            className="btn btn-danger btn-sm"
+            type="button"
+            onClick={() => onDelete(item.key)}
+            disabled={!mayEdit || busy}
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </li>
   );
 }

@@ -104,6 +104,18 @@ export async function getMobileNav() {
   const stored = await readSetting(NAV_SETTINGS_DOC);
   const configured = resolveMobileNavConfig(stored?.[MOBILE_BOTTOM_KEY]);
 
+  /*
+    Only the BUILT-INS are appended, and that asymmetry is the point of the two halves.
+
+    A registry item the row does not name is an item the app has and the સંચાલક has not
+    arranged yet — it exists whether or not anybody configured it, so the panel invents a
+    switched-off row for it rather than leaving દર્શન apparently non-existent.
+
+    A custom item is the opposite: it exists ONLY because somebody made it, so there is
+    nothing to append. What the row holds is the complete list of them, and one that is not in
+    `configured` is one that was deleted or one whose destination this build no longer serves —
+    in both cases an item the panel must not resurrect.
+  */
   const seen = new Set(configured.map((i) => i.key));
   const rest = NAV_REGISTRY.filter((r) => !seen.has(r.key)).map((r) => ({
     key: r.key,
@@ -115,6 +127,8 @@ export async function getMobileNav() {
     visible: false,
     enabled: false,
     required: r.required === true,
+    isCustom: false,
+    type: 'builtin',
   }));
 
   return [...configured, ...rest].map((item, idx) => ({
@@ -124,7 +138,15 @@ export async function getMobileNav() {
     // as they came would produce a list whose positions collide — and `sortOrder` is the
     // field the panel's position column, its arrows and its preview all read.
     sortOrder: idx + 1,
-    ready: navRegistryEntry(item.key)?.ready === true,
+    /*
+      `ready` is a fact about src/App.jsx, and for a built-in the registry is where that fact
+      is written down. A custom item has no registry entry, so navRegistryEntry() answers null
+      for it — and `false` would be the wrong reading of that null: it would put "This page
+      does not exist in the app yet" on a row whose destination the resolver has just looked
+      up in NAV_ROUTES and found. Every route in that table is one this build serves, so an
+      item that survived resolution is ready by construction.
+    */
+    ready: item.isCustom ? true : navRegistryEntry(item.key)?.ready === true,
   }));
 }
 

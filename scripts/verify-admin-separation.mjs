@@ -181,9 +181,43 @@ check(`યુવક bundle within ${kb(BUDGET)}`, total <= BUDGET, kb(total));
  * only on the load where there is actually something to offer (see InstallSheet.jsx). The
  * measured chunk is 61.4 KB, so the ~1% margin this check has always run with is intact
  * and the next KB has to argue for itself exactly as this one did.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 62 KB → 64 KB, for custom navigation buttons, and the argument for it
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * The same demand, made by the same kind of code, and it is worth being precise about why
+ * none of it could be split. `<BottomNav>` is drawn by `<AppShell>`, which is a LAYOUT route
+ * — it is mounted beside every page a signed-in યુવક can stand on, for as long as the tab
+ * lives. Everything the bar needs to paint its first frame is therefore entry-chunk code by
+ * construction, and "paint its first frame" is not negotiable: src/lib/useNavigation.js is
+ * built the way it is precisely so the bar exists before the network does, because 64px of
+ * chrome arriving late is 64px of chrome inserted under a thumb that is already moving.
+ * A lazy navigation chunk is the one optimisation this component may not have.
+ *
+ * So supporting buttons the સંચાલક makes cost ~2.0 KB here: NAV_ROUTES, the route normaliser
+ * and lookup, the custom branch of the resolver and the validator, and four more inline SVGs
+ * in NavIcon.jsx — a wider picture set being most of the point of a button whose word and
+ * meaning are somebody else's.
+ *
+ * What that buys is, again, that everything else stayed out, and each of these was measured
+ * rather than assumed:
+ *
+ *   * `navRouteError()`'s five diagnosis sentences — the ones that tell a સંચાલક he pasted a
+ *     link rather than typed a path — are reachable only from the panel's dialog. The
+ *     validator asks the membership question directly and says one short thing, so Rollup
+ *     drops the sentences from this bundle. ~0.6 KB.
+ *   * `newCustomItem()`, `duplicateNavItem()` and `makeCustomKey()` are panel-only and are
+ *     tree-shaken out entirely; nothing the app imports reaches them.
+ *   * the nine built-in destinations in NAV_ROUTES are DERIVED from NAV_REGISTRY rather than
+ *     written out, so their Gujarati labels are not in this chunk twice. ~0.6 KB.
+ *
+ * The measured chunk is 62.0 KB against 64, which restores the margin to ~1.6% — the check
+ * was passing by 40 bytes before this threshold moved, which is not a budget, it is a
+ * coincidence waiting to fail on the next unrelated edit. The next KB argues for itself.
  */
 const entry = yuvak.find((f) => /^index-.*\.js$/.test(f.name));
-check('યુવક entry chunk is app code only', !!entry && entry.size < 62 * 1024,
+check('યુવક entry chunk is app code only', !!entry && entry.size < 64 * 1024,
   entry ? kb(entry.size) : 'no entry chunk');
 const adminEntry = admin.find((f) => /^index-.*\.js$/.test(f.name));
 check('સંચાલક entry chunk is panel code only', !!adminEntry && adminEntry.size < 60 * 1024,

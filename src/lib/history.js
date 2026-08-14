@@ -2,7 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { useAuth } from './auth';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supabase/client.js';
-import { groupByDate, normalisePointSummary } from '../../shared/domain/history.js';
+/*
+  Named imports as well as the `export *` below. The star re-export is what lets a page write
+  `import { LEVEL_LABEL } from '../lib/history'`, but it puts nothing in this module's own
+  scope — these four are used by the normalisers here and so have to be asked for directly.
+*/
+import {
+  ACTIVITY_LABEL,
+  groupByDate,
+  isISODay,
+  normalisePointSummary,
+} from '../../shared/domain/history.js';
 
 /**
  * મારી પ્રગતિ — the યુવક side of the history views (migration 0021).
@@ -18,8 +28,20 @@ import { groupByDate, normalisePointSummary } from '../../shared/domain/history.
  * disagreed, the database's answer would be the right one anyway.
  *
  * Nothing is derived from a day's UI events. §20 forbids walking the screen to reach a
- * lifetime total, and `my_point_summary` exists precisely so the two numbers arrive already
- * summed. The shapes come from shared/domain/history.js, which is pure and has a test.
+ * lifetime total, and `my_point_summary` — and now `my_point_totals()` — exist precisely so
+ * the figures arrive already summed. The shapes come from shared/domain/history.js, which is
+ * pure and has a test.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Two readings of the same facts, and why there are two
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `activity_history` answers **what did I do**: a day per (યુવક, level, activity), with the
+ * day's payments summed onto it. `my_point_history()` answers **what was I paid, and for
+ * what**: a row per transaction in `point_transactions`, which since the bonus engine is no
+ * longer the same thing — one day can now hold a first-of-day award, a repeat, and a milestone
+ * bonus against a single activity, and the day view collapses all three into one figure by
+ * design. Neither view is derivable from the other on the phone, so both are asked for.
  *
  * **No localStorage.** src/lib/progress.js keeps a phone-side record because a tick has to
  * feel instant on Surat mobile data and must survive a dead connection; history has neither
@@ -367,4 +389,445 @@ export function usePointSummary() {
   }, [uid]);
 
   return summary;
+}
+
+// ---------------------------------------------------------------- the ledger, one row per payment
+
+/**
+ * What a ledger row was paid for — `point_transactions.award_kind` (0031, extended by 0033).
+ *
+ * Local to this file rather than taken from shared/domain/points.js, and the departure from the
+ * usual rule is deliberate. points.js holds the સંચાલક's vocabulary — the modes a rule may be
+ * *set* to — while an award kind is the outcome the engine already wrote, which only a reader
+ * ever sees. Keeping the strings here means the `/history` chunk does not pull the whole rules
+ * module to render six words, and it means an engine that gains a seventh kind tomorrow does
+ * not break this screen: an unrecognised string falls to the ordinary case in `awardNote()`.
+ *
+ * **`null` is a seventh member and it is not an error.** Every transaction written before the
+ * engine existed carries no kind at all — 0031's header says so in as many words — and those
+ * are ordinary earnings, the oldest ones a યુવક has. Nothing on this screen may call them
+ * unknown, missing, or anything else; they render exactly as a DAY_FIRST does.
+ *
+ * These move to shared/domain/history.js the day the સંચાલક panel needs to print an award kind
+ * too, for the reason GU_MONTHS gives in History.jsx: a vocabulary with one caller lives beside
+ * its caller.
+ */
+export const AWARD_KIND = Object.freeze({
+  DAY_FIRST: 'DAY_FIRST',
+  REPEAT: 'REPEAT',
+  TICK: 'TICK',
+  REVISION: 'REVISION',
+  MANUAL: 'MANUAL',
+  BONUS: 'BONUS',
+});
+
+/**
+ * The short note beside a payment, for the kinds where the kind says something the row does not.
+ *
+ * Four entries and not seven, because three of the kinds are better left silent:
+ *
+ *   DAY_FIRST  the ordinary case. Almost every row is one, and a word repeated down forty rows
+ *              stops being information and becomes furniture.
+ *   null       a legacy row, which is a DAY_FIRST that predates the column. Absent here for
+ *              exactly the same reason and — this is the point — through exactly the same code
+ *              path, so there is no branch that could ever word it as unknown.
+ *   BONUS      says itself, and says it with its rule's name in a pill of its own. A second
+ *              word in the meta line would be the same fact twice.
+ *
+ * `ફરી યાદ કર્યું` and not `પુનરાવર્તન`: shared/domain/history.js's STATUS_LABEL note explains
+ * why that word is avoided in a યુવક-facing list — it is the name of a લેવલ ૪ *screen*, and a
+ * યુવક reading his own ledger would meet it here meaning something else. Nothing in this map is
+ * a judgement either; `નિષ્ફળ` and any count of what is missing are out by §1 rule 4.
+ */
+const AWARD_NOTE = Object.freeze({
+  [AWARD_KIND.REPEAT]: 'ફરી કર્યું',
+  [AWARD_KIND.TICK]: 'નવાં વર્ણન',
+  [AWARD_KIND.REVISION]: 'ફરી યાદ કર્યું',
+  [AWARD_KIND.MANUAL]: 'સંચાલક તરફથી',
+});
+
+/** The note for one transaction, or `''` when the kind is better left unsaid. See AWARD_NOTE. */
+export function awardNote(tx) {
+  return AWARD_NOTE[tx?.awardKind] ?? '';
+}
+
+/**
+ * A signed whole number.
+ *
+ * Deliberately **not** shared/domain/history.js's `int()`, which floors anything below zero to
+ * 0. That is right for a day's coverage figures, where a negative is meaningless, and wrong
+ * here: a MANUAL correction is allowed to be negative (0031's `points >= 0 or award_kind =
+ * 'MANUAL'` check exists to permit exactly that) and a bonus rule's value may be too. Clamping
+ * one to 0 would not hide it — it would print a payment of nothing where the ledger records a
+ * deduction, and the level totals above it would then fail to add up on screen.
+ */
+const signedInt = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+};
+
+/**
+ * One row of `my_point_history()`, in the shape the screen renders.
+ *
+ * Read across several spellings for each field for the reason the payload block in
+ * src/lib/level4.js gives: whether the function is declared `returns table(...)` or `returns
+ * jsonb`, and whether it names a column `title` or `activity_title`, is decided in SQL and is a
+ * spelling of one fact rather than a different fact. Being liberal here costs four `??` and
+ * removes a whole class of "the screen went blank when the migration landed".
+ *
+ * Unlike `normaliseHistoryRow()` this does **not** drop a row whose level is outside 1-4. A
+ * manual adjustment and a project-wide bonus belong to no level at all, and dropping them would
+ * quietly hide payments a યુવક actually received while the level totals beside them still
+ * counted them — the two halves of the screen would disagree and neither would say why.
+ */
+export function normaliseTransaction(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const date = raw.activityDate ?? raw.activity_date ?? raw.date;
+  if (!isISODay(date)) return null;
+
+  const levelId = Number(raw.levelId ?? raw.level_id);
+  const activityKey = String(raw.activityKey ?? raw.activity_key ?? '');
+
+  /*
+    A kind the engine has never heard of, and `null`, are the same thing to this screen: an
+    ordinary earning. Normalising the unknown string to null here rather than in the renderer is
+    what guarantees there is exactly one ordinary path and no branch left to word badly.
+  */
+  const kindRaw = String(raw.awardKind ?? raw.award_kind ?? '');
+  const awardKind = Object.values(AWARD_KIND).includes(kindRaw) ? kindRaw : null;
+
+  // Either spelling proves it. The boolean is the contract's, the kind is the column's, and a
+  // row that carries only one of them is still a bonus.
+  const isBonus = raw.isBonus === true || raw.is_bonus === true || awardKind === AWARD_KIND.BONUS;
+
+  return {
+    id: raw.id ?? raw.transaction_id ?? null,
+    activityDate: date,
+    levelId: Number.isInteger(levelId) ? levelId : 0,
+    activityKey,
+    // લેવલ ૪ carries the કસોટી's own name; the first three fall back to the fixed label, the
+    // same fallback normaliseHistoryRow() applies so one activity cannot read two ways.
+    title: String(raw.title ?? raw.activity_title ?? ACTIVITY_LABEL[activityKey] ?? ''),
+    awardKind,
+    isBonus,
+    /** The milestone rule's own name, e.g. `૫ દર્શન પૂરાં`. Empty when the row is not a bonus. */
+    bonusRule: String(
+      raw.bonusRule ?? raw.bonus_rule_name ?? raw.bonus_rule ?? raw.rule_name ?? ''
+    ),
+    attemptNumber: signedInt(raw.attemptNumber ?? raw.attempt_number),
+    points: signedInt(raw.points),
+  };
+}
+
+/**
+ * `my_point_totals()` — base, bonus and total per level, and the grand total.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * The grand total is asked for, not assembled
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * §20 again, and this is the sharpest instance of it: the moment a lifetime figure is built by
+ * adding up what happens to be on screen, it can differ from the ledger — a dropped row, a
+ * level the function did not return, a page boundary — and the number a યુવક trusts most is the
+ * one that drifted. So an explicit grand total from the payload is used whenever there is one,
+ * in any of the three spellings a function returning "levels plus a total" might use.
+ *
+ * The fallback sums the per-level totals **this same call returned**, and that is a different
+ * act from deriving one: it is one read of one ledger, arithmetic over the function's own
+ * answer, so it cannot disagree with the levels printed directly above it. It exists only so a
+ * function declared `returns table(level_id, base, bonus, total)` with no total row still
+ * renders, rather than the screen showing four levels and no sum.
+ */
+export function normalisePointTotals(payload) {
+  /*
+    0033 answers `returns jsonb`: `{ levels: [{ level, base, bonus, total }], base, bonus,
+    total }`. The array branch is for a server that spells the same fact as a row set — see the
+    payload note in src/lib/level4.js — and it is the only branch in which a level-less row can
+    mean "the grand total", because in the object form the grand total is a sibling field and a
+    null level could only be a payment.
+  */
+  const fromArray = Array.isArray(payload);
+  const rowsIn = fromArray ? payload : Array.isArray(payload?.levels) ? payload.levels : [];
+
+  const levels = [];
+  /** A grand total spelled as a row of the table, rather than as a field. */
+  let grandRow = null;
+
+  for (const r of rowsIn) {
+    if (!r || typeof r !== 'object') continue;
+
+    const rawLevel = r.levelId ?? r.level_id ?? r.level;
+    const base = signedInt(r.base ?? r.base_points ?? r.basePoints);
+    const bonus = signedInt(r.bonus ?? r.bonus_points ?? r.bonusPoints);
+    const total = signedInt(r.total ?? r.total_points ?? r.totalPoints ?? base + bonus);
+
+    const missingLevel = rawLevel === null || rawLevel === undefined || rawLevel === '';
+
+    if (fromArray && missingLevel) {
+      grandRow = { base, bonus, total };
+      continue;
+    }
+
+    /*
+      A level *outside* 1-4 is not a grand total and is not dropped. 0033 emits `level: 0` for a
+      સંચાલક's correction, which belongs to no ladder — keeping it as a row of its own is what
+      makes the lines on screen add up to the sum beneath them. Dropping it would lose points a
+      યુવક was really paid; folding it into the grand total would show a sum nothing explains.
+    */
+    const levelId = Number(rawLevel);
+    levels.push({ levelId: Number.isInteger(levelId) ? levelId : 0, base, bonus, total });
+  }
+
+  /*
+    લેવલ ૧ to ૪ in ladder order, then anything that belongs to no level. The ladder is the order
+    he climbed it, the same reasoning groupByDate() gives for the rows inside a day; a manual
+    adjustment leading the list would put the rarest line first.
+  */
+  const rank = (l) => (l.levelId >= 1 && l.levelId <= 4 ? l.levelId : 99);
+  levels.sort((a, b) => rank(a) - rank(b) || a.levelId - b.levelId);
+
+  const stated =
+    payload && !Array.isArray(payload)
+      ? payload.total ?? payload.grand_total ?? payload.grandTotal ?? payload.total_points
+      : undefined;
+
+  const total =
+    stated !== undefined && stated !== null
+      ? signedInt(stated)
+      : grandRow
+        ? grandRow.total
+        : levels.reduce((sum, l) => sum + l.total, 0);
+
+  return { levels, total };
+}
+
+// ---------------------------------------------------------------- the two new reads
+
+/**
+ * How many transactions one page of the ledger holds.
+ *
+ * Rows here, not days — and that is why this hook is twenty lines where `useHistory()` is
+ * ninety. `useHistory()` pages on distinct dates because a day is the thing it renders and a
+ * row limit would cut one in half; the ledger renders a flat statement with nothing to cut, so
+ * a plain `range` is not a shortcut but the correct unit. Thirty is roughly a fortnight of a
+ * busy યુવક's payments, which keeps the first page the same "one screenful and a bit" that
+ * fourteen days is on the other tab.
+ */
+const LEDGER_PAGE = 30;
+
+/**
+ * The first page number `my_point_history(p_page, …)` answers to.
+ *
+ * **Zero**, and it is worth naming rather than inlining because the two conventions are
+ * indistinguishable from the call site and wrong by exactly one page. 0033 computes its offset
+ * as `p_page * p_page_size` and defaults the parameter to 0, so page 0 is his newest payments;
+ * starting at 1 would silently hide them and make વધુ જુઓ show what should have been the first
+ * screenful. The same convention `admin_point_transactions()` uses, for the same reason.
+ */
+const FIRST_PAGE = 0;
+
+const EMPTY_LEDGER = { loading: false, error: null, rows: [], hasMore: false };
+
+/**
+ * His payments, newest first, a page at a time — `my_point_history()`.
+ *
+ * @param {object} [opts]
+ * @param {boolean} [opts.active=true]  fetch nothing until this is true. The ગુણ પ્રમાણે panel
+ *   is behind a tab, and §27's principle — the scoreboard is somewhere a યુવક *goes* — does not
+ *   stop at the route boundary: two round trips he did not ask for are two round trips he did
+ *   not ask for whether they are on મુખપૃષ્ઠ or under a tab he never opens. Once true it stays
+ *   true, so tapping back and forth between the two views re-fetches nothing.
+ * @param {number} [opts.pageSize=30]
+ * @returns {{ loading, error, rows, hasMore, loadMore, retry }} `rows` are normalised
+ *   transactions, newest first. `error` is a Gujarati sentence or null.
+ *
+ * A missing function is not special-cased: PostgREST answers a 404 for an RPC that has not been
+ * migrated yet, `guHistoryError()` already words that as `નોંધ હમણાં ખૂલી નથી`, and the day
+ * view on the other tab is untouched and one tap away. That is the degradation the brief asks
+ * for, and it costs no code because the error vocabulary already covered the case.
+ *
+ * **The `/history` route only** — see the §27 note at the top of this file.
+ */
+export function usePointLedger({ active = true, pageSize = LEDGER_PAGE } = {}) {
+  const { user } = useAuth();
+  const uid = user?.id ?? null;
+
+  const [state, setState] = useState({ ...EMPTY_LEDGER });
+  const [page, setPage] = useState(FIRST_PAGE);
+  const [nonce, setNonce] = useState(0);
+  /*
+    Latched. `active` going false again is a યુવક looking at the other tab, not a reason to
+    forget what was fetched — and re-running the effect on every tap would refetch the page he
+    is already reading. Nothing unlatches it; a different યુવક is handled by `uid` below, which
+    resets the state that matters.
+  */
+  const [armed, setArmed] = useState(active);
+  useEffect(() => {
+    if (active) setArmed(true);
+  }, [active]);
+
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
+
+  const loadMore = useCallback(() => {
+    if (state.loading || !state.hasMore) return;
+    setPage((p) => p + 1);
+    setState((s) => ({ ...s, loading: true }));
+  }, [state.loading, state.hasMore]);
+
+  useEffect(() => {
+    // The guard inside the effect, for the reason useHistory()'s copy of it gives.
+    if (!configured || !uid) {
+      setState({ ...EMPTY_LEDGER });
+      return;
+    }
+    // Not asked for yet. Deliberately leaves the state alone rather than clearing it.
+    if (!armed) return;
+
+    let alive = true;
+    setState((s) => ({ ...s, loading: true, error: null }));
+
+    /*
+      Both dates null: the whole ledger, newest first. The screen has no date filter to offer —
+      it is a record he scrolls back through — and it cannot know his first day without asking,
+      so an unbounded window is the honest argument rather than a guessed one.
+
+      No uid in the call and there must not be one: the function is keyed on `auth.uid()`, which
+      is the note at the top of this file.
+    */
+    supabase
+      .rpc('my_point_history', {
+        p_from: null,
+        p_to: null,
+        p_page: page,
+        p_page_size: pageSize,
+      })
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) throw error;
+
+        const batch = Array.isArray(data) ? data : [];
+        const rows = batch.map(normaliseTransaction).filter(Boolean);
+
+        /*
+          `total_rows` is a `count(*) over ()` the function puts on every row, so `hasMore` is
+          answered from the ledger rather than guessed at: it is exactly how many payments the
+          window holds, and the arithmetic below cannot be off by the one page that a
+          "the batch was full, so there is probably another" heuristic is always wrong about —
+          the case where the last page is exactly `pageSize` long and વધુ જુઓ then fetches
+          nothing and disappears, having promised something.
+
+          The fallback is that heuristic, for a server that answers without the column. Read off
+          `batch` and not off the filtered `rows`, or one malformed transaction would end the
+          list early and hide every payment older than it.
+        */
+        const totalRows = Number(batch[0]?.total_rows ?? batch[0]?.totalRows);
+        const seen = (page - FIRST_PAGE + 1) * pageSize;
+
+        setState((s) => ({
+          loading: false,
+          error: null,
+          // A first page replaces, a later one appends — the same rule useHistory() follows so
+          // retry after a failed page two cannot silently become a page one.
+          rows: page === FIRST_PAGE ? rows : [...s.rows, ...rows],
+          hasMore: Number.isFinite(totalRows) ? seen < totalRows : batch.length >= pageSize,
+        }));
+      })
+      .catch((e) => {
+        if (!alive) return;
+        // Everything already fetched stays on screen; §1 says never a dead end.
+        setState((s) => ({ ...s, loading: false, error: guHistoryError(e) }));
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [uid, armed, page, nonce, pageSize]);
+
+  /*
+    A different યુવક starts at page one. Separate from the fetch effect, and after it, because
+    the ledger's cursor is a single number rather than useHistory()'s date-plus-append pair —
+    there is nothing here to coordinate, only a counter to put back.
+  */
+  const ownerRef = useRef(null);
+  useEffect(() => {
+    if (ownerRef.current !== uid) {
+      ownerRef.current = uid;
+      setPage(FIRST_PAGE);
+    }
+  }, [uid]);
+
+  return { ...state, loadMore, retry };
+}
+
+const EMPTY_TOTALS = { levels: [], total: 0 };
+
+/**
+ * Base, bonus and total per level, and the grand total — `my_point_totals()`.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * This one reports its errors, and usePointSummary() does not
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The difference is not an inconsistency, it is the same rule read in two situations.
+ * `usePointSummary()` feeds a band at the top of a page a યુવક opened to read his days; a
+ * project with points switched off answers zero there legitimately, so a failure and the
+ * ordinary configuration are indistinguishable and neither is worth a line of the screen.
+ *
+ * Here he has tapped ગુણ પ્રમાણે on purpose. An unreported failure would draw an empty panel,
+ * and an empty panel under that heading says *you have earned nothing* — a misleading zero,
+ * which is the same failure the `+૦` rule exists to prevent, arriving by silence instead of by
+ * a digit. So this one says, quietly, that the app could not open it, and offers to ask again.
+ *
+ * @param {object} [opts]
+ * @param {boolean} [opts.active=true]  as usePointLedger(): nothing is fetched until asked for.
+ * @returns {{ loading, error, levels, total, retry }} `levels` is
+ *   `[{ levelId, base, bonus, total }]` in ladder order. Nothing here is read from a stored
+ *   total — the function computes from the ledger, which is the only figure that cannot drift.
+ *
+ * **The `/history` route only** — see the §27 note at the top of this file.
+ */
+export function usePointTotals({ active = true } = {}) {
+  const { user } = useAuth();
+  const uid = user?.id ?? null;
+
+  const [state, setState] = useState({ ...EMPTY_TOTALS, loading: false, error: null });
+  const [nonce, setNonce] = useState(0);
+  const [armed, setArmed] = useState(active);
+  useEffect(() => {
+    if (active) setArmed(true);
+  }, [active]);
+
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
+
+  useEffect(() => {
+    if (!configured || !uid) {
+      setState({ ...EMPTY_TOTALS, loading: false, error: null });
+      return;
+    }
+    if (!armed) return;
+
+    let alive = true;
+    setState((s) => ({ ...s, loading: true, error: null }));
+
+    supabase
+      .rpc('my_point_totals')
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) throw error;
+        // Both shapes one function returning "levels plus a total" may arrive in — a jsonb
+        // object, and PostgREST's row array. normalisePointTotals() takes either.
+        setState({ ...normalisePointTotals(data), loading: false, error: null });
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setState({ ...EMPTY_TOTALS, loading: false, error: guHistoryError(e) });
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [uid, armed, nonce]);
+
+  return { ...state, retry };
 }

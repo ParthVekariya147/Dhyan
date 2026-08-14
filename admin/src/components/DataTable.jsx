@@ -10,11 +10,24 @@
  * Sorting a paginated list client-side would only sort the page you can see, which is
  * worse than not offering it.
  */
-export default function DataTable({ columns, rows, rowKey, sort, onSort, caption, onRowClick }) {
+/**
+ * `wrapClassName` and a per-column `className` were added for the progress report, which is
+ * the first table here wide enough for column sizing to matter. Both are additive: every
+ * existing caller passes neither and renders exactly as before.
+ *
+ *   wrapClassName   extra classes on `.table-wrap` — `is-tall` turns on the sticky header
+ *                   by making the wrap the vertical scroll container (see admin.css).
+ *   column.className  applied to that column's `th` AND its `td`, so a min-width or a
+ *                   `white-space: nowrap` is declared once and cannot drift between the two.
+ */
+export default function DataTable({
+  columns, rows, rowKey, sort, onSort, caption, onRowClick, wrapClassName = '',
+}) {
   const sortable = typeof onSort === 'function';
+  const cls = (...parts) => parts.filter(Boolean).join(' ');
 
   return (
-    <div className="table-wrap">
+    <div className={cls('table-wrap', wrapClassName)}>
       <table className="dt">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
@@ -26,7 +39,7 @@ export default function DataTable({ columns, rows, rowKey, sort, onSort, caption
                 <th
                   key={c.key}
                   scope="col"
-                  className={c.align === 'right' ? 'ta-r' : ''}
+                  className={cls(c.align === 'right' && 'ta-r', c.className)}
                   aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   {canSort ? (
@@ -56,7 +69,11 @@ export default function DataTable({ columns, rows, rowKey, sort, onSort, caption
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
               {columns.map((c) => (
-                <td key={c.key} data-label={c.label} className={c.align === 'right' ? 'ta-r' : ''}>
+                <td
+                  key={c.key}
+                  data-label={c.label}
+                  className={cls(c.align === 'right' && 'ta-r', c.className)}
+                >
                   {c.render ? c.render(row) : row[c.key] ?? '-'}
                 </td>
               ))}

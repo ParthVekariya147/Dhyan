@@ -1,0 +1,313 @@
+/* Point Management - the save bar, the Level 4 price table and the yuvak picker.
+ *
+ * Loaded only by PointsPage, so it rides that page's chunk and costs nothing on any other screen
+ * (§51). Every colour, size, radius and gap below is a token from admin.css: this is the same
+ * console, and a section with its own palette reads as a different product. There is not one raw
+ * colour value in this file, and the breakpoints are the admin.css documents - 900 / 640 - and no
+ * others.
+ *
+ * Everything not named here is `.card`, `.field`, `.dt`, `.notice`, `.pill`, `.confirm` and
+ * `.grid-stats`, unchanged - a rules screen that invented its own form controls would be a second
+ * design for the same job. The blocks below are the four the save bar, the price table and the
+ * picker started with, plus two the bonus and earning-mode sections added: neither invents a
+ * control, they lay out grids and inset blocks the shared classes have no opinion about.
+ */
+
+/* ---------------------------------------------------------------- the save bar */
+
+/*
+  One Save for seven sections, and the page is long enough that it would otherwise be off-screen
+  for most of the editing.
+
+  `position: sticky` rather than `fixed`: it stays in the flow, so it cannot cover the last card,
+  it scrolls away with the page once its section is passed, and it needs no spacer element to
+  stop the content ending underneath it. The offset is the safe-area inset so it clears the home
+  indicator on an iPhone rather than sitting behind it.
+
+  It is a `.card` first, so it carries the same surface, border and radius as everything above.
+  The only thing added here is the sticking and the shadow that separates it from the card it is
+  currently over.
+*/
+.pts-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: var(--sp-4);
+  padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom));
+  box-shadow: var(--sh-2);
+}
+
+/* The actions keep the button and its outcome on one line while there is room, and the message
+   drops under the button when there is not - never the other way round, which would leave a
+   "Saved." floating above a button somebody is about to press again. */
+.pts-savebar .form-actions {
+  margin-top: 0;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------- Level 4 prices */
+
+/*
+  A table of inputs, not of text.
+
+  `.dt` gives every cell `var(--sp-3) var(--sp-4)` of padding, which is right for a line of text
+  and too much around a 44px control - five of those rows is a screen with two rows on it. The
+  vertical padding is halved and the cells align to the middle, so the row is as tall as its
+  tallest control and no taller.
+*/
+.p4-table td { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+
+/* The code column is the row's identity and is read down the column, so it never wraps: '4.10'
+   broken across two lines stops being a code. */
+.p4-table td:first-child { white-space: nowrap; font-weight: var(--fw-semi); }
+
+/* A price cell is as narrow as five digits and a spinner, so the title column keeps the room.
+   The hint under each box is what says "inheriting" or "priced on its own", and it is allowed to
+   wrap; the input is not allowed to shrink under it. */
+.p4-table .field { margin-bottom: 0; }
+.p4-table .field input { min-width: 84px; }
+
+/* The on/off cell is a checkbox and one word. `.check` already gives it a tap-tall row; this only
+   stops the word wrapping under the box on a narrow screen. */
+.p4-table .check { white-space: nowrap; }
+
+/* ---------------------------------------------------------------- the yuvak picker */
+
+/*
+  A search result is a button, not a div with an onClick: choosing one is an action, it is
+  reachable by Tab, and it says so to a screen reader without any aria being invented for it (§56).
+*/
+.pts-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  font: inherit;
+  color: var(--text-body);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pts-pick:hover:not(:disabled) { background: var(--surface-hover); }
+
+/* The chosen row is marked by the same brand tint the sidebar uses for the current section, and
+   the sentence under the list names him as well - the tint repeats that, it does not carry it. */
+.pts-pick.is-on { background: var(--brand-50); border-color: var(--brand-200); }
+.pts-pick:disabled { opacity: .6; cursor: not-allowed; }
+
+.pts-pick-name { font-weight: var(--fw-medium); color: var(--text-strong); }
+
+/* ---------------------------------------------------------------- earning modes */
+
+/*
+  One cell per level, and the cells are the same width whatever the level is called.
+
+  `auto-fit` with a 260px floor rather than a fixed column count: the card holds as many levels as
+  the configuration does, and a hard-coded four-column grid would be this stylesheet knowing a
+  number the panel deliberately does not know. On a phone it is one column, in the order the
+  levels are in.
+*/
+.pts-earn-grid {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-bottom: var(--sp-4);
+}
+
+.pts-earn-cell { margin-bottom: 0; }
+.pts-earn-cell select { width: 100%; }
+
+/*
+  The sum is the only line on the card that is specific to this project's own numbers, so it is
+  the one line that is not a hint: same size as the body text, on the sunken surface, marked with
+  the brand rule the panel uses everywhere for "this belongs to that".
+*/
+.pts-earn-sum {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunken);
+  border-inline-start: 3px solid var(--brand-200);
+  border-radius: var(--r-md);
+  font-size: var(--fs-table);
+  color: var(--text-body);
+}
+
+/* The tick question is a property of Level 3, not a fifth level, and is inset to say so - the
+   same treatment Level3Card gives its own tick block. */
+.pts-earn-sub {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-4);
+  background: var(--surface-sunken);
+  border-inline-start: 3px solid var(--brand-200);
+  border-radius: var(--r-md);
+}
+.pts-earn-sub .field { margin-bottom: var(--sp-2); }
+.pts-earn-sub select { width: min(420px, 100%); }
+/* Inside the sunken block the sum would be a grey panel on a grey panel, so it takes the card
+   surface instead. The rule and the type stay identical - only the ground swaps. */
+.pts-earn-sub .pts-earn-sum { background: var(--surface-card); }
+
+/* ---------------------------------------------------------------- bonus rules */
+
+.pts-bonus-name { font-weight: var(--fw-semi); color: var(--text-strong); }
+
+/* Two small buttons that must not wrap mid-word or stack into a two-line cell on a wide table. */
+.pts-bonus-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* The mode comparison sits under the list as a block of its own: it is an explanation, not a
+   control, and it would read as part of the table if it shared its ground. */
+.pts-bonus-explain {
+  margin: var(--sp-4) 0;
+  padding: var(--sp-4);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.pts-bonus-explain-title {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semi);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+}
+
+/* ---------------------------------------------------------------- the bonus editor */
+
+/* Wider than a confirmation because it carries a three-column row and a table; still capped so it
+   never runs to the edge of a laptop screen. */
+.pts-bonus-dialog { width: min(680px, calc(100vw - 32px)); }
+.pts-bonus-dialog .field { margin-bottom: var(--sp-4); }
+.pts-bonus-dialog select,
+.pts-bonus-dialog input[type='text'],
+.pts-bonus-dialog input[type='number'] { width: 100%; }
+.pts-bonus-lead { margin-bottom: var(--sp-4); }
+
+/* Fields side by side while there is room, each dropping to its own line in order when there is
+   not - the same flex-wrap rule the cards use, so a 320px screen needs no media query. */
+.pts-bonus-row { display: flex; gap: var(--sp-4); flex-wrap: wrap; }
+.pts-bonus-row .field { flex: 1 1 200px; margin-bottom: var(--sp-4); }
+
+.pts-bonus-modes {
+  border: 0;
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  background: var(--surface-sunken);
+  border-inline-start: 3px solid var(--brand-200);
+  border-radius: var(--r-md);
+}
+.pts-bonus-modes legend {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semi);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0;
+  margin-bottom: var(--sp-3);
+}
+
+/* The radio sits beside a two-line label, so the row aligns at the top rather than centring a
+   16px control against a paragraph. */
+.pts-bonus-mode { align-items: flex-start; }
+.pts-bonus-mode-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.pts-bonus-preview { margin-top: var(--sp-4); }
+.pts-bonus-preview-empty { margin-top: var(--sp-3); }
+/* The count is a question asked of the table, not a field of the rule, so it is as narrow as the
+   number it holds and never stretches to the dialog's width like the fields above. */
+.pts-bonus-preview-at { margin-bottom: var(--sp-3); }
+.pts-bonus-dialog .pts-bonus-preview-at input[type='number'] { width: min(160px, 100%); }
+
+.pts-bonus-preview-table { background: var(--surface-card); }
+.pts-bonus-preview-table td { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+/* The row for the mode currently chosen, marked with the same brand tint the sidebar uses for the
+   current section. The word "(chosen)" in the cell carries the same fact, so the tint repeats it
+   and never carries it alone (§43). */
+.pts-bonus-preview-table tr.is-on { background: var(--brand-50); }
+
+/* ---------------------------------------------------------------- configuration history */
+
+/*
+  A read-only record of what each version of the point values was worth, mounted below the save
+  bar. Everything below is layout: the card, the table, the badges and the notices are the shared
+  classes unchanged, because a history that invented its own table would read as a different
+  product from the seven rule cards above it.
+*/
+
+/* The sentence that carries the load - "changing a value never rewrites an award already made" -
+   sits directly under the heading and is the first thing read, so it takes the body size rather
+   than the muted help size `.card-note` would otherwise give it. */
+.pts-cfg-lead { margin-top: 0; margin-bottom: var(--sp-4); font-size: var(--fs-body); color: var(--text-body); }
+
+/* The version number and its "in force now" badge, stacked. Side by side they make the row
+   taller than the number is wide and push the window column, which is the one a reader is
+   scanning, further across. */
+.pts-cfg-version,
+.pts-cfg-values {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* The note under a values cell - "3 tests priced on their own", or what an off configuration
+   meant. A block so it takes its own line under the four figures rather than running on from
+   them, which would read as a fifth level. */
+.pts-cfg-values .hint { display: block; }
+
+/*
+  Column floors.
+
+  A table is laid out from its cells' min-content widths, and a cell willing to break mid-word is
+  one the layout engine will make a character wide when five columns compete for a row. The
+  window is the widest floor because it holds two dates and the separator between them, and a
+  range folded across two lines stops reading as a range.
+*/
+.pts-cfg-c-version { min-width: 110px; }
+.pts-cfg-c-window { min-width: 210px; white-space: nowrap; }
+.pts-cfg-c-values { min-width: 200px; }
+/* Prose in a table of numbers, so it gets a width of its own and is allowed to wrap - a
+   truncated "Level 2: 200 to 250" is the one value on the row nobody can act on. */
+.pts-cfg-c-changes { min-width: 220px; max-width: 40ch; }
+
+/* One change per line, marked, because a version can move four values at once and a comma-joined
+   sentence of four is one nobody finishes reading. */
+.pts-cfg-changes { margin: 0; padding-inline-start: var(--sp-4); }
+.pts-cfg-changes li { margin: 0; }
+
+@media (max-width: 820px) {
+  /* The floors above are desktop column widths. Below admin.css's own card breakpoint each value
+     sits on its own labelled line, where a 210px floor only makes the card wider than the phone -
+     and the date range has the whole width to wrap into, so it no longer needs protecting. */
+  .pts-cfg-c-version,
+  .pts-cfg-c-window,
+  .pts-cfg-c-values,
+  .pts-cfg-c-changes {
+    min-width: 0;
+    max-width: none;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  /* The save bar is the one thing on a phone that must not eat the screen: on a 640px-tall
+     handset a padded card plus a wrapped message is a third of the viewport. The button keeps its
+     tap height and the padding comes off the top and bottom. */
+  .pts-savebar { padding-top: var(--sp-3); padding-bottom: calc(var(--sp-3) + env(safe-area-inset-bottom)); }
+  .pts-savebar .form-actions .btn { flex: 1 1 auto; }
+
+  /* The editor is a bottom sheet at this width (admin.css §32), so its padding comes off with
+     everything else and the mode block stops being a card inside a card inside a sheet. The width
+     is restated because this file loads after admin.css: without it the `min(680px, …)` above
+     would keep a 16px gutter down each side and the sheet would not sit flush to the edges. */
+  .pts-bonus-dialog { width: 100%; }
+  .pts-bonus-modes { padding: var(--sp-3); }
+  .pts-bonus-explain { padding: var(--sp-3); }
+}

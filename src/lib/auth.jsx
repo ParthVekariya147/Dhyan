@@ -9,7 +9,9 @@ import { EMAIL_RE } from './constants';
   chunk a visitor downloads before seeing a single field. recovery.js also holds every
   Gujarati sentence the two recovery screens say, and Rollup will not drop the unread exports
   of a module something eager imports. Taking one function from there put all of those
-  strings into the entry chunk and pushed it past the 60 KB budget verify:separation enforces.
+  strings into the entry chunk and pushed it past the entry-chunk budget verify:separation
+  enforces (60 KB at the time; the number has moved since, and the reason it is not quoted here
+  any more is that a comment naming a threshold outlives the threshold).
 */
 import { resetRedirectTo } from '../../shared/domain/recovery-routes.js';
 

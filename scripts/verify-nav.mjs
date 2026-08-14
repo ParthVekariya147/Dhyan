@@ -107,8 +107,30 @@ import {
   MOBILE_NAV_MAX,
   MOBILE_NAV_MIN,
   NAV_ICONS,
-  navRegistryEntry,
+  NAV_REGISTRY,
+  NAV_ROUTES,
 } from '../shared/domain/navigation.js';
+
+/**
+ * Every path a rendered button is allowed to have arrived at.
+ *
+ * The registry's routes and the destination table's, together, because a bar may now hold
+ * both kinds of item — a built-in, whose route comes from NAV_REGISTRY, and one the સંચાલક
+ * made, whose route comes from NAV_ROUTES. Both lists are in code; neither is the settings
+ * row, which is the whole point of the assertion this set exists for.
+ *
+ * A set of ROUTES rather than a per-key lookup, and that is the change custom items force. The
+ * old check read the registry entry for each rendered `data-nav-key` and compared its route to
+ * the href — which cannot work for `custom:btn-3`, a key that by design has no registry entry.
+ * What is actually being proved is unchanged and is the sentence at the top of
+ * shared/domain/navigation.js: an href in this bar is a path this build defined, never one a
+ * row named. Checking the href against the union proves exactly that, for both kinds, without
+ * the panel's key namespace having to be modelled here.
+ */
+const LEGAL_ROUTES = new Set([
+  ...NAV_REGISTRY.map((r) => r.route),
+  ...NAV_ROUTES.map((r) => r.route),
+]);
 
 const CHROME = process.env.CHROME_PATH
   || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -434,16 +456,23 @@ if (REACHABLE) {
       m.items.length >= MOBILE_NAV_MIN && m.items.length <= MOBILE_NAV_MAX, `${m.items.length} items`);
     check(`${at} - the bar is named for a screen reader`, m.bar.ariaLabel.length > 0,
       'nav.bnav has no aria-label');
-    check(`${at} - every item names a registry key`,
-      m.items.every((i) => !!navRegistryEntry(i.key)),
+    check(`${at} - every item carries an identity`,
+      m.items.every((i) => typeof i.key === 'string' && i.key.length > 0),
       m.items.map((i) => i.key || '(none)').join(', '));
     /*
-      The browser's half of test-navigation.mjs §9. The unit suite proves the RESOLVER takes
-      the route from the registry; this proves the anchor actually rendered that route into
-      its href rather than something the component invented on the way past.
+      The browser's half of test-navigation.mjs §9, and the single most important line in this
+      file. The unit suite proves the RESOLVER takes the route from code; this proves the
+      anchor actually rendered that route into its href rather than something the component
+      invented on the way past — which is where a stored value would have to leak out to do any
+      harm, since an href is the only part of this bar a browser will act on.
+
+      `settings` is writable through PostgREST by anyone holding settings.update, so the string
+      being checked here may have been written by a curl. LEGAL_ROUTES is built from two frozen
+      lists in code, so an href outside it is, by construction, a destination that came from the
+      row — and there is no such thing as an acceptable one.
     */
-    check(`${at} - every href is the registry's route for its key`,
-      m.items.every((i) => navRegistryEntry(i.key) && i.href === navRegistryEntry(i.key).route),
+    check(`${at} - every href is a path this build defined`,
+      m.items.every((i) => LEGAL_ROUTES.has(i.href)),
       m.items.map((i) => `${i.key}->${i.href}`).join(' '));
     check(`${at} - every item has an icon and a label`,
       m.items.every((i) => i.hasIcon && i.hasLabel),
@@ -640,6 +669,103 @@ for (const width of WIDE) {
   check('@ 360 - લોગિન carries no bottom bar', !onLogin.present || !onLogin.visible,
     'four buttons that all redirect back to this page');
   console.log(`  ${!onLogin.present || !onLogin.visible ? 'PASS' : 'FAIL'}  /login @ 360px`);
+  await page.close();
+}
+
+// ============================================================ 9 — a custom button, drawn
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  A button the સંચાલક made, rendered by the real app in a real browser
+  ────────────────────────────────────────────────────────────────────────────
+
+  Everything above measures the bar this build falls back to, because a test build has no
+  Supabase configuration and therefore no settings row — which is the right default and leaves
+  the whole custom-button path unmeasured in a browser. scripts/test-navigation.mjs proves the
+  RESOLVER handles a custom item; this proves <BottomNav> and <NavIcon> actually draw one.
+
+  The stored row is delivered through the device cache (`varni:nav:v1`) rather than through a
+  database, and that is not a shortcut — it is the honest reproduction of the case that
+  matters. src/lib/useNavigation.js caches the STORED ROW and re-resolves it on every read
+  precisely so that a cache written by an older build, or by anything else with access to the
+  origin's storage, cannot name a destination. Writing a row here and reloading is exactly the
+  path a tampered or outdated cache would take, so the two checks below — that a legitimate
+  custom button renders, and that a hostile one does not — are measured on the real code path
+  rather than a simulation of it.
+*/
+console.log('\n[6] a custom button, as the app draws it');
+{
+  const CACHE_KEY = 'varni:nav:v1';
+
+  /** Write a stored row into this origin's cache, then reload so the bar reads it. */
+  const withStoredRow = async (page, row) => {
+    await page.evaluate(
+      (key, value) => localStorage.setItem(key, JSON.stringify(value)),
+      CACHE_KEY,
+      row
+    );
+    await page.reload({ waitUntil: 'networkidle2' });
+    await new Promise((r) => setTimeout(r, 400));
+    return page.evaluate(() =>
+      [...document.querySelectorAll('nav.bnav a.bnav-item')].map((a) => ({
+        key: a.dataset.navKey,
+        href: new URL(a.getAttribute('href'), location.origin).pathname,
+        label: a.querySelector('.bnav-label')?.textContent?.trim() || '',
+        // The icon is an inline SVG the app drew itself. Its presence is the assertion: an
+        // icon name the build cannot draw renders as an empty cell, which is a button with no
+        // picture and no way to tell which one it was.
+        strokes: a.querySelectorAll('.bnav-icon svg > *').length,
+      }))
+    );
+  };
+
+  const page = await browser.newPage();
+  await page.setViewport({ width: 320, height: 780, deviceScaleFactor: 2, isMobile: true });
+  await page.goto(`${SITE}${PROBE}`, { waitUntil: 'networkidle2' });
+
+  // ---- a legitimate custom button ------------------------------------------
+  const legit = await withStoredRow(page, [
+    { key: 'home', label: 'મુખપૃષ્ઠ', icon: 'home', route: '/', visible: true, enabled: true, sortOrder: 1 },
+    { key: 'darshan', label: 'દર્શન', icon: 'darshan', route: '/darshan', visible: true, enabled: true, sortOrder: 2 },
+    { key: 'custom:btn-1', label: 'લીડરબોર્ડ', icon: 'chart', route: '/leaderboard', visible: true, enabled: true, sortOrder: 3 },
+    { key: 'custom:btn-2', label: 'છુપું', icon: 'users', route: '/learn', visible: false, enabled: true, sortOrder: 4 },
+  ]);
+
+  const made = legit.find((i) => i.key === 'custom:btn-1');
+  check('a custom button is drawn in the bar', !!made, legit.map((i) => i.key).join(', '));
+  check('it carries the સંચાલક\'s own word', made?.label === 'લીડરબોર્ડ', made?.label);
+  check('it goes where the destination table says', made?.href === '/leaderboard', made?.href);
+  // One of the four icons that arrived with custom buttons - so this also proves the new
+  // drawings shipped rather than only that the names are in the closed list.
+  check('and its picture is drawn rather than left blank', (made?.strokes || 0) > 0, `${made?.strokes} shapes`);
+  check('a hidden custom button is not drawn',
+    !legit.some((i) => i.key === 'custom:btn-2'), legit.map((i) => i.key).join(', '));
+  check('the bar holds a legal number of buttons with a custom one in it',
+    legit.length >= MOBILE_NAV_MIN && legit.length <= MOBILE_NAV_MAX, `${legit.length} items`);
+  console.log(`  ${made ? 'PASS' : 'FAIL'}  ${legit.map((i) => `${i.label}→${i.href}`).join('  ')}`);
+
+  /*
+    ---- and the same row with a destination nobody may have --------------------
+
+    The three strings below are what a tampered cache, or a settings row written around the
+    panel, would actually contain. None of them is in NAV_ROUTES, so none of them can come out
+    of the resolver — but the assertion is made on the rendered HREF rather than on the
+    resolver's output, because an href is the only part of this bar a browser will act on.
+  */
+  for (const bad of ['https://evil.example', 'javascript:alert(1)', '/admin']) {
+    const items = await withStoredRow(page, [
+      { key: 'home', label: 'મુખપૃષ્ઠ', icon: 'home', route: '/', visible: true, enabled: true, sortOrder: 1 },
+      { key: 'darshan', label: 'દર્શન', icon: 'darshan', route: '/darshan', visible: true, enabled: true, sortOrder: 2 },
+      { key: 'custom:btn-1', label: 'હેક', icon: 'book', route: bad, visible: true, enabled: true, sortOrder: 3 },
+    ]);
+    const leaked = items.some((i) => LEGAL_ROUTES.has(i.href) === false || i.label === 'હેક');
+    check(`a cached row naming ${bad} renders no such button`, !leaked,
+      items.map((i) => `${i.label}→${i.href}`).join(' '));
+    // …and the rest of the bar survives it. One bad item must cost one button, never the bar.
+    check(`and the other buttons still stand (${bad})`, items.length >= MOBILE_NAV_MIN, `${items.length} items`);
+  }
+  console.log('  PASS  an injected destination never reaches an href');
+
   await page.close();
 }
 

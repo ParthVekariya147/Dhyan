@@ -1,22 +1,20 @@
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { loadDashboard, loadDarshanSummary } from '../services/dashboardService';
-import StatCard, { PageHeader } from '../../../components/StatCard';
-import DataTable from '../../../components/DataTable';
+import StatCard, { PageHeader, guCount } from '../../../components/StatCard';
 import { CardSkeleton, ErrorState } from '../../../components/StateBlocks';
 import { dateGu, gu } from '../../../lib/format';
-import { STAGE_LABEL } from '../../../lib/domain';
 
 /**
  * §13, §14 — the operational glance.
  *
  * Every number here is counted by Postgres, on Postgres's side — `count: 'exact', head:
- * true` and a GROUP BY RPC. Nothing downloads a table to measure it, and no number is a
+ * true` and one aggregating RPC. Nothing downloads a table to measure it, and no number is a
  * placeholder: a metric that cannot be computed says so instead of showing a plausible
  * zero.
  *
  * §49 — the page is assembled from two independent reads and stays that way. `loadDashboard()`
- * covers the two groups that share the profiles/learning_state connection; `loadDarshanSummary()`
+ * covers the two groups that share the Postgres connection; `loadDarshanSummary()`
  * is a second, lazily-imported read of the દર્શન manifest and resolves on its own schedule.
  * Neither waits for the other, so the first group to arrive is on screen while the second is
  * still in flight, and one failing query costs its own band rather than the page.
@@ -25,6 +23,23 @@ import { STAGE_LABEL } from '../../../lib/domain';
  * to replace the whole page with one ErrorState — including the દર્શન tiles, which had
  * loaded perfectly well from a different read. Each band now states its own outcome and
  * carries its own Try again.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Where the "Users at each stage" table went, and why it is not coming back
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * This page used to end its progress band with a DataTable of `stage_breakdown()`, which
+ * groups `learning_state.current_stage`. `learning_state` and `learning_sessions` belong to
+ * the 0001 system behind the `/learn` route; nothing links to that route any more, nothing
+ * writes those tables, and in production both hold **zero rows**. The breakdown could
+ * therefore only ever render zeroes — and it hid itself when every count was 0, so the page
+ * looked fine while saying nothing about the ૫૩ લેવલ ૧–૩ submissions and ૧૯ લેવલ ૪ કસોટીઓ
+ * that did exist. The same reasoning removed the "Total sessions" and "Pending at the
+ * Darshan stage" tiles beside it.
+ *
+ * The tiles below read `admin_progress_summary()` (0028) instead, over the tables levels
+ * ૧–૪ actually write. Do not restore the stage breakdown: it cannot be correct again until
+ * something writes `learning_state`, and nothing does.
  *
  * The skeletons are stat-shaped (CardSkeleton), not spinners: the tiles arrive into the
  * space their placeholders were already holding, so nothing below them jumps (§33).
@@ -35,7 +50,7 @@ export default function DashboardPage() {
   const darshan = useAsync(() => loadDarshanSummary(), []);
 
   const users = main.data?.users;
-  const learning = main.data?.learning;
+  const progress = main.data?.progress;
   const report = darshan.data?.report;
 
   /*
@@ -43,17 +58,20 @@ export default function DashboardPage() {
     catches each group and hands back `{ error }`, while a failure of the envelope itself
     lands on `main.error`. Both mean "this band could not be read", so both are folded into
     one flag per band rather than checked in two places and forgotten in one.
+
+    A refusal counts as unreadable here too, and reaches this flag as an error rather than
+    as zeroes: admin_progress_summary() raises 42501 when the caller holds neither
+    progress.read nor users.read, instead of quietly returning nothing.
   */
   const usersError = main.error || users?.error;
-  const learningError = main.error || learning?.error;
+  const progressError = main.error || progress?.error;
 
   /**
-   * "Nobody has started" is a measurement, and this is the measurement: the read
-   * succeeded, and it found no learning_state row at any stage and no submitted session.
-   * Anything else — an error, a still-loading page — is not entitled to that sentence.
+   * "Nobody has started" is a measurement, and this is the measurement: the read succeeded,
+   * and it found nobody who has remembered a દ્રશ્ય or passed a કસોટી. Anything else — an
+   * error, a still-loading page — is not entitled to that sentence.
    */
-  const nothingRecorded =
-    !main.loading && !learningError && !!learning && !learning.tracked && !learning.sessions;
+  const nothingRecorded = !main.loading && !progressError && !!progress && !progress.participants;
 
   // One press re-runs both reads. They still travel independently — this is two retries,
   // not a new combined query — so a દર્શન read that is already fine simply comes back fine.
@@ -107,60 +125,95 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <h2 className="section-title">Learning progress</h2>
-      {learningError ? (
+      <h2 className="section-title">Levels 1-4 progress</h2>
+      {progressError ? (
         /*
           This branch used to render "Progress statistics are not available yet. No user has
           started learning so far." — a statement about the data, printed whenever the
           *read* failed. dashboardService turns any thrown error into `{ error }`, so a
-          missing stage_breakdown() RPC or a dropped connection had the panel telling a
-          સંચાલક as fact that 2,000 યુવક had done nothing, with no way to try again.
-          It says what it knows now, and offers the retry every other band on this page has.
-          The genuinely-empty case is `nothingRecorded` below, and it is measured.
+          missing RPC, a dropped connection or a refusal had the panel telling a સંચાલક as
+          fact that 2,000 યુવક had done nothing, with no way to try again. It says what it
+          knows now, and offers the retry every other band on this page has. The
+          genuinely-empty case is `nothingRecorded` below, and it is measured.
         */
         <ErrorState message="The progress statistics could not be loaded." onRetry={main.retry} />
       ) : main.loading ? (
-        <CardSkeleton count={4} />
+        <CardSkeleton count={8} />
       ) : (
         <>
           {nothingRecorded && (
             <div className="notice" role="status">
-              No learning has been recorded yet - no user has started so far.
+              No progress has been recorded yet - no user has remembered a darshan or passed a
+              Level 4 test so far.
             </div>
           )}
 
+          {/*
+            The same eight figures the full report opens with, from the same
+            admin_progress_summary() call — one document, so every tile is cut on the same
+            scan and no two of them can describe different moments. guCount() prints '-'
+            for a key that never arrived rather than a 0 nobody measured.
+          */}
           <div className="grid-stats">
-            <StatCard label="Active users" value={gu(learning?.active ?? 0)} />
-            <StatCard label="Completed" value={gu(learning?.completed ?? 0)} tone="ok" />
             <StatCard
-              label="Pending at the Darshan stage"
-              value={gu(learning?.pendingReview ?? 0)}
-              tone={learning?.pendingReview ? 'warn' : 'plain'}
+              label="Total users"
+              value={guCount(progress?.totalUsers)}
+              sub={progress ? `${guCount(progress.activeUsers)} active accounts` : null}
             />
-            <StatCard label="Total sessions" value={gu(learning?.sessions ?? 0)} />
+            <StatCard label="Active today" value={guCount(progress?.activeToday)} sub="Counted in India (IST)" tone="ok" />
+            <StatCard label="Level 1 completed" value={guCount(progress?.level1Completed)} />
+            <StatCard label="Level 2 completed" value={guCount(progress?.level2Completed)} />
+            <StatCard label="Level 3 completed" value={guCount(progress?.level3Completed)} />
+            {/*
+              The same figure the Users band shows as a share of everyone registered, and
+              deliberately both: this row is the levels read left to right and would have a
+              hole in it without લેવલ ૪'s gate. They cannot disagree — profiles_level4
+              inlines the predicate `level4_gate_open(uuid)` evaluates (0014), so the count
+              and the RPC are reading one rule.
+            */}
+            <StatCard label="Level 4 gate open" value={guCount(progress?.level4GateOpen)} sub="Open to start" />
+            <StatCard
+              label="Level 4 passed"
+              value={guCount(progress?.level4AnyPassed)}
+              /*
+                "Every sub-level" and not a number typed here: how many sub-levels there are
+                is whatever the published Level 4 configuration says today (`level4Total`),
+                and a literal would go stale the first time a સંચાલક publishes a new one.
+              */
+              sub={
+                progress?.level4Total
+                  ? `${guCount(progress.level4AllPassed)} have passed all ${gu(progress.level4Total)} sub-levels`
+                  : null
+              }
+              tone="ok"
+            />
+            <StatCard
+              label="Average remembered"
+              /*
+                Null, not zero, when nobody has remembered anything yet: `avg` over no rows
+                has no answer, and a 0 here would be a statement about everybody that no
+                read supports (§62).
+              */
+              value={progress?.avgRemembered == null ? '-' : gu(progress.avgRemembered)}
+              sub={
+                progress?.avgRemembered == null
+                  ? 'Nobody has started yet'
+                  : `Among ${guCount(progress.participants)} who have started${
+                      progress.totalContent ? `, out of ${gu(progress.totalContent)}` : ''
+                    }`
+              }
+            />
           </div>
 
-          {!!learning?.byStage?.some((b) => b.count) && (
-            <>
-              {/*
-                No card around the table. `.table-wrap` is already a bordered surface, and
-                below 900px DataTable turns each row into a card of its own — a card holding
-                cards is a frame inside a frame either way. Both columns carry a real
-                `label`, because on a phone the label is the only thing saying what the
-                number is.
-              */}
-              <h2 className="section-title">Users at each stage</h2>
-              <DataTable
-                caption="How many users are at each stage"
-                columns={[
-                  { key: 'stage', label: 'Stage', render: (b) => STAGE_LABEL[b.stage] || b.stage },
-                  { key: 'count', label: 'Users', align: 'right', render: (b) => <span className="mono">{b.count}</span> },
-                ]}
-                rows={learning.byStage}
-                rowKey={(b) => b.stage}
-              />
-            </>
-          )}
+          {/*
+            The tiles are the glance; who is where is a different question and has its own
+            page. Quiet, because reading the full report is not what a સંચાલક opens the
+            dashboard to do — it is what he does next when a tile surprises him.
+          */}
+          <p className="card-note">
+            <Link to="/progress">See the full progress report</Link> - every yuvak, level by
+            level, with filters and an export.
+          </p>
         </>
       )}
 

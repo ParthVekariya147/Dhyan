@@ -19,7 +19,7 @@ import { MOBILE_NAV_MAX, MOBILE_NAV_MIN } from '../../../../../shared/domain/nav
  * Why these icons are drawn here, again, instead of being imported
  * ────────────────────────────────────────────────────────────────────────────
  *
- * The યુવક app draws the same ten glyphs in src/components/NavIcon.jsx, and importing that
+ * The યુવક app draws the same glyphs in src/components/NavIcon.jsx, and importing that
  * file would be the obvious way to guarantee the preview matches the product. It is
  * forbidden, and by the rule that is the reason the two applications exist: AdminShell.jsx
  * states it at the top — §8, no shared UI components between the panel and the app — and
@@ -31,7 +31,7 @@ import { MOBILE_NAV_MAX, MOBILE_NAV_MIN } from '../../../../../shared/domain/nav
  * So the duplication is deliberate and it is bounded: the *names* are shared, from
  * NAV_ICONS, and they are the part that has to agree — an icon the સંચાલક picks and the app
  * cannot draw would render as an empty cell on the phone, which is why the domain file makes
- * NAV_ICONS a closed list. What is duplicated is ten path strings whose only job is to be
+ * NAV_ICONS a closed list. What is duplicated is a set of path strings whose only job is to be
  * recognisable in a 44px square, and if a glyph here drifts from the app's, the cost is a
  * preview that flatters a slightly different drawing - not a bar that fails to render.
  */
@@ -102,6 +102,37 @@ const GLYPHS = {
     <>
       <path d="M4 5.4h5.4A2.6 2.6 0 0 1 12 8v11a2.3 2.3 0 0 0-2.3-1.7H4Z" />
       <path d="M20 5.4h-5.4A2.6 2.6 0 0 0 12 8v11a2.3 2.3 0 0 1 2.3-1.7H20Z" />
+    </>
+  ),
+  // The four that came with custom buttons. Duplicated from src/components/NavIcon.jsx for
+  // the reason stated at the top of this file - the panel may not import the app's
+  // components - and the duplication is bounded to path strings whose only job is to be
+  // recognisable in a 44px square.
+  chart: (
+    <>
+      <path d="M3.8 20.2h16.4" />
+      <path d="M7.4 20.2v-5.8M12 20.2V7.4M16.6 20.2v-9" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9.4" cy="8.3" r="3.4" />
+      <path d="M3.3 20.3a6.1 6.1 0 0 1 12.2 0" />
+      <path d="M16.1 5.3a3.4 3.4 0 0 1 0 6M17.5 14.4a5.5 5.5 0 0 1 3.2 5.9" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.8" />
+      <path d="M12 11.2v5.4" />
+      <circle cx="12" cy="7.9" r="0.95" />
+    </>
+  ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.8" />
+      <path d="M9.5 9.5a2.6 2.6 0 0 1 5.1.6c0 1.7-2.6 2.2-2.6 4" />
+      <circle cx="12" cy="17.1" r="0.95" />
     </>
   ),
 };

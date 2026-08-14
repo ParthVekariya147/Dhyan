@@ -13,9 +13,9 @@
  * Importing one function from that module put all of those sentences into the entry chunk.
  * Rollup could not drop them: they are exported bindings of a module something eager
  * imports, and it will not assume that reading one export means the others are unreachable.
- * The measured cost was the entry chunk crossing the 60 KB budget
- * scripts/verify-admin-separation.mjs enforces, for strings only ever shown on two pages a
- * યુવક may never open.
+ * The measured cost was the entry chunk crossing the budget
+ * scripts/verify-admin-separation.mjs enforces — 60 KB when this was written, and higher since
+ * — for strings only ever shown on two pages a યુવક may never open.
  *
  * So the split is by *when the thing is needed*, not by what it is about: the sender needs a
  * URL, the screens need the words, and only the URL is needed early. recovery.js re-exports

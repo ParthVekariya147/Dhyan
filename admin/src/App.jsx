@@ -25,12 +25,25 @@ const DarshanHealthPage = lazy(() => import('./features/darshan/pages/DarshanHea
 const DarshanImportPage = lazy(() => import('./features/darshan/pages/DarshanImportPage'));
 const DarshanDetailPage = lazy(() => import('./features/darshan/pages/DarshanDetailPage'));
 const ProgressPage = lazy(() => import('./features/progress/pages/ProgressPage'));
+const UserProgressDetailPage = lazy(() => import('./features/progress/pages/UserProgressDetailPage'));
 const SessionsPage = lazy(() => import('./features/sessions/pages/SessionsPage'));
 const LevelsPage = lazy(() => import('./features/levels/pages/LevelsPage'));
 const Level4ListPage = lazy(() => import('./features/level4/pages/Level4ListPage'));
 const Level4EditorPage = lazy(() => import('./features/level4/pages/Level4EditorPage'));
 const VideoPage = lazy(() => import('./features/video/pages/VideoPage'));
 const NavigationPage = lazy(() => import('./features/navigation/pages/NavigationPage'));
+const PointsPage = lazy(() => import('./features/points/pages/PointsPage'));
+const PointLedgerPage = lazy(() => import('./features/points/pages/PointLedgerPage'));
+const DailyActivityPage = lazy(() => import('./features/points/pages/DailyActivityPage'));
+/*
+  Two pages, two questions, and the names are close enough that the difference is worth stating
+  where they are declared. DailyActivity is one day across everybody, from the submissions the app
+  itself observed. DailyRecords is one યુવક's own daily record over a range of days - what he
+  reported beside what was recorded, whether his edit window is still open, and the ledger rows
+  behind the figure.
+*/
+const DailyRecordsPage = lazy(() => import('./features/points/pages/DailyRecordsPage'));
+const LeaderboardPage = lazy(() => import('./features/points/pages/LeaderboardPage'));
 const SettingsPage = lazy(() => import('./features/settings/pages/SettingsPage'));
 const AuditLogPage = lazy(() => import('./features/audit/pages/AuditLogPage'));
 
@@ -76,6 +89,22 @@ export default function App() {
             <Route path="/darshan/import" element={<Gate need="darshan.update"><DarshanImportPage /></Gate>} />
             <Route path="/darshan/:itemId" element={<Gate need="darshan.read"><DarshanDetailPage /></Gate>} />
             <Route path="/progress" element={<Gate need="progress.read"><ProgressPage /></Gate>} />
+            {/*
+              One યુવક's લેવલ ૧–૪ record, read from the tables the app actually writes
+              (0028). `progress.read` and not `users.read`, unlike /users/:userId next door:
+              that page is the account, this one is the સાધના, and the RPC behind it refuses
+              without both permissions anyway. Every role holding one of the two holds the
+              other, so the two routes admit exactly the same people — naming the permission
+              the *data* is gated on is what keeps the route gate and the policy from drifting
+              apart the day a role is added.
+
+              Placed directly after /progress because it is that page's row expanded, and it
+              competes with nothing for precedence: there is no other /progress/* route.
+            */}
+            <Route
+              path="/progress/:userId"
+              element={<Gate need="progress.read"><UserProgressDetailPage /></Gate>}
+            />
             <Route path="/sessions" element={<Gate need="sessions.read"><SessionsPage /></Gate>} />
             <Route path="/levels" element={<Gate need="settings.read"><LevelsPage /></Gate>} />
             {/* લેવલ ૪ is a container of sub-levels, and arranging them is a different job from
@@ -100,6 +129,31 @@ export default function App() {
                 precedence. */}
             <Route path="/navigation" element={<Gate need="settings.read"><NavigationPage /></Gate>} />
             <Route path="/settings" element={<Gate need="settings.read"><SettingsPage /></Gate>} />
+            {/*
+              ગુણ — the rules, and what they have paid.
+
+              Four routes and two permissions, because the section really is two things. The
+              rule page *configures* `settings['levels'].value.points`, so it names
+              `settings.read` like every other screen that edits a settings row; the three
+              reporting screens read the ledger through 0032's functions, every one of which
+              opens with `admin_assert_progress_reader()`, so they name `progress.read`. The
+              permission a route names is the one that decides whether the page can say
+              anything true — naming a single permission for all four would give one of the two
+              halves a door that opens onto a refusal.
+
+              /points is the rule page rather than an overview that then links to a rule page.
+              A સંચાલક who opens this section has come to change what an activity is worth far
+              more often than to read a total, and the totals are on the page anyway.
+
+              The three static children are placed above nothing — there is no /points/:id for
+              them to compete with — so their order here is only how they are read: the ledger
+              is the record, the day is a cut of it, the board is what it adds up to.
+            */}
+            <Route path="/points" element={<Gate need="settings.read"><PointsPage /></Gate>} />
+            <Route path="/points/ledger" element={<Gate need="progress.read"><PointLedgerPage /></Gate>} />
+            <Route path="/points/daily" element={<Gate need="progress.read"><DailyActivityPage /></Gate>} />
+            <Route path="/points/records" element={<Gate need="progress.read"><DailyRecordsPage /></Gate>} />
+            <Route path="/points/leaderboard" element={<Gate need="progress.read"><LeaderboardPage /></Gate>} />
             <Route path="/audit-logs" element={<Gate need="audit.read"><AuditLogPage /></Gate>} />
           </Route>
 

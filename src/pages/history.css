@@ -1,5 +1,5 @@
 /* ────────────────────────────────────────────────────────────────────────────
-   મારી પ્રગતિ (/history) — two numbers, then a column of days
+   મારી પ્રગતિ (/history) — two numbers, then either a column of days or the ledger
    ────────────────────────────────────────────────────────────────────────────
 
    Co-located with the page and imported by it, exactly as home.css and profile.css are.
@@ -75,6 +75,52 @@
   color: var(--color-gold-soft);
 }
 
+/* ---- the two readings ------------------------------------------------------ */
+
+/* દિવસ પ્રમાણે / ગુણ પ્રમાણે. Deliberately the same control leaderboard.css builds for its
+   period switch, down to the token values: they are the same kind of thing - a caption for the
+   list underneath - and a યુવક who has learnt one has learnt both. Not merged into a shared
+   class, because Vite ships CSS per chunk and /history does not import leaderboard.css; a
+   `.tabs` in a third stylesheet would have to be imported by both routes to exist on either. */
+.hist-tabs {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+/* A full-height control, not a text link. --control-h is the app's 48px floor, above both
+   published one-handed tap minimums (Android 48, iOS 44). Two tabs share the width evenly, and
+   `flex: 1 1 0` rather than `1 1 auto` because there are exactly two of them and equal halves
+   read as a switch where two differently-sized pills read as two buttons. */
+.hist-tab {
+  flex: 1 1 0;
+  min-height: var(--control-h);
+  padding: var(--sp-2) var(--sp-3);
+  font-family: inherit;
+  font-size: var(--fs-label);
+  line-height: var(--lh-tight);
+  color: var(--color-muted);
+  background: none;
+  border: 1px solid rgba(240, 199, 120, 0.22);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.hist-tab:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* The reading on screen. Marked by ink and a brighter edge rather than by a filled pill, for
+   the reason leaderboard.css gives: a solid gold tab is the loudest thing on a page whose
+   subject is the list below it, and the tab is a caption for that list, not the point of it. */
+.hist-tab.is-on {
+  color: var(--color-gold-soft);
+  border-color: rgba(240, 199, 120, 0.6);
+  background: rgba(240, 199, 120, 0.08);
+  font-weight: 700;
+}
+
 /* ---- one day -------------------------------------------------------------- */
 
 .hist-day {
@@ -83,8 +129,11 @@
 
 /* The date, set as a quiet section heading rather than a card of its own. A day is a group of
    rows, not an object with a border - boxing each day would draw fourteen frames down a page
-   whose whole content is already a list. */
-.hist-date {
+   whose whole content is already a list. `.hist-head` is the same heading over a section that
+   is not a day (લેવલ પ્રમાણે, ક્યાંથી મળ્યા); it shares the rule rather than copying it, so the
+   two readings cannot drift into two typographic systems on one screen. */
+.hist-date,
+.hist-head {
   font-size: var(--fs-section);
   line-height: var(--lh-tight);
   font-weight: 700;
@@ -167,6 +216,141 @@
   background: rgba(240, 199, 120, 0.1);
   border: 1px solid rgba(240, 199, 120, 0.22);
   white-space: nowrap;
+}
+
+/* ---- લેવલ પ્રમાણે: where the ગુણ came from --------------------------------- */
+
+/* The one card on this page besides the band, and it earns the frame the days are denied: the
+   day list is one continuous column of one kind of thing, whereas this is a short closed set
+   with a sum under it - a thing that ends, and a border is how the eye is told where. */
+.hist-totals {
+  margin-top: var(--sp-5);
+  padding: var(--sp-4);
+  border-radius: var(--radius-card);
+  background: var(--color-panel);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+
+/* The heading sits inside the card, so its underline would draw a second line a few pixels in
+   from the border above it. Only the rule is dropped; the size, weight and colour stay the
+   page's. */
+.hist-totals .hist-head {
+  border-bottom: none;
+  padding-bottom: var(--sp-1);
+}
+
+/* Name on the left, figure on the right - the same shape as a day row, because it is the same
+   act of reading (what, then how much) and a second layout for it would be a second thing to
+   learn. `align-items: baseline` sits the two texts on one line however the name wraps. */
+.hist-tot {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+
+.hist-tot-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+/* Never allowed to shrink or wrap: a level's total is a single figure and `૧,૨` above `૦૦` is
+   not a smaller number, it is an unreadable one. */
+.hist-tot-value {
+  flex: 0 0 auto;
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  color: var(--color-gold-soft);
+  white-space: nowrap;
+}
+
+/* કુલ. Divided from the levels by a rule rather than by space, because it is not another level
+   - it is what they come to, and the line is what says so. Set only slightly larger than a
+   level's figure: it is the answer to the page's question, but the band at the top of the
+   screen already carries the app's one big number and two competing headlines is one too many. */
+.hist-grand {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid rgba(240, 199, 120, 0.18);
+}
+
+.hist-grand-value {
+  flex: 0 0 auto;
+  font-size: var(--fs-section);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  color: var(--color-gold);
+  white-space: nowrap;
+}
+
+/* ---- ક્યાંથી મળ્યા: one line per payment ----------------------------------- */
+
+/* The same row as a day's, with one difference: `align-items: flex-start` rather than baseline.
+   A payment's left half can run to four lines - level, કસોટી, date, and a બોનસ pill - and a
+   baseline would pin `+૩૦૦` to the first of them and leave it floating above a tall row. */
+.hist-tx {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid rgba(240, 199, 120, 0.1);
+}
+.hist-tx:last-child {
+  border-bottom: none;
+}
+
+.hist-tx-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+
+/* When it happened and what it was for, in the page's quiet grey - the same ink as .hist-title,
+   because both are the small print under a name and giving them two greys would invent a
+   hierarchy between a કસોટી's title and its date that does not exist. */
+.hist-tx-meta {
+  font-size: var(--fs-helper);
+  line-height: var(--lh-body);
+  color: #8b7a66;
+  overflow-wrap: break-word;
+}
+
+/* The બોનસ pill. Warmer than the gold used everywhere else on this page and the only place on
+   the screen that colour appears, which is the whole job: a milestone has to be findable while
+   scrolling past forty ordinary payments. It is still `.notice.warn`'s amber and nothing
+   brighter - a bonus is a nice thing that happened, not an alert.
+
+   `align-self: flex-start` and `inline-block`, so the pill is the width of its rule's name and
+   not the width of the column; a full-bleed amber bar would read as a banner. */
+.hist-tx-bonus {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: var(--sp-1);
+  padding: 0 var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-helper);
+  line-height: calc(var(--fs-helper) * 1.8);
+  color: #e8b98a;
+  background: rgba(232, 185, 138, 0.09);
+  border: 1px solid rgba(232, 185, 138, 0.4);
+  /* The rule's name is the સંચાલક's sentence and may be long. It wraps rather than truncating:
+     `૫ દર્શન પૂ…` is worse than two lines, because the number he crossed is the point of it. */
+  overflow-wrap: break-word;
+}
+
+/* The award pill on a payment row keeps .hist-points-row's fill and shape; only the alignment
+   is this section's, since there is no figure stacked above it to be right-aligned under. */
+.hist-tx > .hist-points-row {
+  flex: 0 0 auto;
 }
 
 /* ---- the three other states ------------------------------------------------ */

@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { useAdminAuth } from '../../../lib/adminAuth';
 import { getAppSettings, getLevelsConfig, updateAppSettings } from '../services/settingsService';
-/* Both live in settings['levels'] rather than settings['app'], which is why they arrive on a
-   read of their own below. They are here because this is where a સંચાલક looks for them. */
-import PointsCard from '../components/PointsCard';
+/* Lives in settings['levels'] rather than settings['app'], which is why it arrives on a read
+   of its own below. It is here because this is where a સંચાલક looks for it. Points used to be
+   its neighbour and now has a section of its own - see the card below where it stood. */
 import LeaderboardCard from '../components/LeaderboardCard';
 import { AsyncBlock, FormSkeleton } from '../../../components/StateBlocks';
 import { PageHeader, StatusBadge } from '../../../components/StatCard';
@@ -384,7 +384,36 @@ export default function SettingsPage() {
             skeleton={<FormSkeleton fields={4} />}
           >
             <>
-              <PointsCard points={levelsRow.data?.points} onSaved={levelsRow.retry} />
+              {/*
+                ──────────────────────────────────────────────────────────────
+                Points moved out, and this card is not a courtesy
+                ──────────────────────────────────────────────────────────────
+
+                A four-number card stood here and edited the same
+                `settings['levels'].value.points` object that Point Management now edits. Two
+                editors of one object would have been untidy; these two would have been
+                destructive. The old card's save wrote `{...currentRow, points: <what the card
+                held>}` - correctly merging at the *row* level, so the level list and the લેવલ ૪
+                gate survived, but replacing the `points` object wholesale. It knew four keys.
+                The engine now stores `version`, `effectiveFrom`, `disabled`, `repeat` and
+                `tick` beside them, so one save from this page would have silently deleted the
+                entire rule configuration - the repeat prices, the તિક mode, every switched-off
+                activity - and the only symptom would have been awards quietly reverting to the
+                flat per-day rule with nothing on any screen able to say why.
+
+                So the card was removed rather than taught the new keys: a second editor that
+                has to be kept in step with the first is the same bug with a longer fuse. This
+                is the pointer that replaces it, kept because a સંચાલક who has always found
+                points on this page must not conclude the feature is gone.
+              */}
+              <div className="card">
+                <h2 style={{ marginBottom: 0 }}>Points</h2>
+                <p className="card-note" style={{ marginTop: 0, marginBottom: 'var(--sp-4)' }}>
+                  Point values, repeat rules, the Level 3 tick mode and per-test prices are now
+                  set in their own section, together with the ledger they pay into.
+                </p>
+                <Link to="/points">Open Point Management</Link>
+              </div>
               {/*
                 Below the values it ranks people by, because that is the order of the
                 decisions: what an act is worth comes before who is ahead of whom.

@@ -157,6 +157,52 @@
   overflow-wrap: anywhere;
 }
 
+/* ---------------------------------------------------------------- custom buttons */
+
+/* The + New button control and the sentence explaining it, on one line while there is room
+ * and stacked when there is not. `align-items: baseline` rather than `center` so the hint's
+ * first line sits on the button's text rather than floating against its box. */
+.navcfg-add {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+.navcfg-add .hint { flex: 1 1 220px; min-width: 0; }
+
+/* Edit / Duplicate / Delete, on their own line under the row's controls rather than in the
+ * head beside the arrows. Three more buttons in the head is what pushes the badges onto a
+ * second line at 640px, and these are row-level actions - they act on the whole item, not on
+ * one of the fields above them, so a line of their own is what they are. */
+.navcfg-actions {
+  display: flex; gap: var(--sp-2); flex-wrap: wrap;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+/* Pushed to the trailing edge on a wide row, where destructive actions are looked for, and
+ * left alone when the line has wrapped - at 320px "aligned right" means "under the last
+ * thing that wrapped", which is worse than in order. */
+@media (min-width: 641px) {
+  .navcfg-actions { justify-content: flex-end; }
+}
+
+/* ---------------------------------------------------------------- the dialog */
+
+/* Wider than .confirm's 460px, which is sized for two sentences and two buttons. This holds
+ * five fields, and at 460px the route <select> - whose options carry a Gujarati word AND a
+ * path - truncates to the point where the two choices that matter are indistinguishable. */
+.navcfg-dialog { width: min(560px, calc(100vw - 32px)); }
+.navcfg-dialog .field { margin-bottom: var(--sp-4); }
+.navcfg-dialog select, .navcfg-dialog input[type='text'] { width: 100%; }
+.navcfg-dialog-lead { margin-bottom: var(--sp-4); }
+/* The last word in the dialog is that nothing here has been saved yet, so it sits under the
+ * buttons where it is read after the decision rather than before it. */
+.navcfg-dialog-foot { margin-top: var(--sp-4); margin-bottom: 0; }
+
+/* The route check, in both directions. Colour is never the only signal (§43): both states are
+ * a word, and the word is the statement - "Available" and the refusal sentence itself. */
+.navcfg-route-ok { color: var(--ok-ink); font-weight: var(--fw-semi); }
+.navcfg-route-bad { color: var(--dang-ink); }
+
 /* ---------------------------------------------------------------- the preview */
 
 .navcfg-preview {

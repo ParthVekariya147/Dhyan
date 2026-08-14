@@ -1,6 +1,5 @@
 import { countUsers } from '../../users/services/userService';
-import { sessionTotals, stageBreakdown } from '../../learning/services/learningService';
-import { STAGE } from '../../../lib/domain';
+import { progressSummary } from '../../progress/services/progressService';
 import { todayIST } from '../../../../../shared/domain/constants.js';
 
 /**
@@ -14,6 +13,23 @@ import { todayIST } from '../../../../../shared/domain/constants.js';
  * There is deliberately no analytics counter row. Aggregation queries already answer every
  * question this page asks, and a counter would be a second copy of the truth that can
  * drift out of step with the rows it summarises (§85).
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why the learning group is now the progress summary
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * This file used to call `stageBreakdown()` and `sessionTotals()` from learningService.
+ * Both read `learning_state` / `learning_sessions` — the 0001 system reached through the
+ * `/learn` route, which nothing links to any more. Those two tables hold **zero rows** in
+ * production and nothing has written them for as long as levels ૧–૪ have existed, so every
+ * figure they produced was a confident zero over a busy database.
+ *
+ * What levels ૧–૪ really write is `activity_attempts`, `daily_activity_progress`,
+ * `level4_attempts`, `level4_activity_progress`, `progress` and `point_transactions`, and
+ * `admin_progress_summary()` (0028) aggregates exactly those, server-side, in one scan.
+ * progressService.progressSummary() already wraps it for /progress; the dashboard calls the
+ * same function rather than keeping a second copy of the mapping that could disagree with
+ * the full report a click away.
  */
 
 /**
@@ -24,20 +40,25 @@ import { todayIST } from '../../../../../shared/domain/constants.js';
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
 
 /**
- * The groups from §14, loaded independently so one failure — a missing `stage_breakdown()`
- * RPC, say, or a connection that dropped — degrades that tile rather than blanking the page.
+ * The groups from §14, loaded independently so one failure — a missing migration, say, or a
+ * connection that dropped — degrades that band rather than blanking the page.
  *
  * `{ error }` means the group could not be read. It does not mean the group is empty, and
  * the page must not word it as though it were: a caller that cannot tell the two apart
- * ends up stating "no user has started learning" because the network blinked. Emptiness is
- * a number (`tracked`, below); failure is this key.
+ * ends up stating "no user has started learning" because the network blinked.
+ *
+ * The distinction is sharper on the progress side than it used to be. `admin_progress_summary()`
+ * raises 42501 when the caller holds neither `progress.read` nor `users.read`, instead of
+ * returning an empty set the way an RLS read denial would — so a refusal arrives here as a
+ * thrown error and reaches the page as a message with a retry, and can never be rendered as
+ * a row of zeros about 2,000 યુવકો.
  */
 export async function loadDashboard() {
-  const [users, learning] = await Promise.all([
+  const [users, progress] = await Promise.all([
     loadUserMetrics().catch((e) => ({ error: e })),
-    loadLearningMetrics().catch((e) => ({ error: e })),
+    progressSummary().catch((e) => ({ error: e })),
   ]);
-  return { today: todayIST(), users, learning };
+  return { today: todayIST(), users, progress };
 }
 
 /**
@@ -60,34 +81,16 @@ async function loadUserMetrics() {
   return { total, gated, newWeek, newMonth };
 }
 
-/**
- * Where everyone currently stands, by stage.
+/*
+ * There is no `loadLearningMetrics()` here any more, and no stage breakdown behind it.
  *
- * "Active" is anyone past NOT_STARTED and short of COMPLETED — derived from the same
- * breakdown rather than counted again, so the two figures cannot disagree.
+ * It called `stage_breakdown()`, which groups `learning_state.current_stage` — a table with
+ * zero rows in production and no writer. Every stage it returned was 0, and a table of
+ * zeroes headed "Users at each stage" reads as a measurement rather than as the absence of
+ * one. The dashboard now reads `admin_progress_summary()` (see the header), which counts the
+ * levels the યુવક app actually writes. Please do not restore the breakdown: it cannot come
+ * back correct until something writes `learning_state` again, and nothing does.
  */
-async function loadLearningMetrics() {
-  const [byStage, totals] = await Promise.all([stageBreakdown(), sessionTotals()]);
-  const at = (s) => byStage.find((b) => b.stage === s)?.count || 0;
-
-  const started = byStage.reduce((sum, b) => sum + b.count, 0);
-  const notStarted = at(STAGE.NOT_STARTED);
-  const completed = at(STAGE.COMPLETED);
-
-  return {
-    byStage,
-    // How many learning_state rows are visible at all, across every stage. The page needs
-    // it to say "nothing has been recorded yet" only when that is a measurement rather
-    // than a guess — a zero here and a failed read are different facts, and the tile used
-    // to print the same sentence for both. Derived from `byStage` rather than counted
-    // again, so the two can never disagree.
-    tracked: started,
-    active: Math.max(0, started - notStarted - completed),
-    completed,
-    pendingReview: at(STAGE.PENDING_REVIEW),
-    sessions: totals.sessions,
-  };
-}
 
 /**
  * દર્શન health for the dashboard tile. Imported dynamically so the manifest lands in the

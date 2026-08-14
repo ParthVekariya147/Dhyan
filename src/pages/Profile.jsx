@@ -194,6 +194,22 @@ export default function Profile() {
         </Link>
 
         {/*
+          આજની પ્રગતિ, immediately under મારી પ્રગતિ, and reached from here for exactly the
+          reason that one is: NAV_REGISTRY holds five keys at most and the default four are
+          already spent, so a page with no bar button needs a door — and મારું is where a યુવક
+          already looks for his own record.
+
+          Under and not above it, because the two are the same subject read in two directions:
+          મારી પ્રગતિ is what has already happened and is the larger thing; this is today, which
+          he has come to write down. A <Link> and not an <a>, for the reason spelled out under
+          સેટિંગ below.
+        */}
+        {/* <Link to="/daily" className="profile-link">
+          <span className="profile-link-name">આજની પ્રગતિ</span>
+          <span className="profile-link-note">આજનો ડેટા ભરો કે સુધારો</span>
+        </Link> */}
+
+        {/*
           ક્રમાંક, under મારી પ્રગતિ and above સેટિંગ, which is the order of how much of a
           યુવક's own સાધના each one is about.
 

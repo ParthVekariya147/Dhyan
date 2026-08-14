@@ -29,7 +29,12 @@ const MIGRATIONS = path.join(ROOT, 'supabase', 'migrations');
 const PRELUDE = path.join(ROOT, 'supabase', 'test', 'prelude.sql');
 
 const NAME = 'varni-rls-test';
-const PORT = 55433;
+// Overridable because 55433 is not always bindable. Windows reserves blocks of the dynamic
+// range for Hyper-V (`netsh interface ipv4 show excludedportrange protocol=tcp`), and on a
+// machine where 55431-55530 is excluded the container starts and the bind fails with
+// EACCES — which reads as a permissions problem and is really a port that was spoken for.
+// Any free port does; the default is unchanged so nothing that works today moves.
+const PORT = Number(process.env.VARNI_PGTEST_PORT) || 55433;
 const PASSWORD = 'varni-test-only';
 
 /** Is there a docker to run this on at all? Reported, never guessed at. */

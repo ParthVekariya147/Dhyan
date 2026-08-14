@@ -22,11 +22,28 @@ import { subZoneNameEn } from '../../../lib/labels';
  * Read-only and paginated. Nothing internal is exposed: no document paths, no draft
  * state, no uid beyond a link target (§40).
  *
- * This page is where a date-range report is actually honest. `submitted_at` is written by
- * the યુવક app at the moment a round is submitted, so "how much happened between these two
- * dates" has real rows behind it. The day-by-day *score* history §9 describes lives in
- * `public.progress`, which nothing writes yet — the Progress page says so in full, and
- * this page does not quietly stand in for it.
+ * ────────────────────────────────────────────────────────────────────────────
+ * This screen reads a retired table, and says so on the screen itself
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Everything above describes a flow that no longer runs. `learning_sessions` belongs to the
+ * 0001 system reached through the `/learn` route; nothing links to that route any more,
+ * nothing writes the table, and in production it holds **zero rows** — it has held zero rows
+ * for as long as levels ૧–૪ have existed. Every query on this page is correct and every one
+ * of them returns nothing.
+ *
+ * The page is deliberately not rewritten onto another table. What replaced these rounds is
+ * `activity_attempts` and `level4_attempts`, and both are already surfaced properly:
+ * /users/:userId/activity for one યુવક's history and /progress for the organisation-wide
+ * report with its own filters and export. A third view of the same rows, wearing this
+ * page's vocabulary of "rounds" and "sessions", would be a fourth place for the same facts
+ * to disagree.
+ *
+ * What is not acceptable is a screen that looks broken. So the page keeps working — the
+ * filters, the pager and the export all still do exactly what they say — and states at the
+ * top which table it is reading and where the live data is. The alternative, an "No round
+ * yet" empty state over a busy database, is a statement rather than the absence of one
+ * (§35, §62).
  */
 
 /**
@@ -177,7 +194,9 @@ export default function SessionsPage() {
       ? `No round was submitted in these dates${completedOnly ? ' with status Complete' : ''}. Try a wider range.`
       : completedOnly
         ? 'No round has status Complete yet. Clear the tick to see rounds that are still going.'
-        : 'No learning session available yet.';
+        // Not "nobody has done anything": with no filter on, this is the retired table being
+        // empty, which is the one thing the notice above has already explained.
+        : 'This table holds no rounds. See the note above for where the current progress is.';
 
   return (
     <>
@@ -187,7 +206,7 @@ export default function SessionsPage() {
           runExport reads the same `completedOnly` and IST bounds the table does. */}
       <PageHeader
         title="Sessions"
-        sub="Every submitted round - one session, one document"
+        sub="Rounds submitted through the retired learning flow - see the note below"
         actions={
           <button
             className={`btn${exporting ? ' is-busy' : ''}`}
@@ -200,6 +219,22 @@ export default function SessionsPage() {
           </button>
         }
       />
+
+      {/*
+        Said once, at the top, before any control that would otherwise look like it had
+        simply found nothing. Not role="alert" and not notice-danger: nothing is wrong here
+        and no one needs to act - this is a retired screen describing itself, and shouting
+        about it would send a સંચાલક looking for a fault that does not exist. See this
+        file's header for the full reasoning.
+      */}
+      <div className="notice notice-warn">
+        This screen reads <span className="mono">learning_sessions</span>, the table behind
+        the older learning flow. It has held no rows since levels 1-4 replaced that flow, so
+        the list below will be empty and the export will produce an empty file. Nothing has
+        been lost - the progress yuvaks are making now is on the{' '}
+        <Link to="/progress">Progress report</Link>, and one yuvak's own attempts are under
+        Activity &amp; points on his profile.
+      </div>
 
       <div className="filters" role="group" aria-label="Filter the rounds">
         <div className="field">

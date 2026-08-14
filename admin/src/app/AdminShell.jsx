@@ -53,6 +53,33 @@ export const NAV = [
   { to: '/darshan', label: 'Darshan', icon: '❑', need: 'darshan.read' },
   { to: '/progress', label: 'Progress', icon: '◔', need: 'progress.read' },
   { to: '/sessions', label: 'Sessions', icon: '◷', need: 'sessions.read' },
+  /*
+    ગુણ — four entries, and two permissions between them.
+
+    The ledger, the day and the board read 0032's functions, every one of which opens with
+    `admin_assert_progress_reader()`, so all three name `progress.read` — the same permission
+    Progress names, and for the same reason: it is the one that decides whether the page can
+    say anything true. Point Management edits `settings['levels'].value.points`, so it names
+    `settings.read` like every other screen that edits a settings row, and its saves are
+    refused without `settings.update` by the policy and the trigger behind it.
+
+    Placed here, after Sessions, against the note above rather than by taste. This list decides
+    every role's landing page — App.jsx opens the panel on `NAV.find(can)` — so an insertion
+    near the top would silently move somebody's front door. દર્શન is third and every role in
+    the matrix holds darshan.read, so nothing inserted after it can change where any role
+    lands. This is well after it, beside the two people-shaped sections it is read against.
+
+    Icons from the Geometric Shapes block like their neighbours, so they render from the same
+    font on the same machines: ◉ a mark being awarded, ▦ ruled rows and columns, ◧ one day out
+    of the whole, ◭ a place on a podium.
+  */
+  { to: '/points', label: 'Point Management', icon: '◉', need: 'settings.read' },
+  { to: '/points/ledger', label: 'Point Ledger', icon: '▦', need: 'progress.read' },
+  { to: '/points/daily', label: 'Daily Activity', icon: '◧', need: 'progress.read' },
+  // ◨ against Daily Activity's ◧ - the mirrored half, because the two are the same day seen from
+  // opposite sides: what the app observed, and what the યુવક wrote down himself.
+  { to: '/points/records', label: 'Daily Records', icon: '◨', need: 'progress.read' },
+  { to: '/points/leaderboard', label: 'Leaderboard', icon: '◭', need: 'progress.read' },
   { to: '/levels', label: 'Level', icon: '⧉', need: 'settings.read' },
   // Its own entry rather than a link buried inside Levels: લેવલ ૪ is a container the સંચાલક
   // fills — which દર્શન each sub-level asks for — and that is a section's worth of work, not
@@ -100,8 +127,26 @@ const at = (to) => NAV.find((n) => n.to === to);
 export const NAV_GROUPS = [
   { label: 'Overview', items: [at('/dashboard')] },
   { label: 'Content', items: [at('/darshan'), at('/levels'), at('/levels/4')] },
-  { label: 'People', items: [at('/users'), at('/progress'), at('/sessions')] },
-  { label: 'System', items: [at('/video'), at('/navigation'), at('/settings'), at('/audit-logs')] },
+  {
+    label: 'People',
+    items: [
+      at('/users'),
+      at('/progress'),
+      at('/sessions'),
+      // The three reading screens sit with the people they are about, not with the rule page
+      // that priced them. A સંચાલક asking "what did he do, and what was he paid" is asking a
+      // question about a યુવક; changing what an activity is worth is a system decision, and
+      // that one entry is under System with the other settings screens.
+      at('/points/ledger'),
+      at('/points/daily'),
+      at('/points/records'),
+      at('/points/leaderboard'),
+    ],
+  },
+  {
+    label: 'System',
+    items: [at('/video'), at('/navigation'), at('/points'), at('/settings'), at('/audit-logs')],
+  },
 ];
 
 export default function AdminShell() {

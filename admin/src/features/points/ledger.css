@@ -1,0 +1,406 @@
+/* Points reporting — the ledger browser, the daily view, the admin board and the daily records
+ * report.
+ *
+ * Loaded by those four pages only, so it rides their chunks and costs nothing on any other
+ * screen (§51). Every colour, size, radius and gap below is a token from admin.css: this is
+ * the same console, and a section with its own palette reads as a different product. There is
+ * not one raw colour value in this file. Breakpoints are the four admin.css documents —
+ * 1200 / 900 / 640 / 380 — and no others.
+ *
+ * ── Why this repeats a few rules from progress.css ──────────────────────────
+ *
+ * The filter grid, the chips and the column panel are the same three patterns the progress
+ * report established, and they are re-declared here under a `pl-` prefix rather than imported.
+ * progress.css is loaded by ProgressPage and rides that page's chunk; importing it from here
+ * would pull the whole progress stylesheet — bands, its own column floors, its own mobile
+ * card rules — into three pages that render none of it, and would couple two features so that
+ * a change to the report's bar chart could move a ledger filter. The shared *tokens* are the
+ * real single source; these are five layout declarations built from them.
+ *
+ * ── Tone (§10, §14) ────────────────────────────────────────────────────────
+ *
+ * There is no red in this file, on any page. A manual adjustment that takes points away is an
+ * administrative act with a reason and an author, not a fault; a legacy row is history, not a
+ * problem; and a test with દર્શન still to revise is a thing still to do. None of the three is
+ * ever painted as an error.
+ */
+
+/* ---------------------------------------------------------------- the filter grid */
+
+/*
+  `.filters` in admin.css is a wrapping flexbox with `align-items: flex-end`, which is right
+  for the three or four controls most screens put in it. The ledger has ten and several carry
+  a line of help text, so the flex rows took different heights and the block rendered as a
+  ragged staircase.
+
+  A grid instead: fixed tracks, so a column is a column all the way down however many rows the
+  viewport allows. `auto-fit` with a floor means one rule serves a 1920px desktop (five or six
+  across) and a 380px phone (one), which is why there is no second breakpoint for it.
+*/
+.filters.pl-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--sp-3) var(--sp-4);
+  align-items: start;
+}
+
+/* The flex sizing from admin.css would otherwise fight the grid tracks. */
+.filters.pl-filters .field {
+  flex: none;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* Every field the same height, so the inputs line up in a row rather than stepping down. The
+   help text is what made them uneven — one field has none, another wraps to two lines. A floor
+   of two lines keeps the sentences, which tell the સંચાલક the filter asks the database rather
+   than the page. */
+.filters.pl-filters .field > .hint {
+  display: flex;
+  align-items: flex-end;
+  min-height: 2.6em;
+  line-height: 1.3;
+}
+
+/* Empty on a desktop — the button inside it is `.only-narrow`, which admin.css hides above
+   900px — so this row collapses to nothing and costs no vertical space there. */
+.pl-bar { display: flex; }
+
+/* The action row under the grid: date presets, then Reset. Its own line, so a press that
+   re-runs the query is never mistaken for one that only narrows a control. A button is not a
+   field and does not want a field's track. */
+.pl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+/* ---------------------------------------------------------------- active filter chips */
+
+/*
+  One chip per condition currently narrowing the view, each its own button so a single filter
+  can be dropped without losing the other eight. A button and not a div with an onClick: it is
+  reachable by Tab and it announces itself, without any aria being invented for it (§56).
+
+  The × is decorative and `aria-hidden`; the accessible name comes from the label plus an
+  `.sr-only` "remove", so a screen reader reads "Level 4 remove" rather than "Level 4 times".
+*/
+.pl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.pl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--ctl-h-sm);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--brand-200);
+  border-radius: var(--r-full);
+  background: var(--brand-50);
+  color: var(--text-body);
+  font: inherit;
+  font-size: var(--fs-help);
+  cursor: pointer;
+  /* A chip holds a value the સંચાલક chose - "Kind: Manual adjustment" - so it must not be
+     folded mid-word by a narrow viewport. It wraps to the next line as a whole instead. */
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.pl-chip:hover { background: var(--brand-100, var(--brand-50)); border-color: var(--brand-500); }
+.pl-chip > span[aria-hidden] { color: var(--text-muted); font-size: var(--fs-table); line-height: 1; }
+
+/* ---------------------------------------------------------------- the column picker */
+
+/* A <details> rather than a managed popover: it opens on click and on Enter, closes on Escape,
+   and is reachable by Tab without a line of JavaScript or a focus trap to maintain. */
+.pl-cols { position: relative; }
+.pl-cols > summary {
+  /* Firefox draws the disclosure triangle through `list-style`, WebKit through the
+     pseudo-element below. Both have to go, or the button carries a stray marker. */
+  list-style: none;
+  cursor: pointer;
+}
+.pl-cols > summary::-webkit-details-marker { display: none; }
+.pl-cols > summary::marker { content: ''; }
+
+.pl-cols-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--sp-2));
+  inset-inline-end: 0;
+  width: min(300px, calc(100vw - 2 * var(--sp-5)));
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-3);
+  padding: var(--sp-3);
+}
+
+.pl-cols-list { list-style: none; margin: var(--sp-2) 0; }
+.pl-cols-list .check { min-height: var(--tap); }
+
+/* Headings turn seventeen checkboxes into something scannable. A real <h3> rather than a
+   styled div, so the panel has an outline a screen reader can navigate by (§56). */
+.pl-cols-group + .pl-cols-group { margin-top: var(--sp-3); }
+.pl-cols-head {
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semi);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-1);
+}
+.pl-cols-group .pl-cols-list { margin: 0; }
+
+/* ---------------------------------------------------------------- table cells */
+
+/* A figure with its badge underneath rather than beside it: "+100" and "First of the day" on
+   one line makes the row taller than the number is wide and pushes the next column off a
+   1200px screen. Aligned to the end because the cells that use it are numeric, and below
+   ~820px DataTable's card layout puts the value at the end of the line too. */
+.pl-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* `nowrap` so "+100" or "3 / 108" cannot be folded into two lines by a column that is briefly
+   narrow while the table measures itself. */
+.pl-num { white-space: nowrap; }
+
+/*
+  A negative award.
+
+  Amber ink and not red, deliberately. Red on a row that carries a person's name reads as
+  "this yuvak did something wrong", and a negative row is the opposite: it is a સંચાલક
+  correcting the ledger, with his name and his reason in the two columns beside it. Amber says
+  "read this one"; the word "Adjustment" in the badge under it says what it is, so the colour
+  is never the only signal (§43).
+*/
+.pl-neg { color: var(--warn-ink); }
+
+/* The reason a manual adjustment carries. It is prose in a table of numbers, so it gets a
+   width of its own and is allowed to wrap - a truncated reason is worse than a wide column,
+   because the reason is the entire justification for the row existing. */
+.pl-c-reason { min-width: 200px; max-width: 34ch; }
+
+/*
+  Column floors.
+
+  A table is laid out from its cells' min-content widths, and a cell that is willing to break
+  mid-word is a cell the layout engine will make one character wide when seventeen columns
+  compete for a row. `break-word` in admin.css stops a column going narrower than its longest
+  word; these floors stop it going narrower than its longest plausible *value*.
+
+  Set on the column rather than the table so the picker can hide any of them and the rest keep
+  their floors. DataTable puts each column's className on both its th and its td, so there is
+  one declaration and the two cannot drift.
+*/
+.pl-c-user { min-width: 170px; }
+.pl-c-smk { min-width: 100px; white-space: nowrap; }
+.pl-c-city { min-width: 110px; white-space: nowrap; }
+.pl-c-zone { min-width: 120px; white-space: nowrap; }
+.pl-c-date { min-width: 110px; white-space: nowrap; }
+.pl-c-when { min-width: 150px; white-space: nowrap; }
+.pl-c-activity { min-width: 150px; }
+.pl-c-kind { min-width: 140px; }
+.pl-c-points { min-width: 110px; }
+
+/* The name is the one value here that can be genuinely long — three given names and a surname
+   — so it is the one that may be trimmed. Every row carries the full text in a `title`, so
+   hovering shows what the ellipsis took. Nothing else on the row is truncated: a clipped SMK
+   or a clipped મંડળ is a value the સંચાલક cannot act on. */
+.dt td.pl-c-user > a,
+.dt td.pl-c-user > span {
+  display: inline-block;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* ---------------------------------------------------------------- the day's timeline */
+
+/* One યુવક's day, opened under the list rather than on a route of its own: it is a detail of
+   the row above it, and a page change would lose the date, the city and the મંડળ the સંચાલક
+   has already chosen. */
+.pl-timeline { margin-top: var(--sp-4); }
+
+.pl-timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+.pl-timeline-head h2 { margin: 0; }
+
+/* A second line inside one cell — the level under the activity's own name, or the rule version
+   under an award kind. Below ~820px the row is a card with no neighbouring column to borrow
+   context from, so "Revision" alone would not say which rung it came from. */
+.pl-sub { display: block; }
+
+/* ---------------------------------------------------------------- daily records */
+
+/*
+  The reported/recorded pair, and the edit window.
+
+  Both are two facts stacked in one cell rather than set side by side, for the reason `.pl-cell`
+  above already gives: a figure and its badge on one line makes the row taller than the number is
+  wide and pushes the next column off a 1200px screen. This report has more columns than any
+  other in the panel, so that pressure is at its worst here.
+*/
+
+/* A count column is as wide as three digits and the word under it. The floor stops the table
+   engine squeezing it to one character when twenty-two columns compete for a row; it is smaller
+   than the points floor because a daily count is a single digit far more often than not. */
+.dr-c-count { min-width: 96px; white-space: nowrap; }
+
+/* The window carries a badge over a timestamp, and the timestamp is the wider of the two. Not
+   allowed to wrap: "Open until 15 Aug 2026, 6:00 pm" broken after "6:00" reads as two different
+   times. */
+.dr-c-window { min-width: 170px; }
+
+.dr-window {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+/* The deadline under the badge. `.pl-sub` already makes it a block; this only stops the date
+   folding, which the column floor above leaves room for. */
+.dr-window .hint { white-space: nowrap; }
+
+/* ---------------------------------------------------------------- one record, opened */
+
+/* Three tables under one heading — the counts, the audit trail and the ledger. They are stacked
+   rather than laid side by side because they are read in that order and each is as wide as the
+   panel; a two-column arrangement would put the ledger off the edge of a laptop. */
+.dr-detail .dt { margin-bottom: 0; }
+.dr-detail .table-wrap + .card-note { margin-bottom: var(--sp-4); }
+
+/* A heading per table, so the panel has an outline a screen reader can navigate by (§56) and a
+   reader scrolling past can tell which of the three he is in. Sized as a section heading rather
+   than as a page one: it sits inside a detail panel, under an h2 that already names the record. */
+.dr-detail-head {
+  margin: var(--sp-5) 0 var(--sp-2);
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semi);
+  color: var(--text-strong);
+}
+.dr-detail-head:first-of-type { margin-top: var(--sp-3); }
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .pl-bar { margin-bottom: var(--sp-3); }
+  /* A control that opens the whole filter bar is worth the width of the row. */
+  .pl-bar .btn { width: 100%; }
+
+  /* §29 — the list first, the controls on request. The bar is a card when it is open so it
+     reads as one thing pushed above the rows, not as fields loose on the page. */
+  .filters.pl-filters:not(.is-open) { display: none; }
+  .filters.pl-filters.is-open {
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-1);
+    padding: var(--sp-4);
+  }
+}
+
+@media (max-width: 640px) {
+  /* An absolutely positioned panel anchored to a button that has wrapped to the start of its
+     row would hang off the leading edge of a narrow screen, which is the one thing
+     verify:admin will not allow. Below this width it stops floating and takes its place in the
+     flow instead. */
+  .pl-cols { width: 100%; }
+  .pl-cols > summary { width: 100%; }
+  .pl-cols-panel {
+    position: static;
+    width: auto;
+    max-height: none;
+    box-shadow: none;
+    margin-top: var(--sp-2);
+  }
+}
+
+/*
+  ---------------------------------------------------------------- the mobile card
+
+  Below ~820px admin.css turns every row into a stack of label/value pairs. Seventeen of those
+  is a card a thumb scrolls past rather than reads, so the phone keeps what identifies the row
+  and what it was worth, and the bookkeeping columns are hidden.
+
+  Hidden in CSS and not dropped from the column list, deliberately. The same array builds the
+  table, the CSV and the Excel file, and an export that changed shape depending on the width of
+  the window it was pressed in would be indefensible. The data is fetched, exported, and simply
+  not painted.
+
+  The breakpoint matches admin.css's own card breakpoint. If that moves, this must move with
+  it, which is why the number is written here rather than left implicit.
+*/
+@media (max-width: 820px) {
+  .dt td.pl-c-city,
+  .dt td.pl-c-zone,
+  .dt td[data-label='Source'],
+  .dt td[data-label='Attempt'],
+  .dt td[data-label='Rule version'],
+  .dt td[data-label='Ledger id'],
+  .dt td[data-label='Recorded at'],
+  .dt td[data-label='Video sessions'] {
+    display: none;
+  }
+
+  /* The floors above are desktop column widths. On a card each value sits on its own line, so
+     a 170px floor only makes the card wider than the phone. */
+  .pl-c-user,
+  .pl-c-smk,
+  .pl-c-city,
+  .pl-c-zone,
+  .pl-c-date,
+  .pl-c-when,
+  .pl-c-activity,
+  .pl-c-kind,
+  .pl-c-points,
+  .pl-c-reason,
+  /* The daily-record columns take the same treatment. Nothing on that report is *hidden* on a
+     phone: its whole point is a reported count read beside a recorded one, and the card layout
+     already puts each on its own labelled line, which is if anything easier to compare than two
+     adjacent table cells. Hiding half the pair to save vertical space would be hiding the
+     answer. */
+  .dr-c-count,
+  .dr-c-window {
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* The window's deadline may wrap on a card: it has the full width of the phone to wrap into,
+     and the nowrap above exists only to protect a narrow table column. */
+  .dr-window .hint { white-space: normal; }
+
+  /* The name may use the whole card rather than 22ch of it - and it is the way into the
+     yuvak's record, so on a phone it has to be a target a thumb can actually hit. A 20px line
+     of text is a link a mouse can hit and a finger cannot (§36). */
+  .dt td.pl-c-user > a,
+  .dt td.pl-c-user > span {
+    max-width: none;
+    white-space: normal;
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+}
