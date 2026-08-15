@@ -88,14 +88,18 @@ function sharedPublicAtRoot(dir) {
  *     subdomain — that is the only line that changes.
  *
  * Environment variables come from the repository root, so both apps read one .env.local.
+ *
+ * Paths use `import.meta.dirname`, not `__dirname`. Vite bundles this config today, which is
+ * why the CommonJS global resolved at all in an ESM file; when it loads configs natively
+ * instead - already the plan, and warned about on every build - only the ESM spelling exists.
  */
 export default defineConfig({
-  root: __dirname,
+  root: import.meta.dirname,
   base: '/admin/',
-  envDir: path.resolve(__dirname, '..'),
+  envDir: path.resolve(import.meta.dirname, '..'),
 
   build: {
-    outDir: path.resolve(__dirname, '..', 'dist', 'admin'),
+    outDir: path.resolve(import.meta.dirname, '..', 'dist', 'admin'),
     emptyOutDir: true,
     rollupOptions: {
       output: {
@@ -113,5 +117,5 @@ export default defineConfig({
     },
   },
   server: { port: 5174 },
-  plugins: [react(), sharedPublicAtRoot(path.resolve(__dirname, '..', 'public'))],
+  plugins: [react(), sharedPublicAtRoot(path.resolve(import.meta.dirname, '..', 'public'))],
 });
