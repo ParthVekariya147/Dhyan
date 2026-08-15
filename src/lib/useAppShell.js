@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supabase/client.js';
 import { APP_SETTINGS_DOC } from '../../shared/domain/settings.js';
-import { APP_ICON_KEY, appIconLinks, resolveAppIcon } from '../../shared/domain/appicon.js';
+import { appIconLinks, resolveAppIcon } from '../../shared/domain/appicon.js';
 import {
   SESSION_KEY,
   SESSION_STARTED_KEY,
@@ -42,12 +42,29 @@ import {
  * whole app down over a row that is optional by design (§1 - a યુવક is never left at a dead
  * end).
  *
- * The promise is memoised at module scope rather than per hook. Both hooks below want the
- * same row and both are mounted in the same render, and without the memo that is two requests
- * for one object on every boot - four under StrictMode's double-mount in development. It is
- * never invalidated: this row is read once at start and the mechanism that picks up a changed
- * one is a page load, which is a new module instance. See useSessionExpiry() - that is not a
- * limitation of the cache, it is the entire subject of the second half of this file.
+ * Each promise is memoised at module scope rather than per hook, so a StrictMode double-mount
+ * in development is one request rather than two. Neither is ever invalidated: they are read
+ * once at start and the mechanism that picks up a changed value is a page load, which is a new
+ * module instance. See useSessionExpiry() - that is not a limitation of the cache, it is the
+ * entire subject of the second half of this file.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Two reads, not one, and the split is the whole point of 0047
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * These hooks used to share a single read of `settings['app']`. That was one request instead
+ * of two, and it quietly broke the icon on the one screen it mattered most on.
+ *
+ * `settings` is readable `to authenticated` (0001), so on લોગિન and નોંધણી - where nobody is
+ * signed in - the read returned nothing and resolveAppIcon() correctly reported "no custom
+ * icon". The tab therefore showed the built-in mark on the first screen most visitors ever
+ * see, which is precisely the case src/App.jsx mounts useAppIcon() above <AuthProvider> to
+ * cover. Worse, the memo meant signing in did not correct it: only a full load made while
+ * already signed in ever showed the સંચાલક's icon, so the setting looked broken at random.
+ *
+ * So the icon now comes from `public.app_icon()` (0047) - a definer function returning that
+ * one field to `anon` as well - and the session policy goes on reading the row through the
+ * ordinary policy, because a session policy only means anything once there IS a session.
  */
 const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
 
@@ -74,6 +91,32 @@ function readAppRow() {
   })();
 
   return appRowPromise;
+}
+
+/**
+ * `settings['app'].appIcon` as stored, through the one function `anon` may call.
+ *
+ * Degrades exactly as readAppRow() does and for the same reason: null is "no custom icon",
+ * which resolveAppIcon() turns into the mark the build ships. A missing function - a database
+ * that has not had 0047 applied yet - arrives here as an error and lands in the same place, so
+ * a deploy that runs ahead of its migration shows the built-in icon rather than an empty tab.
+ */
+let appIconPromise = null;
+
+function readAppIcon() {
+  if (appIconPromise) return appIconPromise;
+
+  appIconPromise = (async () => {
+    if (!configured) return null;
+    try {
+      const { data, error } = await supabase.rpc('app_icon');
+      return error ? null : data ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  return appIconPromise;
 }
 
 /** `settings['app']`, or `{}`. Never null after `loading` clears, never a thrown error. */
@@ -160,8 +203,22 @@ function applyIconLink(rel, href, type) {
  *   to the built-in mark. `icon.version` is what ReinstallNotice compares against.
  */
 export function useAppIcon() {
-  const { settings, loading } = useAppRow();
-  const icon = useMemo(() => resolveAppIcon(settings?.[APP_ICON_KEY]), [settings]);
+  const [stored, setStored] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    readAppIcon().then((value) => {
+      if (!alive) return;
+      setStored(value);
+      setLoading(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const icon = useMemo(() => resolveAppIcon(stored), [stored]);
 
   useEffect(() => {
     if (loading) return;

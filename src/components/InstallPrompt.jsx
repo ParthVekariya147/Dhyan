@@ -25,7 +25,13 @@ import {
  */
 const InstallSheet = lazy(() => import('./InstallSheet'));
 
-export default function InstallPrompt() {
+/**
+ * `icon` is forwarded and not read here, exactly as `mode` is: this file is the gate and
+ * owns no state of its own. Reading the icon in the gate would also defeat the split above,
+ * because the gate is eager - it would put a settings read in front of every load, including
+ * the majority where there is nothing to offer and no sheet is ever drawn.
+ */
+export default function InstallPrompt({ icon }) {
   const { mode } = useSyncExternalStore(
     subscribeInstall,
     getInstallState,
@@ -36,7 +42,7 @@ export default function InstallPrompt() {
 
   return (
     <Suspense fallback={null}>
-      <InstallSheet mode={mode} />
+      <InstallSheet mode={mode} icon={icon} />
     </Suspense>
   );
 }

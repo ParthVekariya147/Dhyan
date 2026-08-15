@@ -749,7 +749,7 @@ export default function App() {
           import is eager because a lazy chunk would arrive after the event it exists to
           catch; it carries no data and pulls nothing but its own stylesheet.
         */}
-        <InstallPrompt />
+        <InstallPrompt icon={icon} />
 
         {/*
           "નવો આઇકન આવ્યો છે" - the iPhone-only counterpart of the invitation above, and it

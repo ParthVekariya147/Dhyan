@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { dismissInstall, promptInstall } from '../lib/installPrompt';
+import { appIconLinks } from '../../shared/domain/appicon.js';
 import './install-prompt.css';
 
 /**
@@ -17,9 +18,27 @@ import './install-prompt.css';
  * never see has no business being in front of it (§14, slow networks).
  *
  * `mode` is passed in rather than read again here, so the gate and the sheet cannot
- * disagree about which platform this is.
+ * disagree about which platform this is. `icon` is passed for the same reason and it is
+ * the same rule src/App.jsx states over <ReinstallNotice />: useAppIcon() is the single
+ * place the setting is turned into an icon, so the tab's mark and this sheet cannot
+ * disagree about which one is in force.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * The mark used to be drawn here, in hand-written SVG. It must not be again.
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * A rounded square, a gold ring and a gold dot, written inline: a decoration that looked
+ * enough like the app's icon to be taken for it, and never was it. It could not change
+ * when a સંચાલક chose a new mark, because it read nothing - so the sheet that invites a
+ * યુવક to put ધ્યાન on his home screen showed him one icon while the home screen was
+ * about to receive another. There was no error and nothing to notice; it simply drifted
+ * the moment the icon setting shipped in 0042.
+ *
+ * So it is an <img> of whatever `appIconLinks()` resolves - the સંચાલક's icon, or the
+ * favicon the build ships when he has chosen none. Both are the real mark. Nothing about
+ * the app's appearance is written twice.
  */
-export default function InstallSheet({ mode }) {
+export default function InstallSheet({ mode, icon }) {
   const closeRef = useRef(null);
 
   /**
@@ -63,11 +82,12 @@ export default function InstallSheet({ mode }) {
       >
         <div className="install-head">
           <span className="install-mark" aria-hidden="true">
-            <svg viewBox="0 0 64 64" width="44" height="44" focusable="false">
-              <rect width="64" height="64" rx="14" fill="#100d0a" />
-              <circle cx="32" cy="32" r="16" fill="none" stroke="#f0c778" strokeWidth="3" />
-              <circle cx="32" cy="32" r="6" fill="#f0c778" />
-            </svg>
+            {/*
+              `alt=""` with the wrapper already aria-hidden: the icon carries no information
+              the હેડિંગ beside it does not already give, so a screen reader should walk past
+              it rather than announce the app's name twice.
+            */}
+            <img className="install-mark-img" src={appIconLinks(icon).icon} alt="" width="44" height="44" />
           </span>
           <div>
             <h2 className="install-title" id="install-title">

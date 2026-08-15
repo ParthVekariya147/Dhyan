@@ -57,6 +57,21 @@
   line-height: 0;
 }
 
+/*
+  The rounded square the inline SVG used to draw with `rx="14"` on a 64 viewBox - the same
+  proportion, now applied to whatever image the setting resolves to. `cover` because a
+  સંચાલક's icon is square by the time it is stored (the panel crops and re-encodes it) but
+  the built-in favicon.svg is not obliged to be, and a stretched મૂર્તિ is the one outcome
+  worth writing a rule to prevent.
+*/
+.install-mark-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 9.625px;
+  object-fit: cover;
+  display: block;
+}
+
 .install-title {
   margin: 0;
   font-size: var(--fs-section);
