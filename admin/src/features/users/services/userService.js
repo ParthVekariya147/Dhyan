@@ -17,19 +17,55 @@ import { supabase } from '../../../lib/supabase';
  */
 
 /*
-  A view over `profiles`, not the table (0011_level4_gate_view.sql).
+  A view over `profiles`, not the table (0038_admins_table.sql).
 
-  It is `profiles.*` plus one derived column, `level4_gate_open` — the લેવલ ૪ gate as the
-  *published configuration* defines it now, rather than `profiles.level4_unlocked`, which
-  answers 0008's fixed threshold of 80 and stops being the rule the moment a સંચાલક sets
-  ૭૫ or ૫૦ (LEVEL4.md decision #3).
+  It is `public.profiles_level4` — itself `profiles.*` plus one derived column,
+  `level4_gate_open`, the લેવલ ૪ gate as the *published configuration* defines it now rather
+  than `profiles.level4_unlocked`, which answers 0008's fixed threshold of 80 and stops being
+  the rule the moment a સંચાલક sets ૭૫ or ૫૦ (0011, LEVEL4.md decision #3) — MINUS anyone
+  holding a `public.admins` row.
+
+  That subtraction is the whole of this line's history and it was a real defect, not a
+  tidying. Before 0038 an administrator *was* a `profiles` row: `admin_profiles.id`
+  referenced it, so the people running the panel were counted among the people learning.
+  "Total registered" on the dashboard, this list, every CSV export and every progress report
+  included them, and 104 registered was never 104 yuvaks. An administrator may still be a
+  genuine યુવક with a real learning record — the founding account is — which is why the fix
+  is a view that excludes the *account*, and not a rule that forces a person to be one thing.
+
+  The exclusion inside the view goes through a SECURITY DEFINER function on purpose, so a
+  COORDINATOR (who holds `users.read` but not `admins.read`) excludes exactly the same people
+  an ADMIN does; 0038 explains why a plain `not exists` under security_invoker would have
+  quietly excluded nobody for him.
 
   Safe to swap in wholesale because every use below is a read — §19 keeps this panel
-  read-only over people, so there is no write here that a view would refuse. The view is
-  `security_invoker`, so the profiles and progress policies apply exactly as they did to
-  the table; nothing became visible that was not before.
+  read-only over people, so there is no write here that a view would refuse. It is
+  `security_invoker`, so the profiles and progress policies apply exactly as they did to the
+  table; nothing became visible that was not before, and one thing stopped being counted that
+  never should have been.
 */
-const TABLE = 'profiles_level4';
+const TABLE = 'yuvaks';
+
+/*
+  …and the one place that must NOT subtract them: resolving a person who is already on screen.
+
+  These two names look like a distinction without a difference and are not. `TABLE` answers
+  "who are the yuvaks" — a question about a population, where an administrator is not one of
+  them. `LOOKUP` answers "whose name is on this row" — a question about a record that already
+  exists, where the honest answer is the person's name whatever else they also are.
+
+  The founding account is both: a real યુવક with real progress history *and* a SUPER_ADMIN. His
+  rows are in `progress`, `point_transactions`, `daily_activity_records` and the leaderboard, and
+  they are not going anywhere. Had getUser() and getUsersByIds() been pointed at `yuvaks` along
+  with the lists, every one of those rows would have rendered with an empty name and his user
+  page would have answered "not found" — the panel refusing to name a person it is at that moment
+  displaying the work of.
+
+  So: lists, counts and exports read TABLE. Lookups by id read LOOKUP. Getting this backwards in
+  either direction is silent — one over-counts the roll, the other blanks a name — which is why
+  it is written down here rather than left to whichever constant was nearer.
+*/
+const LOOKUP = 'profiles_level4';
 
 /** Callers speak camelCase; the columns are snake_case. One place to translate. */
 const COLUMN = {
@@ -230,8 +266,9 @@ export async function countUsers(filter = {}) {
   return count ?? 0;
 }
 
+/** LOOKUP, not TABLE: an administrator who is also a યુવક has a user page and it must open. */
 export async function getUser(userId) {
-  const { data, error } = await supabase.from(TABLE).select('*').eq('id', userId).maybeSingle();
+  const { data, error } = await supabase.from(LOOKUP).select('*').eq('id', userId).maybeSingle();
   if (error) throw error;
   return data ? toUser(data) : null;
 }
@@ -256,7 +293,10 @@ export async function getUsersByIds(ids) {
 
   const results = await Promise.all(
     batches.map(async (batch) => {
-      const { data, error } = await supabase.from(TABLE).select('*').in('id', batch);
+      // LOOKUP: these ids came from progress, ledger and session rows that already exist. A
+      // name that resolves for everyone except the one person who also administers would read
+      // as missing data, not as a policy.
+      const { data, error } = await supabase.from(LOOKUP).select('*').in('id', batch);
       if (error) throw error;
       return data || [];
     })

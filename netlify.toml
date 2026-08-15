@@ -21,6 +21,14 @@
   to = "/.netlify/functions/login-mobile"
   status = 200
 
+# Appointing a સંચાલક. Creating somebody else's auth.users row needs the secret key, so the
+# panel cannot do it itself — see the function's own note for why the admins row that follows
+# is written with the caller's token and not that key.
+[[redirects]]
+  from = "/api/create-admin"
+  to = "/.netlify/functions/create-admin"
+  status = 200
+
 
 # સંચાલક પેનલ — its own SPA, its own fallback, and it MUST come before the yuvak
 # catch-all below.

@@ -56,7 +56,18 @@ export function createServer() {
 
     if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
     if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-      file = path.join(ROOT, 'index.html'); // SPA fallback
+      /*
+        Two SPAs are published here, so there are two fallbacks — the same split netlify.toml
+        declares, and it was missing.
+
+        /admin/ itself resolves as a real file, so this only bites on a deep link: opening
+        /admin/users directly matched nothing, fell through to the યુવક shell, and that app
+        booted at an admin path and redirected to /register. Which reads as the panel refusing
+        to open, and is really this line handing back the wrong index.html. netlify.toml has
+        carried the /admin/* rule since the panel was split out; this server had not.
+      */
+      const admin = pathname === '/admin' || pathname.startsWith('/admin/');
+      file = admin ? path.join(ROOT, 'admin', 'index.html') : path.join(ROOT, 'index.html');
     }
 
     const body = fs.readFileSync(file);

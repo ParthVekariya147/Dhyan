@@ -1,480 +1,158 @@
-import { useCallback, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAsync } from '../../../lib/useAsync';
-import { fetchAllUsers, listUsers, searchUsers } from '../services/userService';
-import DataTable, { Pager } from '../../../components/DataTable';
-import { AsyncBlock, TableSkeleton } from '../../../components/StateBlocks';
-import { PageHeader, StatusBadge } from '../../../components/StatCard';
-import { dateGu } from '../../../lib/format';
-import { dataError } from '../../../lib/errors';
-import { exportCsv, istDate, istRange, reportFilename } from '../../../lib/export';
-import { SUBZONES, todayIST } from '../../../../../shared/domain/constants.js';
-import { SUB_ZONE_LABEL_EN, subZoneNameEn } from '../../../lib/labels';
+import { useSearchParams } from 'react-router-dom';
+import { useAdminAuth } from '../../../lib/adminAuth';
+import Tabs, { TabPanel } from '../../../components/Tabs';
+import { PageHeader } from '../../../components/StatCard';
+import UsersTab from './UsersTab';
+import AdminsTab from './AdminsTab';
 
 /**
- * §14, §16, §17, §18 — the યુવક list. §11 — its date-range filter and its Excel export.
+ * ────────────────────────────────────────────────────────────────────────────
+ * /users — two populations, one section
+ * ────────────────────────────────────────────────────────────────────────────
  *
- * Paginated with a bounded `range()`, filtered and searched in the database. There is no
- * point at which this page holds more than one page of rows, which is the whole
- * requirement: at 2,000 users, "load everything and slice(0, 20)" is not a shortcut, it
- * is a page that gets slower every month and bills for it.
+ * Until 0038 there was one table of people: an administrator was a `profiles` row with an
+ * `admin_profiles` row attached, so the યુવક list, the dashboard's "Total registered" and every
+ * export counted the people running the panel among the people learning. 104 registered was
+ * never 104 yuvaks.
  *
- * The cursor stays an opaque forward-only token, so "back" is a stack of the cursors
- * already used. Postgres could offer numbered pages; keeping the panel's cursor contract
- * unchanged across the migration was worth more than the feature (§43).
+ * 0038 splits them - `public.admins` keys off `auth.users`, and `public.yuvaks` is
+ * `profiles_level4` minus anyone holding an admins row - and this page is where that split
+ * becomes visible. Two tabs over one section rather than two entries in the sidebar, for two
+ * reasons:
  *
- * The export is the one place that deliberately breaks the "never more than one page"
- * rule, and it breaks it on purpose: §11 asks for a file the સંચાલક can act on, and a file
- * holding only the twenty rows that happened to be on screen would be a report that lies.
- * fetchAllUsers() pages through the same predicate this table uses, capped, and says so
- * when the cap is reached.
+ *   · they are one question asked about two groups ("who is in this system and what state is
+ *     their account in"), and the answer is read side by side far more often than either half
+ *     is read alone;
+ *   · a second sidebar entry would be a section three of the five roles may not open, and the
+ *     menu already carries as many of those as it needs to.
  *
- * Layout: search and filters, then the export row, then the table. Below 900px DataTable
- * turns every row into a card of label/value pairs, so each column here carries a real
- * `label` — the label is the only thing a phone has to say what a value is. The name is
- * additionally a link, because tapping the row is a mouse affordance and a keyboard has no
- * row to tap (§56).
+ * ── The tab is in the URL, and that is not decoration ───────────────────────
  *
- * What is deliberately absent
- * ---------------------------
- * §11 also asks this list for આજનો સ્કોર, સૌથી સારો સ્કોર and કુલ દિવસ. They are not
- * columns here and not in the export, because the table that would hold them —
- * `public.progress` (0001_init.sql:46-60), one row per yuvak per day, the table §9's
- * midnight-IST reset is built around — is not written by anything in this codebase yet.
- * The Progress page states that in full. A column of zeroes would be worse than a missing
- * column: someone would act on it.
+ * `?tab=admins` means a refresh comes back where you were, the back button undoes a tab switch
+ * instead of leaving the section, and the link a SUPER_ADMIN pastes into a message opens on the
+ * list he was talking about. Held in the query string rather than in component state, because
+ * every one of those three is a property of the address and none of them can be a property of
+ * a useState.
+ *
+ * ── A COORDINATOR must not learn that the other tab exists ──────────────────
+ *
+ * The સંચાલક tab is not rendered disabled, not rendered greyed, not rendered at all without
+ * `admins.read`. That is the same rule AdminShell applies to sidebar sections and it is
+ * visibility rather than security: the policy on `public.admins` is
+ * `id = auth.uid() or has_permission('admins.read')`, so the data is refused regardless. What
+ * the filter prevents is a panel that advertises a list it will then show as empty - and an
+ * RLS *read* denial returns zero rows rather than an error, so "empty" is exactly what a
+ * COORDINATOR would have been shown about a list that is full (admin/src/lib/errors.js).
+ *
+ * A URL asking for a tab the role may not see falls back to the first tab in silence. No
+ * notice, no redirect: he did not do anything wrong - he opened a link somebody else sent him
+ * - and a message explaining which tab he was refused would announce the very thing the filter
+ * is hiding.
  */
 
 /**
- * profiles.status (0004_rbac.sql:175) — whether the account still works. §7 suspends and
- * never deletes, so SUSPENDED and DISABLED are rows a સંચાલક will meet in this list and
- * they must not read as ACTIVE.
+ * The tabs, in the order they are read.
  *
- * DISABLED is grey rather than red: it is an administrative state, not a verdict on the
- * યુવક. The tone only repeats what the word says, which is what keeps the badge readable
- * to someone who cannot separate the tints (§43).
+ * `need` is a permission name taken from shared/domain/permissions.js and its copy in
+ * `public.permissions_for()` (0004_rbac.sql), never a name invented here - the two matrices are
+ * already duplicated on purpose and a third spelling would make a tab promise something no
+ * policy grants. A tab with no `need` is offered to everyone who can open the section at all,
+ * which for /users is `users.read`, checked by the route in App.jsx.
+ *
+ * The labels are English because this panel is: every sidebar entry, every column heading and
+ * every sentence in admin/src/lib/errors.js is. "યુવક / સંચાલક" was tried here first and read as
+ * two foreign words dropped into an English page - the યુવક app is where the Gujarati lives.
+ * "Yuvaks" and not "Users", because the page is already called Users and a tab repeating its
+ * parent's name says nothing about what distinguishes it from the tab beside it.
+ *
+ * `sub` is the page's own one-line description and changes with the tab, because the header is
+ * above the strip and would otherwise describe whichever list happened to be first.
  */
-const ACCOUNT_STATUS = {
-  ACTIVE: { label: 'Active', tone: 'ok' },
-  SUSPENDED: { label: 'Suspended', tone: 'warn' },
-  DISABLED: { label: 'Disabled', tone: 'off' },
-};
-
-/**
- * What leaves the building (§13).
- *
- * §13 is unusually blunt: 2,000 mobile numbers, and some યુવકો are minors. An exported
- * file is no longer inside the panel's RLS — it lands in Downloads, goes into WhatsApp,
- * gets forwarded. So the default file carries what a report needs to be useful and
- * nothing else:
- *
- *   included   SMK (the unique member id — enough to identify anyone, §4), name, subzone,
- *              registration date, account state, and the §5 entry-gate answers, which are
- *              the whole reason those answers are recorded.
- *   opt-in     mobile. Off unless the સંચાલક ticks the box for this one export.
- *   never      email. It is the only password-recovery route (§2.1) and it answers no
- *              question a report asks, so there is no checkbox for it at all.
- *
- * Dates are `istDate`, not `dateGu` — the same instant and the same IST day the table
- * shows, in the shape Excel sorts as a date rather than as the text "11 Aug 2026".
- *
- * Headers name the Gujarati term beside the English one for the columns §11 names in
- * Gujarati, because the file is read outside the panel. The values stay exactly as the
- * screen shows them, so the file and the table can never be read as disagreeing.
- */
-const exportColumns = (withMobile) =>
-  [
-    { label: 'SMK', value: (u) => u.smk },
-    { label: 'Name / નામ', value: (u) => u.name },
-    withMobile ? { label: 'Mobile / મોબાઈલ', value: (u) => u.mobile } : null,
-    { label: 'Subzone / સબઝોન', value: (u) => subZoneNameEn(u.subZoneId) },
-    { label: 'Registered', value: (u) => istDate(u.createdAt) },
-    { label: 'Account', value: (u) => u.status },
-    // "Pending" and never "Not done": a step not yet taken is not a failure (§10, §14).
-    { label: 'Entry gate', value: (u) => (u.gatePassedAt ? istDate(u.gatePassedAt) : 'Pending') },
-    { label: 'Liked', value: (u) => (u.likeAnswer ? 'Yes' : 'No') },
-    { label: 'Commented', value: (u) => (u.commentAnswer ? 'Yes' : 'No') },
-    { label: 'Level 4', value: (u) => (u.level4GateOpen ? 'Open' : 'Not yet') },
-  ].filter(Boolean);
+const TABS = [
+  {
+    id: 'users',
+    label: 'Yuvaks',
+    sub: 'Every registered yuvak. Search, filter and export - all answered by the database.',
+  },
+  {
+    id: 'admins',
+    label: 'Administrators',
+    need: 'admins.read',
+    sub: 'Who runs the panel, and what each of them may do. Administrators are not counted as yuvaks.',
+  },
+];
 
 export default function UsersPage() {
-  const nav = useNavigate();
-  const [pageSize, setPageSize] = useState(20);
-  const [subZoneId, setSubZoneId] = useState('');
-  const [term, setTerm] = useState('');
-  const [applied, setApplied] = useState('');
-  const [page, setPage] = useState(0);
-  const cursors = useRef([null]); // cursors[i] starts page i
+  const { can } = useAdminAuth();
+  const [params, setParams] = useSearchParams();
 
-  // §11 — તારીખવાર અહેવાલ. Both ends optional: one alone means "since" or "up to", and a
-  // service that invented the other bound would answer a question nobody asked.
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  // Filtered before anything else looks at it, so no later line has to remember the rule.
+  // `users.read` gates the route itself, so this list always holds at least one tab.
+  const tabs = TABS.filter((t) => !t.need || can(t.need));
 
-  const [withMobile, setWithMobile] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportNote, setExportNote] = useState(null); // { tone, text }
-
-  const searching = !!applied;
-
-  // The IST bounds, derived once and used by both the table and the export, so the file
-  // can never cover a different range from the one on screen.
-  const { fromIso, toIsoExclusive } = istRange(from, to);
-
-  // The સબઝોન filter applies to both modes. It used to be passed only to listUsers() and
-  // the select merely disabled while a search was applied — never cleared — so the panel
-  // showed "Varachha" above results drawn from all three. Now the search is narrowed by
-  // it, the select stays live, and changing it re-runs whichever query is in effect. The
-  // date range is passed the same way and for the same reason.
-  const state = useAsync(
-    () =>
-      searching
-        ? searchUsers(applied, { pageSize, subZoneId, fromIso, toIsoExclusive })
-        : listUsers({ pageSize, cursor: cursors.current[page], subZoneId, fromIso, toIsoExclusive }),
-    [page, pageSize, subZoneId, applied, fromIso, toIsoExclusive]
-  );
-
-  const rows = state.data?.rows || [];
+  const requested = params.get('tab');
+  const active = tabs.find((t) => t.id === requested) || tabs[0];
 
   /**
-   * §11 — Excel export of the set the સંચાલક is actually looking at.
+   * The address follows the tab.
    *
-   * Every filter on screen goes into the fetch, and the count reported afterwards is the
-   * length of what was written rather than a number this component assumed (§62). A cap
-   * that was hit is stated, not hidden: silent truncation of a report someone acts on is
-   * worse than no export.
+   * `replace: false` - a tab switch is a place you can go back from, which is the whole reason
+   * this lives in the URL. The default tab drops the parameter entirely rather than writing
+   * `?tab=users`: /users and /users?tab=users are the same screen, and only one of them should
+   * ever be copied out of the address bar.
+   *
+   * Nothing rewrites the URL when it asks for a tab that is not on offer. Leaving `?tab=admins`
+   * in the address of a COORDINATOR is deliberate: correcting it would be the panel silently
+   * editing a link he was sent, and the tab he cannot see is precisely what must not be
+   * commented on.
    */
-  const runExport = async () => {
-    setExporting(true);
-    setExportNote(null);
-    try {
-      const res = await fetchAllUsers({ subZoneId, term: applied, fromIso, toIsoExclusive });
-      const written = exportCsv({
-        filename: reportFilename('yuvako', { from, to, stamp: todayIST() }),
-        columns: exportColumns(withMobile),
-        rows: res.rows,
-      });
-      setExportNote(
-        res.truncated
-          ? {
-              tone: 'notice-warn',
-              text: `Exported the first ${written} users. More match this filter than one file holds (limit ${res.cap}) - narrow the subzone or the date range and export again.`,
-            }
-          : { tone: 'notice-ok', text: `Exported ${written} users.` }
-      );
-    } catch (e) {
-      setExportNote({ tone: 'notice-warn', text: dataError(e) });
-    } finally {
-      setExporting(false);
-    }
+  const choose = (id) => {
+    const next = new URLSearchParams(params);
+    if (id === TABS[0].id) next.delete('tab');
+    else next.set('tab', id);
+    setParams(next);
   };
 
-  const next = useCallback(() => {
-    if (!state.data?.cursor) return;
-    cursors.current[page + 1] = state.data.cursor;
-    setPage((p) => p + 1);
-  }, [state.data, page]);
-
-  const reset = () => {
-    cursors.current = [null];
-    setPage(0);
-  };
-
-  // Whether anything at all is narrowing the list. Drives the empty state's offer: a page
-  // that says "nothing here" and hands back no way out of the filter that emptied it makes
-  // the સંચાલક hunt for which of four controls did it (§35).
-  const filtered = searching || !!subZoneId || !!from || !!to;
-
-  const clearAll = () => {
-    reset();
-    setTerm('');
-    setApplied('');
-    setSubZoneId('');
-    setFrom('');
-    setTo('');
-  };
-
-  // The empty message names the સબઝોન filter when one is set, so nothing found is not read
-  // as "nobody registered" when it means "nobody in Varachha matches". The date range is
-  // named for exactly the same reason — an empty July must not read as an empty database.
-  const inSubZone = subZoneId ? ` in ${SUB_ZONE_LABEL_EN[subZoneId] || subZoneId}` : '';
-  const inRange = from || to ? ` registered ${from ? `from ${from}` : ''}${from && to ? ' ' : ''}${to ? `up to ${to}` : ''}` : '';
-  const emptyMessage = searching
-    ? `No user found for this search${inSubZone}${inRange}.`
-    : inRange
-      ? `No user${inSubZone}${inRange}.`
-      : `No user registered${inSubZone} yet.`;
-
-  const columns = [
-    { key: 'smk', label: 'SMK', render: (u) => <span className="mono">{u.smk || '-'}</span> },
-    {
-      key: 'name',
-      label: 'Name',
-      /*
-        The row is clickable for a mouse; this is the same destination for a keyboard and
-        for a screen reader, which have no row to click. stopPropagation only so the two
-        do not both fire — they navigate to the same place, but one press should be one
-        navigation.
-      */
-      render: (u) => (
-        <Link to={`/users/${u.id}`} onClick={(e) => e.stopPropagation()}>
-          {u.name || '-'}
-        </Link>
-      ),
-    },
-    { key: 'mobile', label: 'Mobile', render: (u) => <span className="mono">{u.mobile || '-'}</span> },
-    { key: 'email', label: 'Email' },
-    { key: 'subZoneId', label: 'Subzone', render: (u) => subZoneNameEn(u.subZoneId) },
-    { key: 'createdAt', label: 'Registered', render: (u) => dateGu(u.createdAt) },
-    {
-      key: 'status',
-      label: 'Status',
-      // Two facts, two badges. The account's lifecycle came from the column that records
-      // it; "Entry gate pending" is §5's honour-system answer and is shown beside it
-      // rather than instead of it, which is what made a SUSPENDED yuvak look Active.
-      // Pending is a step not yet taken, never a mark against him.
-      render: (u) => {
-        const s = ACCOUNT_STATUS[u.status] || { label: u.status || '-', tone: 'off' };
-        return (
-          // Two pills need a wrapper that can wrap: in a narrow column, and again inside
-          // the card row below 900px, the second badge drops under the first instead of
-          // widening the page (§36).
-          <span style={{ display: 'inline-flex', gap: 'var(--sp-1)', flexWrap: 'wrap' }}>
-            <StatusBadge tone={s.tone}>{s.label}</StatusBadge>
-            {!u.gatePassedAt && <StatusBadge tone="warn">Entry gate pending</StatusBadge>}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'level4GateOpen',
-      label: 'Level 4',
-      /*
-        The gate the published configuration defines, not 0008's fixed 80 (0011). "Open"
-        rather than "Unlocked" because that is now what it means: with the gate switched
-        off it is open to everyone without anybody having earned anything, and a column
-        reading "Unlocked" for all 2,000 would be describing the wrong thing.
-      */
-      render: (u) =>
-        u.level4GateOpen ? <StatusBadge tone="ok">Open</StatusBadge> : <StatusBadge tone="off">Not yet</StatusBadge>,
-    },
-  ];
+  const panel = active.id === 'admins' ? <AdminsTab /> : <UsersTab />;
 
   return (
     <>
-      <PageHeader
-        title="Users"
-        sub="Every registered yuvak. Search, filter and export - all answered by the database."
-      />
-
-      <form
-        className="filters"
-        onSubmit={(e) => {
-          e.preventDefault();
-          reset();
-          setApplied(term.trim());
-        }}
-      >
-        <div className="field">
-          <label htmlFor="q">Search</label>
-          <input
-            id="q"
-            type="search"
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            placeholder="Mobile, email, SMK or name"
-            // The panel is English and these are identifiers: an autocapitalised "Pgv"
-            // would not match an SMK, and a phone that offers to correct a name is
-            // offering to break the search.
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            aria-describedby="q-hint"
-          />
-          <span className="hint" id="q-hint">Full mobile/email/SMK, or the beginning of a name</span>
-        </div>
-
-        <div className="field">
-          <label htmlFor="sz">Subzone</label>
-          <select
-            id="sz"
-            value={subZoneId}
-            onChange={(e) => {
-              reset();
-              setSubZoneId(e.target.value);
-            }}
-          >
-            <option value="">All</option>
-            {/* SUBZONES supplies the ids; the panel reads their English names. */}
-            {SUBZONES.map((s) => (
-              <option key={s.id} value={s.id}>{SUB_ZONE_LABEL_EN[s.id] || s.id}</option>
-            ))}
-          </select>
-        </div>
-
-        {/*
-          §11 — તારીખવાર અહેવાલ. This is `profiles.created_at`, when the યુવક registered:
-          the one date this table genuinely records. It is deliberately not labelled
-          "activity" or "dhyan" — those live in the day's score, which nothing writes yet
-          (see the note at the top of this file, and the Progress page).
-
-          Applied on change rather than on Submit, like the સબઝોન select beside it: a
-          half-typed date is '' from <input type="date">, so nothing runs until a whole
-          day has been picked.
-        */}
-        <div className="field">
-          <label htmlFor="rf">Registered from</label>
-          <input
-            id="rf"
-            type="date"
-            value={from}
-            max={to || undefined}
-            onChange={(e) => {
-              reset();
-              setFrom(e.target.value);
-            }}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="rt">Registered up to</label>
-          <input
-            id="rt"
-            type="date"
-            value={to}
-            min={from || undefined}
-            onChange={(e) => {
-              reset();
-              setTo(e.target.value);
-            }}
-            aria-describedby="rt-hint"
-          />
-          {/* Says what the reader would otherwise have to guess: the last day is inside
-              the range, and the day is the Indian one (§9). */}
-          <span className="hint" id="rt-hint">Both days included, counted in India (IST)</span>
-        </div>
-
-        <button className="btn" type="submit">Search</button>
-        {searching && (
-          <button
-            className="btn btn-quiet"
-            type="button"
-            onClick={() => {
-              setTerm('');
-              setApplied('');
-              reset();
-            }}
-          >
-            Clear search
-          </button>
-        )}
-        {(from || to) && (
-          <button
-            className="btn btn-quiet"
-            type="button"
-            onClick={() => {
-              reset();
-              setFrom('');
-              setTo('');
-            }}
-          >
-            Clear dates
-          </button>
-        )}
-      </form>
+      <PageHeader title="Users" sub={active.sub} />
 
       {/*
-        §11 — Excel export. Its own row rather than a control inside the search form, so
-        pressing Enter in the search box cannot download a file. A toolbar rather than a
-        second `.filters` bar: the checkbox is not a filter on the table, it only decides
-        what the file carries, and putting it in a filter row said otherwise.
+        One tab is not a choice, so it is not drawn as one. A COORDINATOR sees the યુવક table
+        under the page header exactly as he did before this section had tabs at all - which is
+        the same rule as the sidebar's: a group whose items are all filtered out renders
+        nothing, because an empty control announces what it was hiding.
       */}
-      <div className="toolbar">
-        <div className="grow">
-          <label className="check" htmlFor="wm">
-            <input
-              id="wm"
-              type="checkbox"
-              checked={withMobile}
-              onChange={(e) => setWithMobile(e.target.checked)}
-              aria-describedby="wm-hint"
-            />
-            Include mobile numbers
-          </label>
-          {/* §13, stated where the decision is made rather than in a policy nobody reads.
-              Off by default; SMK already identifies a યુવક uniquely (§4). */}
-          <span className="hint" id="wm-hint">
-            Off by default - some yuvaks are minors and the file leaves the panel. Email addresses
-            are never included.
-          </span>
-        </div>
-
-        <button
-          className={`btn${exporting ? ' is-busy' : ''}`}
-          type="button"
-          onClick={runExport}
-          disabled={exporting}
-        >
-          {exporting ? 'Preparing…' : 'Export to Excel (CSV)'}
-        </button>
-      </div>
-
-      {/* One line, after the fact, saying what was written. Never a guess — the number is
-          the length of the file (§62).
-          role="status" so a screen reader hears the result of a press that produced no
-          visible change on the page itself — the file went to Downloads (§56). */}
-      {exportNote && (
-        <div className={`notice ${exportNote.tone}`} role="status">{exportNote.text}</div>
+      {tabs.length > 1 && (
+        <Tabs
+          idBase="users"
+          label="People in the system"
+          tabs={tabs}
+          value={active.id}
+          onChange={choose}
+        />
       )}
 
-      <AsyncBlock
-        state={{ ...state, isEmpty: !state.loading && !state.error && rows.length === 0 }}
-        emptyTitle={filtered ? 'Nothing matches these filters' : 'No users yet'}
-        emptyIcon="👤"
-        empty={emptyMessage}
-        // The way out of the filter that emptied the list, offered where the emptiness is
-        // reported. Absent when nothing is filtered, because then there is nothing to undo.
-        emptyAction={
-          filtered ? (
-            <button className="btn btn-quiet" type="button" onClick={clearAll}>
-              Clear all filters
-            </button>
-          ) : null
-        }
-        onRetry={state.retry}
-        skeleton={<TableSkeleton cols={columns.length} />}
-      >
-        <>
-          <DataTable
-            caption="User list"
-            columns={columns}
-            rows={rows}
-            rowKey={(u) => u.id}
-            onRowClick={(u) => nav(`/users/${u.id}`)}
-          />
-          {!searching && (
-            <Pager
-              page={page}
-              hasNext={!!state.data?.hasNext}
-              onPrev={() => setPage((p) => Math.max(0, p - 1))}
-              onNext={next}
-              pageSize={pageSize}
-              onPageSize={(n) => {
-                reset();
-                setPageSize(n);
-              }}
-              busy={state.loading}
-            />
-          )}
-          {/* The export covers the whole filtered set; this note is what stops the page
-              being read as "the file is what I can see". */}
-          <p className="card-note">
-            {searching
-              ? `Showing ${rows.length} search results - search is not paginated, so narrow the term if you expected more. The export covers every user matching the search, subzone and dates above.`
-              : 'The export covers every user matching the search, subzone and dates above - not just this page. It opens in Excel.'}
-          </p>
-        </>
-      </AsyncBlock>
+      {/*
+        Only the selected tab is mounted (see TabPanel). Each tab owns a query and a set of
+        filters; keeping the other one alive would leave it re-reading a list nobody is looking
+        at, and keeping its state would mean a search typed into the યુવક tab quietly still
+        applied after a trip to the સંચાલક list and back.
+
+        With one tab there is no strip, and then there must be no tabpanel either: its
+        `aria-labelledby` would point at a tab element that was never rendered, which is a
+        broken reference rather than a missing one. The content simply stands on the page, as it
+        did before this section had tabs.
+      */}
+      {tabs.length > 1 ? (
+        <TabPanel idBase="users" id={active.id}>
+          {panel}
+        </TabPanel>
+      ) : (
+        panel
+      )}
     </>
   );
 }

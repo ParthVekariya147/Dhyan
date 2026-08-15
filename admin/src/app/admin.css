@@ -673,13 +673,69 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 .form-actions .save-state.is-error { color: var(--dang-ink); }
 
 /* §29 — filter and search bars. Fields shrink but never below a usable width, and the
- * whole bar collapses to one column on a phone rather than to three cramped ones. */
+ * whole bar collapses to one column on a phone rather than to three cramped ones.
+ *
+ * ── Why this is a grid with subgrid rows, and not the flex row it was ───────
+ *
+ * It was `display: flex; align-items: flex-end`, and that produced a bar whose inputs sat at
+ * four different heights. Not a rounding error - a straight consequence of the rule. A
+ * `.field` is label → control → optional `.hint`, so its height depends on whether it has a
+ * hint and on how many lines that hint wraps to. Aligning the *boxes* by their bottom edge
+ * therefore aligns everything except the part a person is actually looking at: on the Users
+ * bar, Search (two-line hint) floated highest, "Registered up to" (one-line hint) sat between,
+ * and Subzone and "Registered from" (no hint) dropped to the floor. Four inputs, four
+ * baselines, in a row whose whole job is to read as one control.
+ *
+ * `flex-start` would not have fixed it either - it aligns the label tops and lets the
+ * controls drift apart the moment one label wraps to two lines.
+ *
+ * The fix is to stop aligning boxes and align *rows*. Each field spans three shared grid rows
+ * — label, control, hint — and `grid-template-rows: subgrid` opts its own children into them.
+ * Every label is then in one row and every control in the next, whatever is underneath. Hints
+ * hang into the third row and vary freely, which is what they should have been doing all
+ * along.
+ *
+ * Buttons are left to place themselves. They are one row tall, the fields have taken rows 1-3
+ * of every column, so auto-placement puts them side by side on row 4 - their own line under
+ * the filters. That is deliberate rather than tolerated: a submit button on the control row
+ * has to be told which of the three rows it belongs to, and any answer creates an implicit
+ * column that overflows a phone. This needs no markup change on any of the ten pages using
+ * this class.
+ *
+ * Without subgrid (nothing current, but stated because the failure is silent) the declaration
+ * is dropped, each field stays an ordinary stacked grid item, and the bar degrades to
+ * top-aligned rather than to the stagger this replaced.
+ */
 .filters {
-  display: flex; gap: var(--sp-3); flex-wrap: wrap;
-  align-items: flex-end; margin-bottom: var(--sp-4);
+  display: grid;
+  /* Not `1fr`: the fields kept their ~220px width in the flex version and stretching them
+     across an empty 1400px bar makes four filters look like a form. */
+  grid-template-columns: repeat(auto-fill, minmax(190px, 220px));
+  justify-content: start;
+  align-items: start;
+  gap: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-4);
 }
-.filters .field { margin-bottom: 0; min-width: 150px; flex: 0 1 220px; }
-.filters .btn { flex: 0 0 auto; }
+.filters > .field {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  gap: var(--sp-1);
+  margin-bottom: 0;
+  min-width: 0;
+}
+/*
+  A button spans the label and control rows and sits at the bottom of them, which puts it
+  level with the inputs exactly rather than approximately: `.btn` and every control in here
+  are both `min-height: var(--tap)`, so aligning their bottom edges aligns their top edges too.
+
+  Spanning is what keeps it safe. Naming the control row outright (`grid-row: 2`) reads better
+  and breaks the phone: at one column, row 2 is already taken by the first field, so the button
+  would be pushed into an implicit second column and the bar would scroll sideways - which
+  §32 forbids and scripts/verify-progress-ui.mjs checks for. A spanning item just takes the
+  next free line instead, which on a phone is its own row under the last filter.
+*/
+.filters > .btn { grid-row: span 2; align-self: end; justify-self: start; }
 
 .toolbar {
   display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
@@ -782,6 +838,53 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 .confirm h2 { font-size: var(--fs-section); color: var(--text-strong); margin-bottom: var(--sp-2); }
 .confirm-body { font-size: var(--fs-table); color: var(--text-muted); margin-bottom: var(--sp-5); }
 .confirm-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------- tabs */
+
+/* One strip, under the page header, switching between two lists of the same section.
+ *
+ * An underline rather than the segmented pill `.l4-modes` uses, and the difference is not
+ * taste: that control picks a *mode* for one screen, this one switches which screen you are
+ * on. The underline is the convention for the second, and it also survives the label being
+ * Gujarati at one width and English at another without the box having to be re-measured.
+ *
+ * The bottom border runs the full width of the content so the unselected tabs sit on a line
+ * and the selected one breaks it — the state is a change of shape and of weight, never colour
+ * alone (§43). */
+.tabs {
+  display: flex; flex-wrap: wrap; gap: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-4);
+}
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  margin-bottom: -1px;               /* sits on the strip's own line, not above it */
+  padding: 0 var(--sp-3); min-height: var(--tap);
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font: inherit; font-size: var(--fs-body); color: var(--text-muted);
+  cursor: pointer; white-space: nowrap;
+}
+.tab:hover { color: var(--text-body); background: var(--surface-hover); }
+/* Keyed on the ARIA state rather than on a class, so the styling cannot disagree with what a
+   screen reader is told. `.is-selected` is kept alongside for anyone reading the DOM. */
+.tab[aria-selected="true"] {
+  color: var(--brand-700); font-weight: var(--fw-semi);
+  border-bottom-color: var(--brand-500);
+}
+/* The focus ring is drawn inside: an outline on a control flush with the strip's border is
+   clipped by nothing, but offset outwards it overlaps the tab beside it. */
+.tab:focus-visible { outline: 2px solid var(--brand-500); outline-offset: -2px; border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.tab-hint {
+  font-size: var(--fs-help); color: var(--text-muted); font-weight: var(--fw-normal);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The panel is a plain region. It is focusable so that Tab out of the strip lands on what the
+   strip just switched to, and a focus ring around the whole page area would be noise — the
+   outline is suppressed for the pointer and kept for the keyboard, which is the only user it
+   is for. */
+.tabpanel:focus { outline: none; }
+.tabpanel:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 4px; }
 
 /* ---------------------------------------------------------------- darshan */
 
@@ -908,8 +1011,11 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   /* A primary action on a phone spans the row rather than hiding at one end of it. */
   .page-actions { width: 100%; }
   .page-actions .btn { flex: 1 1 auto; }
-  .filters { gap: var(--sp-2); }
-  .filters .field { flex: 1 1 100%; min-width: 0; }
+  /* One column, full width. `flex: 1 1 100%` on the field was the old way of saying this and
+     does nothing now that the bar is a grid - the column count is the container's to decide. */
+  .filters { gap: var(--sp-2); grid-template-columns: 1fr; }
+  /* A filter button on a phone spans the row, like every other primary action does. */
+  .filters > .btn { justify-self: stretch; }
   .pager { justify-content: center; }
   .pager-btns { width: 100%; justify-content: space-between; }
   /* The account button collapses to its avatar. The name and role are not lost — they

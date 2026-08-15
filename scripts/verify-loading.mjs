@@ -190,6 +190,34 @@ check('src points at the image CDN', /lh\d+\.googleusercontent\.com/.test(resp.s
 
 // ---------------------------------------------------------------- test 5c
 console.log('\n[5c] the enlarged view asks for a wider file');
+
+/*
+  The પ્રવેશ prompt has to be out of the way before anything here taps a card.
+
+  InstallPrompt (App.jsx) is mounted beside the routes, so it is live on દર્શન like
+  everywhere else, and `.install-scrim` is `position: fixed` across the whole viewport at
+  `z-index: 90`. Chrome fires `beforeinstallprompt` against this served build, so on a
+  412×915 viewport the sheet's 'હોમ સ્ક્રીન પર ઉમેરો' button sits precisely over the middle
+  of the first card — and `page.click('.frame')` clicks *coordinates*, so the tap landed on
+  the install button. Nothing about the gallery was broken: the click never reached it, and
+  the two assertions below failed with `wNaN` because no enlarged image had been opened.
+
+  Dismissed with Escape, which is what InstallSheet itself listens for, rather than by
+  deleting the node or clicking the scrim. Removing it from the DOM would hide the day the
+  sheet stops being dismissible, and the scrim cannot be clicked at the point that matters
+  because the sheet is what covers it. Guarded, because the prompt is Chrome's to offer:
+  a run where it never appears is normal and must not fail here.
+*/
+if (await page2.$('.install-scrim')) {
+  await page2.keyboard.press('Escape');
+  await page2
+    .waitForFunction(() => !document.querySelector('.install-scrim'), { timeout: 5000 })
+    .catch(() => {
+      throw new Error('the install sheet did not close on Escape — it is covering the feed');
+    });
+  console.log('      install sheet dismissed first');
+}
+
 await page2.click('.frame');
 await new Promise((r) => setTimeout(r, 1500));
 const lb = await page2.evaluate(() => {

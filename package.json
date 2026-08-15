@@ -13,7 +13,9 @@
     "preview": "vite preview",
     "seed:admin": "node scripts/seed-admin-supabase.mjs",
     "seed:admin:check": "node scripts/seed-admin-supabase.mjs --check",
-    "test": "node scripts/test-progress-mapping.mjs && node scripts/test-domain.mjs && node scripts/test-level4.mjs && node scripts/test-darshan-excel.mjs && node scripts/test-navigation.mjs && node scripts/test-viewing-speed.mjs && node scripts/test-points.mjs && node scripts/test-point-rules.mjs && node scripts/test-leaderboard.mjs && node scripts/test-recovery.mjs && node scripts/test-admin-progress.mjs && node scripts/test-point-engine.mjs && node scripts/test-point-bonus.mjs && node scripts/test-daily-records.mjs && node scripts/test-scoring-scenarios.mjs && node scripts/test-xlsx.mjs && node scripts/test-level3-revisions.mjs",
+    "seed:admin:new": "node scripts/seed-admin-account.mjs",
+    "seed:admin:list": "node scripts/seed-admin-account.mjs --check",
+    "test": "node scripts/test-progress-mapping.mjs && node scripts/test-domain.mjs && node scripts/test-level4.mjs && node scripts/test-darshan-excel.mjs && node scripts/test-navigation.mjs && node scripts/test-viewing-speed.mjs && node scripts/test-points.mjs && node scripts/test-point-rules.mjs && node scripts/test-leaderboard.mjs && node scripts/test-recovery.mjs && node scripts/test-admin-progress.mjs && node scripts/test-point-engine.mjs && node scripts/test-point-bonus.mjs && node scripts/test-daily-records.mjs && node scripts/test-scoring-scenarios.mjs && node scripts/test-level3-auth.mjs && node scripts/test-xlsx.mjs && node scripts/test-level3-revisions.mjs && node scripts/test-admins.mjs",
     "test:rls": "node scripts/test-rls.mjs",
     "test:progress": "node scripts/test-admin-progress.mjs",
     "test:recovery": "node scripts/test-recovery.mjs",
@@ -46,7 +48,9 @@
     "test:level3": "node scripts/test-level3-revisions.mjs",
     "catalog": "node scripts/sync-scene-catalog.mjs",
     "catalog:dry": "node scripts/sync-scene-catalog.mjs --dry-run",
-    "test:scenarios": "node scripts/test-scoring-scenarios.mjs"
+    "test:scenarios": "node scripts/test-scoring-scenarios.mjs",
+    "test:level3-auth": "node scripts/test-level3-auth.mjs",
+    "test:admins": "node scripts/test-admins.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
