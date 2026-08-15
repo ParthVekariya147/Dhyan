@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './lib/auth';
 import { useSettings, youtubeId } from './lib/useSettings';
 import { useAppIcon, useSessionExpiry } from './lib/useAppShell';
-import { guardRoute, resolveEntryRoute } from './lib/entryRoute';
+import { guardRoute, isInstalledApp, resolveEntryRoute } from './lib/entryRoute';
 import DhunPlayer from './components/DhunPlayer';
 import InstallPrompt from './components/InstallPrompt';
 import AppShell from './components/AppShell';
@@ -290,6 +290,13 @@ function ConfigNotice() {
  * `state.from` is carried on the redirect so the લોગિન page can send him back to the page
  * he actually asked for — a refresh on /level/4 that finds an expired session should not
  * cost him his place (§12).
+ *
+ * `installed` is the one input that is not about the યુવક at all. It is asked here, at the
+ * moment of the decision, rather than held in state: `(display-mode: standalone)` is fixed
+ * for the life of a document — a window is launched from the home screen or it is not — so
+ * there is nothing to subscribe to and a re-render can only ever get the same answer.
+ * guardRoute() explains what it changes; in one line, the manifest's `start_url` is `/` and
+ * without this the installed app opened નોંધણી on every launch.
  */
 function Guarded({ children }) {
   const { user, profile, profileError, loading, unconfigured } = useAuth();
@@ -298,7 +305,13 @@ function Guarded({ children }) {
   if (unconfigured) return <ConfigNotice />;
   if (loading) return <Loading />;
 
-  const { allow, to } = guardRoute({ path: loc.pathname, user, profile, profileError });
+  const { allow, to } = guardRoute({
+    path: loc.pathname,
+    user,
+    profile,
+    profileError,
+    installed: isInstalledApp(),
+  });
   if (allow) return children;
 
   /*
@@ -371,7 +384,18 @@ function GateRoute() {
   // the unauthenticated — the hold at લેવલ ૧ is gone, so a signed-in યુવક reaches this
   // page whenever he asks for it. Still routed through the one function that knows, rather
   // than re-stating half the rule here.
-  const { allow, to } = guardRoute({ path: loc.pathname, user, profile, profileError });
+  //
+  // `installed` cannot change the answer for THIS path — /welcome is not the root, so a
+  // visitor with no session goes to લોગિન either way — and it is passed all the same, so
+  // that the two calls to guardRoute() in this file put the same question. A call site that
+  // quietly omitted an input would be the thing that makes the two disagree later.
+  const { allow, to } = guardRoute({
+    path: loc.pathname,
+    user,
+    profile,
+    profileError,
+    installed: isInstalledApp(),
+  });
   if (!allow) return <Navigate to={to} replace state={{ from: loc.pathname }} />;
 
   return (

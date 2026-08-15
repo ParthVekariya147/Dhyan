@@ -125,17 +125,22 @@ export function resolveEntryState({ user, profile, profileError = false } = {}) 
  *
  * Two states, two answers, nothing remembered: signed out he gets a door (§4), signed in he
  * gets the મુખપૃષ્ઠ and picks for himself.
+ *
+ * `installed` is the second kind of evidence, and it is the stronger of the two. See the
+ * note above guardRoute() — an app on the home screen was put there by somebody who had
+ * already been here, so it is `returning` established by the phone rather than by the URL.
  */
 export function resolveEntryRoute({
   user,
   profile,
   profileError = false,
   returning = false,
+  installed = false,
 } = {}) {
   const state = resolveEntryState({ user, profile, profileError });
 
   if (state === ENTRY_STATE.UNAUTHENTICATED) {
-    return returning ? ENTRY_ROUTE.LOGIN : ENTRY_ROUTE.REGISTER;
+    return returning || installed ? ENTRY_ROUTE.LOGIN : ENTRY_ROUTE.REGISTER;
   }
 
   /*
@@ -163,20 +168,46 @@ export function resolveEntryRoute({
  *      the root is a first visit until proven otherwise, so it opens નોંધણી; any other
  *      path was typed, bookmarked or refreshed by somebody who has been here, so it opens
  *      લોગિન. Both carry a link to the other (§19).
+ *
+ *      **`installed` is what proves otherwise.** An app that was launched from the home
+ *      screen is not a first visit and cannot be: somebody had to open this site in a
+ *      browser and choose to install it before that icon existed. The manifest's
+ *      `start_url` is `/`, so every launch of the installed app asks this function about
+ *      the root — and without this flag the answer was નોંધણી, every single time, for a
+ *      યુવક whose account is the reason the app is on his phone at all. He was shown a
+ *      registration form on open and had to find the લોગિન link underneath it daily.
+ *
+ *      It is passed in rather than read here because "is this window the installed app" is
+ *      a display-mode query and a `navigator` flag, and this module is pure by design (see
+ *      the header). src/lib/entryRoute.js exports the reader; src/App.jsx does the asking.
+ *
+ *      Note what this does NOT do: /register stays a route, and the sentence under the
+ *      login form still links to it. A યુવક who installed the app before he had an account
+ *      — which is possible, the invitation is offered on લોગિન and નોંધણી too — is one tap
+ *      from the form rather than walled off from it (§1: never a dead end).
  *   2. **A યુવક who has not passed the પ્રવેશદ્વાર is held at લેવલ ૧** — the rule App.jsx
  *      has always enforced, unchanged (§7: preserve the existing business rule).
  *   3. **Everyone else sees what they asked for.** In particular a refresh on /level/4
  *      returns to /level/4 (§12), and no authenticated યુવક is ever shown નોંધણી or
  *      લોગિન again.
  */
-export function guardRoute({ path, user, profile, profileError = false } = {}) {
+export function guardRoute({
+  path,
+  user,
+  profile,
+  profileError = false,
+  installed = false,
+} = {}) {
   const state = resolveEntryState({ user, profile, profileError });
 
   if (state === ENTRY_STATE.UNAUTHENTICATED) {
     return {
       allow: false,
       state,
-      to: path === ENTRY_ROUTE.HOME ? ENTRY_ROUTE.REGISTER : ENTRY_ROUTE.LOGIN,
+      to:
+        path === ENTRY_ROUTE.HOME && !installed
+          ? ENTRY_ROUTE.REGISTER
+          : ENTRY_ROUTE.LOGIN,
     };
   }
 

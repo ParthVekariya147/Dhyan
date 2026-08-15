@@ -1062,6 +1062,52 @@ group('resolveEntryState / resolveEntryRoute / guardRoute — §10');
     eq(`${path} sends him to લોગિન`, guardRoute({ path, ...NOBODY }).to, ENTRY_ROUTE.LOGIN);
   }
 
+  /* ---- the installed app opens લોગિન, never નોંધણી -------------------------
+
+     The manifest's `start_url` is '/', so every launch of the app from the home screen
+     asks this function about the root with no session in hand — which is the same question
+     a brand-new visitor's first click asks. The two are only distinguishable by `installed`,
+     and getting it wrong has a direction: a યુવક who put the app on his phone did so
+     BECAUSE he has an account, and he was being handed a registration form every morning.
+
+     Asserted for the root specifically, because the root is the only path whose answer this
+     changes — everything else was already લોગિન — and asserted in both directions so that a
+     future edit cannot make નોંધણી unreachable for the browser visitor who needs it. */
+  eq(
+    'the installed app, with no session, opens લોગિન',
+    guardRoute({ path: '/', ...NOBODY, installed: true }).to,
+    ENTRY_ROUTE.LOGIN
+  );
+  eq(
+    'the same launch in a browser still opens નોંધણી',
+    guardRoute({ path: '/', ...NOBODY, installed: false }).to,
+    ENTRY_ROUTE.REGISTER
+  );
+  eq(
+    'and an installed app is a returning visitor to resolveEntryRoute() too',
+    resolveEntryRoute({ ...NOBODY, installed: true }),
+    ENTRY_ROUTE.LOGIN
+  );
+  for (const path of ['/welcome', '/darshan', '/level/3', '/level/4']) {
+    eq(
+      `${path} is unaffected by installed — already લોગિન`,
+      guardRoute({ path, ...NOBODY, installed: true }).to,
+      ENTRY_ROUTE.LOGIN
+    );
+  }
+  // It is a fact about the window, not about the યુવક: nobody who IS signed in may be
+  // redirected anywhere by it. This is the check that keeps `installed` from becoming a
+  // second opinion about who somebody is.
+  for (const who of [NEW, GATED, DONE]) {
+    for (const path of ['/', '/welcome', '/level/4']) {
+      eq(
+        `a signed-in યુવક reaches ${path} whether installed or not`,
+        guardRoute({ path, ...who, installed: true }).allow,
+        guardRoute({ path, ...who, installed: false }).allow
+      );
+    }
+  }
+
   /* ---- the પ્રવેશદ્વાર is no longer a wall --------------------------------
      This block used to assert the opposite — that a યુવક without a gate stamp was
      refused /level/4 and redirected to લેવલ ૧. Routing no longer holds him anywhere:
