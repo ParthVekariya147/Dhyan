@@ -56,6 +56,7 @@ const Level3Page = lazy(() => import('./features/points/pages/Level3Page'));
 const LeaderboardPage = lazy(() => import('./features/points/pages/LeaderboardPage'));
 const SettingsPage = lazy(() => import('./features/settings/pages/SettingsPage'));
 const AuditLogPage = lazy(() => import('./features/audit/pages/AuditLogPage'));
+const AccessPage = lazy(() => import('./features/access/pages/AccessPage'));
 
 export default function App() {
   return (
@@ -96,7 +97,7 @@ export default function App() {
                 is a mass edit. Placed beside /darshan/health for the same reason that one
                 is here: react-router ranks a static segment above /darshan/:itemId, so this
                 is legibility rather than precedence. */}
-            <Route path="/darshan/import" element={<Gate need="darshan.update"><DarshanImportPage /></Gate>} />
+            <Route path="/darshan/import" element={<Gate need="darshan.import"><DarshanImportPage /></Gate>} />
             <Route path="/darshan/:itemId" element={<Gate need="darshan.read"><DarshanDetailPage /></Gate>} />
             <Route path="/progress" element={<Gate need="progress.read"><ProgressPage /></Gate>} />
             {/*
@@ -116,7 +117,7 @@ export default function App() {
               element={<Gate need="progress.read"><UserProgressDetailPage /></Gate>}
             />
             <Route path="/sessions" element={<Gate need="sessions.read"><SessionsPage /></Gate>} />
-            <Route path="/levels" element={<Gate need="settings.read"><LevelsPage /></Gate>} />
+            <Route path="/levels" element={<Gate need="levels.read"><LevelsPage /></Gate>} />
             {/* લેવલ ૪ is a container of sub-levels, and arranging them is a different job from
                 deciding which levels exist — /levels stays the availability screen. Both sit
                 under settings.read for the reason AdminShell's NAV table gives: the permission
@@ -125,8 +126,8 @@ export default function App() {
                 the policy behind it. The editor's static /config segment ranks above nothing —
                 there is no /levels/:levelId route for it to compete with — so it is placed
                 beside its list purely to be read as a pair. */}
-            <Route path="/levels/4" element={<Gate need="settings.read"><Level4ListPage /></Gate>} />
-            <Route path="/levels/4/config/:configId" element={<Gate need="settings.read"><Level4EditorPage /></Gate>} />
+            <Route path="/levels/4" element={<Gate need="level4.read"><Level4ListPage /></Gate>} />
+            <Route path="/levels/4/config/:configId" element={<Gate need="level4.read"><Level4EditorPage /></Gate>} />
             <Route path="/video" element={<Gate need="settings.read"><VideoPage /></Gate>} />
             {/* The bottom bar of the યુવક app — settings/nav, its own row beside settings/app.
                 `settings.read` like the three screens around it, and for the same reason
@@ -161,15 +162,25 @@ export default function App() {
               લેવલ ૩ is one rung of it asked about on its own, and the board is what it all adds
               up to.
             */}
-            <Route path="/points" element={<Gate need="settings.read"><PointsPage /></Gate>} />
-            <Route path="/points/ledger" element={<Gate need="progress.read"><PointLedgerPage /></Gate>} />
-            <Route path="/points/daily" element={<Gate need="progress.read"><DailyActivityPage /></Gate>} />
-            <Route path="/points/records" element={<Gate need="progress.read"><DailyRecordsPage /></Gate>} />
+            <Route path="/points" element={<Gate need="points.read"><PointsPage /></Gate>} />
+            <Route path="/points/ledger" element={<Gate need="points.ledger.read"><PointLedgerPage /></Gate>} />
+            <Route path="/points/daily" element={<Gate need="points.daily.read"><DailyActivityPage /></Gate>} />
+            <Route path="/points/records" element={<Gate need="points.records.read"><DailyRecordsPage /></Gate>} />
             {/* `progress.read` and not a name of its own: `admin_level3_users()` raises
                 `level3_report_forbidden` (42501) without exactly that permission, so the route
                 gate and the data gate agree without inventing a third spelling. */}
-            <Route path="/points/level3" element={<Gate need="progress.read"><Level3Page /></Gate>} />
-            <Route path="/points/leaderboard" element={<Gate need="progress.read"><LeaderboardPage /></Gate>} />
+            <Route path="/points/level3" element={<Gate need="points.level3.read"><Level3Page /></Gate>} />
+            <Route path="/points/leaderboard" element={<Gate need="points.leaderboard.read"><LeaderboardPage /></Gate>} />
+            {/*
+              `admins.read` and not `roles.manage`.
+
+              The section holds four tabs and only one of them — the role editor — needs
+              roles.manage. Gating the route on the narrower permission would hide the સંચાલક
+              list, the catalogue and the effective-access screen from an ADMIN, who holds
+              admins.read and has always been able to see who runs the panel. The tab strip
+              filters itself; the route only decides whether the section exists at all.
+            */}
+            <Route path="/access" element={<Gate need="admins.read"><AccessPage /></Gate>} />
             <Route path="/audit-logs" element={<Gate need="audit.read"><AuditLogPage /></Gate>} />
           </Route>
 

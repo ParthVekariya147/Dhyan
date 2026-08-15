@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../../shared/supabase/client.js';
-import { can as roleCan, isReadOnly as roleIsReadOnly } from '../../../shared/domain/permissions.js';
+import { can as holds, isReadOnly as setIsReadOnly, roleLabel } from '../../../shared/domain/permissions.js';
 import { resetRedirectTo } from '../../../shared/domain/recovery-routes.js';
 import { dataError } from './errors';
 
@@ -11,6 +11,28 @@ export const useAdminAuth = () => useContext(Ctx);
 const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
 
 /**
+ * The settled "holds nothing" state, in one place.
+ *
+ * It is written on four different paths — signed out, authorisation refused, the session
+ * unreadable, and Supabase not configured — and each used to spell it out. Every field added
+ * since (permissions, rank, isBootstrap) then had to be remembered in all four, and a field
+ * left out of one of them is a stale permission list surviving a sign-out, which is the exact
+ * failure this provider's ticket mechanism exists to prevent elsewhere.
+ */
+const ANON = {
+  status: 'anon',
+  user: null,
+  profile: null,
+  role: null,
+  roleLabel: '-',
+  permissions: [],
+  rank: 0,
+  isBootstrap: false,
+  via: null,
+  error: null,
+};
+
+/**
  * સંચાલક authorisation.
  *
  * Under Firebase this had three paths — a custom claim, a server call to mint one, and a
@@ -18,9 +40,9 @@ const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
  * rules cannot run a query, so "is this person an admin" had to be smuggled into the
  * token or re-derived on the client.
  *
- * Postgres just answers the question: `public.effective_role()` is a SECURITY DEFINER
- * function evaluated inside every RLS policy, through `has_permission()`. One RPC call,
- * and it is the *same* check the database enforces on every row — so the panel can never
+ * Postgres just answers the question: `public.admin_session()` is a SECURITY DEFINER
+ * function built on the same `has_permission()` every RLS policy calls. One RPC call, and
+ * it is the *same* check the database enforces on every row — so the panel can never
  * believe it has access the database will refuse, or vice versa.
  *
  * It returns the role rather than a boolean, which is the whole point of 0004_rbac.sql: a
@@ -28,6 +50,21 @@ const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
  * `can()` decides here is only what renders. Every one of those permissions is checked
  * again inside the policy on the table being read or written, so a yuvak who edits this
  * file out of his own bundle changes what he sees and nothing about what he gets.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why this asks for the permissions and not just the role
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * It used to call `effective_role()` and answer `can()` from a copy of the matrix compiled
+ * into the bundle (shared/domain/permissions.js). 0043 makes the matrix editable from the
+ * panel and adds per-person exceptions, so that copy cannot survive: a bundle carrying last
+ * week's version would offer a section that is refused on arrival, or hide one the person
+ * has just been given.
+ *
+ * `admin_session()` returns role, label, rank, the resolved permission list and whether the
+ * caller is standing on 0024's bootstrap fallback — in the one round trip that was already
+ * being made. 0004 justified duplicating the matrix by wanting to avoid a startup round
+ * trip; there is no extra round trip, so there is nothing left to justify.
  *
  * status: 'loading' | 'anon' | 'denied' | 'ok'
  *
@@ -38,14 +75,10 @@ const configured = isSupabaseConfigured(supabaseConfigFromEnv(import.meta.env));
  * recheck() rather than telling a real સંચાલક he has lost his access.
  */
 export function AdminAuthProvider({ children }) {
-  const [state, setState] = useState({
-    status: 'loading',
-    user: null,
-    profile: null,
-    role: null,
-    via: null,
-    error: null,
-  });
+  // `permissions` is never null, at any point in the lifecycle: an empty array is "holds
+  // nothing", which is a settled answer, and can() would read `undefined.includes` otherwise
+  // during the frame before the RPC lands.
+  const [state, setState] = useState({ ...ANON, status: 'loading' });
 
   // Bumped by recheck(): re-running the effect re-subscribes, which replays the initial
   // session and so retries the whole evaluation down the same path the first attempt took.
@@ -56,7 +89,7 @@ export function AdminAuthProvider({ children }) {
 
   useEffect(() => {
     if (!configured) {
-      setState({ status: 'anon', user: null, profile: null, role: null, via: null, error: null, unconfigured: true });
+      setState({ ...ANON, unconfigured: true });
       return;
     }
 
@@ -77,24 +110,38 @@ export function AdminAuthProvider({ children }) {
       const current = () => alive && mine === ticket;
       const user = session?.user ?? null;
       if (!user) {
-        setState({ status: 'anon', user: null, profile: null, role: null, via: null, error: null });
+        setState({ ...ANON, status: 'anon' });
         return;
       }
       setState((s) => ({ ...s, status: 'loading', user, error: null }));
       try {
-        const [{ data: role, error }, profile] = await Promise.all([
-          supabase.rpc('effective_role'),
+        const [{ data, error }, profile] = await Promise.all([
+          supabase.rpc('admin_session'),
           readProfile(user.id),
         ]);
         if (error) throw error;
         if (!current()) return;
-        // null is an ordinary yuvak. Any role at all opens the panel; which role decides
-        // what is inside it.
+
+        /*
+          admin_session() is a `returns table`, so PostgREST hands back an array. It returns
+          no row at all for an ordinary યુવક — the same answer effective_role() gave as NULL,
+          and the reason this reads `[0]` rather than treating an empty result as a failure.
+        */
+        const s = Array.isArray(data) ? data[0] : data;
+        const role = s?.role || null;
+
         setState({
           status: role ? 'ok' : 'denied',
           user,
           profile: role ? profile : null,
-          role: role || null,
+          role,
+          // The label as the database has it, so a role created last Tuesday reads as its
+          // own name rather than as a bare key. roleLabel() only fills in for a key that
+          // arrived without one.
+          roleLabel: roleLabel(role, s?.role_label ? { [role]: s.role_label } : null),
+          permissions: Array.isArray(s?.permissions) ? s.permissions : [],
+          rank: s?.rank ?? 0,
+          isBootstrap: Boolean(s?.is_bootstrap),
           via: 'rls',
           error: null,
         });
@@ -103,7 +150,7 @@ export function AdminAuthProvider({ children }) {
         // Closed, and named. dataError() maps the SQLSTATE to a sentence and logs the code
         // and Postgres's own hint, which is what the person fixing this actually needs.
         if (current()) {
-          setState({ status: 'denied', user, profile: null, role: null, via: null, error: dataError(e) });
+          setState({ ...ANON, status: 'denied', user, error: dataError(e) });
         }
       }
     };
@@ -130,7 +177,7 @@ export function AdminAuthProvider({ children }) {
     supabase.auth.getSession().catch((e) => {
       console.error('[admin] could not read the session', e);
       if (!alive || ticket > 0) return;
-      setState({ status: 'denied', user: null, profile: null, role: null, via: null, error: dataError(e) });
+      setState({ ...ANON, status: 'denied', error: dataError(e) });
     });
 
     return () => {
@@ -148,13 +195,18 @@ export function AdminAuthProvider({ children }) {
        * What may this administrator do? Visibility only — never the security boundary.
        *
        * Read by AdminShell to filter the sidebar and by RequirePermission to guard the
-       * route behind it, so a section that a role holds no permission for is neither
+       * route behind it, so a section the person holds no permission for is neither
        * offered nor reachable by typing its URL. Both of those are usability: the same
        * permission is checked again by `has_permission()` inside the policy on every row
        * read or written (§65).
+       *
+       * Since 0043 this tests membership of the list the *server* resolved — role, plus
+       * every unexpired ALLOW grant, minus every DENY — rather than looking a role up in a
+       * matrix the bundle carries. The panel no longer has an opinion about what a role
+       * means; it asks.
        */
-      can: (permission) => roleCan(state.role, permission),
-      isReadOnly: roleIsReadOnly(state.role),
+      can: (permission) => holds(state.permissions, permission),
+      isReadOnly: setIsReadOnly(state.permissions),
 
       /** Retry an authorisation check that failed to complete. See `error` above. */
       recheck,

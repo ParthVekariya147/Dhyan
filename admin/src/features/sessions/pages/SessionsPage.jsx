@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import { fetchAllSessions, listSessions } from '../../learning/services/learningService';
 import DataTable, { Pager } from '../../../components/DataTable';
 import { AsyncBlock, TableSkeleton } from '../../../components/StateBlocks';
@@ -73,8 +74,13 @@ const SESSION_STATUS = {
  * "Remaining" and never "missed" or "wrong" (§10, §14): the દ્રશ્યો a યુવક has not reached
  * yet are simply the ones still ahead of him.
  */
-const exportColumns = [
-  { label: 'SMK', value: (r) => r.user?.smk || '' },
+/*
+  A function of the permission rather than a constant, for the same reason the યુવક list's is:
+  a file leaves the panel and is not governed after that, so a screen with no SMK column beside
+  a spreadsheet full of them would be a control that only looks like one. See 0046.
+*/
+const exportColumns = (withSmk) => [
+  withSmk ? { label: 'SMK', value: (r) => r.user?.smk || '' } : null,
   { label: 'Name / નામ', value: (r) => r.user?.name || '' },
   { label: 'Subzone / સબઝોન', value: (r) => (r.user ? subZoneNameEn(r.user.subZoneId) : '') },
   { label: 'Session', value: (r) => r.sessionId },
@@ -87,9 +93,11 @@ const exportColumns = [
   { label: 'Completion %', value: (r) => (r.total ? Math.floor((r.remembered / r.total) * 1000) / 10 : '') },
   { label: 'Status', value: (r) => r.status },
   { label: 'Memory Darshan finished', value: (r) => istDateTime(r.completedAt) },
-];
+].filter(Boolean);
 
 export default function SessionsPage() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   const [pageSize, setPageSize] = useState(20);
   const [completedOnly, setCompletedOnly] = useState(false);
   const [page, setPage] = useState(0);
@@ -118,7 +126,7 @@ export default function SessionsPage() {
       const res = await fetchAllSessions({ completedOnly, fromIso, toIsoExclusive });
       const written = exportCsv({
         filename: reportFilename('rounds', { from, to, stamp: todayIST() }),
-        columns: exportColumns,
+        columns: exportColumns(can('users.smk.read')),
         rows: res.rows,
       });
       setExportNote(

@@ -106,9 +106,18 @@ const ACCOUNT_STATUS = {
  * Gujarati, because the file is read outside the panel. The values stay exactly as the
  * screen shows them, so the file and the table can never be read as disagreeing.
  */
-const exportColumns = (withMobile) =>
+/*
+  `withSmk` is a second opt-out alongside `withMobile`, and it is not the same kind of thing.
+
+  The mobile column is a choice the person makes on the screen each time. This one is a
+  permission — `users.smk.read` (0046) — because an export is the one place a hidden column
+  would otherwise come straight back: the file leaves the panel and is not governed after that,
+  so a table with no SMK column beside a spreadsheet full of them would be a control that only
+  looks like one.
+*/
+const exportColumns = (withMobile, withSmk) =>
   [
-    { label: 'SMK', value: (u) => u.smk },
+    withSmk ? { label: 'SMK', value: (u) => u.smk } : null,
     { label: 'Name / નામ', value: (u) => u.name },
     withMobile ? { label: 'Mobile / મોબાઈલ', value: (u) => u.mobile } : null,
     { label: 'Subzone / સબઝોન', value: (u) => subZoneNameEn(u.subZoneId) },
@@ -188,7 +197,7 @@ export default function UsersTab() {
       const res = await fetchAllUsers({ subZoneId, term: applied, fromIso, toIsoExclusive });
       const written = exportCsv({
         filename: reportFilename('yuvako', { from, to, stamp: todayIST() }),
-        columns: exportColumns(withMobile),
+        columns: exportColumns(withMobile, can('users.smk.read')),
         rows: res.rows,
       });
       setExportNote(

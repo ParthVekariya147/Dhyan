@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import {
   DAILY_LIMIT,
   awardKind,
@@ -109,6 +110,8 @@ const EXPORT_HINT =
   'Everybody on this day matching the city and zone above, with the columns shown here. No mobile numbers and no email addresses.';
 
 export default function DailyActivityPage() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   // The day the panel opens on is today in India, which is the day the server would have
   // chosen for a null `p_date` anyway - stated here so the date field is never empty.
   const [date, setDate] = useState(() => todayIST());
@@ -369,8 +372,12 @@ export default function DailyActivityPage() {
         // The action column has no value, and a blank column in a report is noise a reader has
         // to account for before trusting the rest of the sheet.
         .filter((c) => c.key !== 'open')
+        // The SMK column, dropped from the file for the same reason DataTable drops it from
+        // the table: without users.smk.read the numbers are not shown in bulk, and an export
+        // is the one place a hidden column would otherwise come straight back (0046).
+        .filter((c) => c.key !== 'smk' || can('users.smk.read'))
         .map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
-    [columns]
+    [columns, can]
   );
 
   /**

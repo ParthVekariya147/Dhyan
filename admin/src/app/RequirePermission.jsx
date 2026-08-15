@@ -1,6 +1,5 @@
 import { useAdminAuth } from '../lib/adminAuth';
 import { NO_SECTION_PERMISSION } from '../lib/errors';
-import { roleLabel } from '../../../shared/domain/permissions.js';
 
 /**
  * §10 — the second gate, inside the first.
@@ -26,7 +25,7 @@ import { roleLabel } from '../../../shared/domain/permissions.js';
  * would mean guessing which section that is in two places.
  */
 export default function RequirePermission({ need, children }) {
-  const { can, role } = useAdminAuth();
+  const { can, roleLabel } = useAdminAuth();
 
   if (!can(need)) {
     return (
@@ -40,7 +39,7 @@ export default function RequirePermission({ need, children }) {
         <p>{NO_SECTION_PERMISSION}</p>
         {/* Which role is refusing, because "no permission" with no subject leaves the
             person nothing to quote when he asks the SUPER_ADMIN for the access. */}
-        <p className="hint">Your role: {roleLabel(role)}</p>
+        <p className="hint">Your role: {roleLabel}</p>
       </div>
     );
   }

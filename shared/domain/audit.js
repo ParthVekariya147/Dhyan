@@ -77,6 +77,36 @@ export const ACTIONS = {
   ADMIN_UPDATED: 'ADMIN_UPDATED',
   ADMIN_ENABLED: 'ADMIN_ENABLED',
   ADMIN_DISABLED: 'ADMIN_DISABLED',
+  /*
+    0045. Undoing an appointment is not the same act as disabling an administrator, and the
+    trail must not call them the same: only ADMIN_REVOKED returns the person to public.yuvaks,
+    so it is the entry that explains why a name reappeared in every count on a given day.
+  */
+  ADMIN_REVOKED: 'ADMIN_REVOKED',
+  ADMIN_RESTORED: 'ADMIN_RESTORED',
+
+  /*
+    Access itself — audit_admin_role(), audit_role_permission() and audit_admin_grant()
+    (0043_dynamic_rbac.sql).
+
+    Until 0043 the role→permission matrix was a hardcoded SQL function, so a change to it
+    was a migration and the trail was the git history. It is a table now, editable from the
+    panel, which means "who gave Coordinators the ability to award points, and when" is a
+    question the audit log has to be able to answer.
+
+    The permission entries are deliberately one row per permission moved, not one per save.
+    The role editor writes the whole tick-box grid at once, so a single ROLE_UPDATED would
+    say that something changed among forty-six checkboxes and leave the reader to diff two
+    JSON blobs. `ROLE_PERMISSION_GRANTED points.adjust → COORDINATOR` is the sentence
+    somebody actually needs a year later.
+  */
+  ROLE_CREATED: 'ROLE_CREATED',
+  ROLE_UPDATED: 'ROLE_UPDATED',
+  ROLE_DELETED: 'ROLE_DELETED',
+  ROLE_PERMISSION_GRANTED: 'ROLE_PERMISSION_GRANTED',
+  ROLE_PERMISSION_REVOKED: 'ROLE_PERMISSION_REVOKED',
+  GRANT_ADDED: 'GRANT_ADDED',
+  GRANT_REMOVED: 'GRANT_REMOVED',
 };
 
 /** Gujarati label for the list; unknown actions fall back to the raw code. */
@@ -107,6 +137,16 @@ export const ACTION_LABELS = {
   ADMIN_UPDATED: 'Admin details updated',
   ADMIN_ENABLED: 'Admin enabled',
   ADMIN_DISABLED: 'Admin disabled',
+  ADMIN_REVOKED: 'Admin appointment undone - back to being a yuvak',
+  ADMIN_RESTORED: 'Admin appointment remade',
+
+  ROLE_CREATED: 'Role created',
+  ROLE_UPDATED: 'Role updated',
+  ROLE_DELETED: 'Role deleted',
+  ROLE_PERMISSION_GRANTED: 'Permission added to a role',
+  ROLE_PERMISSION_REVOKED: 'Permission removed from a role',
+  GRANT_ADDED: 'Permission granted to one person',
+  GRANT_REMOVED: 'Individual permission removed',
 };
 
 export const actionLabel = (a) => ACTION_LABELS[a] || a || '-';
@@ -117,7 +157,11 @@ export const RESOURCE_LABELS = {
   settings: 'Settings',
   profiles: 'User',
   admin_profiles: 'Admin',
+  admins: 'Admin',
   level4_configs: 'Level 4',
+  admin_roles: 'Role',
+  role_permissions: 'Role permissions',
+  admin_grants: 'Individual permission',
 };
 
 export const resourceLabel = (r) => RESOURCE_LABELS[r] || r || '-';

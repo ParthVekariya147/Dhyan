@@ -430,27 +430,59 @@ comment on function public.actor_names(uuid[]) is
 -- `admin_profiles` becomes `admins`; the bootstrap fallback is untouched. Every RLS policy in
 -- this schema is written against has_permission(), which calls this, so this one function is
 -- the whole of the change for them.
-create or replace function public.effective_role()
-returns public.admin_role
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(
-    (
-      select a.role
-      from public.admins a
-      where a.id = auth.uid()
-        and a.status = 'ACTIVE'
-    ),
-    (
-      select 'SUPER_ADMIN'::public.admin_role
-      from public.bootstrap_admins b
-      where b.id = auth.uid()
-    )
-  );
-$$;
+--
+-- ── Guarded, and the guard is for the *replay* rather than the first application ──────
+--
+-- 0043 retires the enum: `admins.role` becomes text with a foreign key to public.admin_roles,
+-- because a role invented from the panel cannot be an enum label. That leaves this statement
+-- unable to run a second time, in two different ways, and re-applying the migrations as a set
+-- is the production repair procedure (see the note at the top of this file) —
+-- scripts/test-point-engine.mjs replays 0031 onward and found both:
+--
+--   1. `create or replace` cannot change a return type. With the text-returning version live,
+--      this fails 42P13.
+--   2. Even dropping it first does not help. The body reads `a.role`, which by then is text,
+--      so `coalesce(text, admin_role)` fails 42804.
+--
+-- Both say the same thing: once 0043 has run, an enum-returning effective_role() is not
+-- merely redundant, it is *unbuildable*. So this defines it only while `admins.role` is still
+-- the enum — which is exactly the state a first application finds — and stands aside
+-- otherwise, leaving the function to 0043, which owns it from that point and re-issues it a
+-- few files later. The end state after a replay is identical to a first application.
+do $do$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'admins'
+      and column_name = 'role' and udt_name = 'admin_role'
+  ) then
+    execute $fn$
+      create or replace function public.effective_role()
+      returns public.admin_role
+      language sql
+      stable
+      security definer
+      set search_path = public
+      as $body$
+        select coalesce(
+          (
+            select a.role
+            from public.admins a
+            where a.id = auth.uid()
+              and a.status = 'ACTIVE'
+          ),
+          (
+            select 'SUPER_ADMIN'::public.admin_role
+            from public.bootstrap_admins b
+            where b.id = auth.uid()
+          )
+        );
+      $body$;
+    $fn$;
+  end if;
+end
+$do$;
 
 comment on function public.effective_role() is
   'The role the caller is acting as, or NULL for an ordinary યુવક. public.admins first; then '

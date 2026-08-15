@@ -63,7 +63,23 @@ export async function listAdmins({ role = '', status = '', term = '' } = {}) {
   let q = supabase.from(TABLE).select(COLUMNS);
 
   if (role) q = q.eq('role', role);
+
+  /*
+    REVOKED is not on this list, and that is the whole point of REVOKED.
+
+    "Not an admin" means the appointment is undone: the person is a યુવક again, `yuvaks` starts
+    returning him (0045 rewrites `admin_account_ids()` to skip him), and a screen headed
+    સંચાલક that still listed him would be contradicting the યુવક list on the next tab. The row
+    survives in `admins` so that the audit trail and his old grants can still be read — that is
+    a record, not a membership, and this list is the membership.
+
+    Not deleted from the filter, though: choosing "Not an admin" explicitly still finds them.
+    Revoking is a thing somebody can do by mistake, and a list with no way back would make the
+    undo depend on remembering the person's name well enough to find him among 2,000 યુવકો.
+    Default view: gone. Deliberately asked for: there.
+  */
   if (status) q = q.eq('status', status);
+  else q = q.neq('status', 'REVOKED');
 
   const search = String(term || '').trim();
   if (search) {
@@ -84,6 +100,44 @@ export async function listAdmins({ role = '', status = '', term = '' } = {}) {
   const all = data || [];
   return { rows: all.slice(0, LIST_CAP).map(toAdmin), truncated: all.length > LIST_CAP, cap: LIST_CAP };
 }
+
+/**
+ * The roles a સંચાલક may be given.
+ *
+ * A database read since 0043, where the five-value `admin_role` enum became rows in
+ * `public.admin_roles` that the panel can add to. The list this replaced was a `ROLES`
+ * constant in shared/domain/permissions.js, and it had to go for the same reason the matrix
+ * beside it did: a dropdown built from the bundle cannot offer a role somebody created on
+ * Tuesday, and would keep offering one that was deleted.
+ *
+ * Ordered by rank, highest first, because that is the order the roles mean something in —
+ * Super Admin at the top, Viewer at the bottom — and it is stable as custom roles are added
+ * between them. Readable by anyone holding any role at all (the `admin_roles` SELECT policy
+ * is `is_admin()`), so the dropdown is populated even for a સંચાલક who cannot edit roles.
+ */
+export async function listRoles() {
+  const { data, error } = await supabase
+    .from('admin_roles')
+    .select('key, label, description, is_system, rank')
+    .order('rank', { ascending: false })
+    .order('key');
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    key: r.key,
+    label: r.label || r.key,
+    description: r.description || '',
+    isSystem: Boolean(r.is_system),
+    rank: r.rank ?? 0,
+  }));
+}
+
+/**
+ * `{ SUPER_ADMIN: 'Super Admin', … }` — for the tables that print a role key they did not load
+ * a row for. roleLabel() in shared/domain/permissions.js takes exactly this shape as its
+ * second argument and humanises anything missing from it.
+ */
+export const roleLabels = (roles) =>
+  Object.fromEntries((roles || []).map((r) => [r.key, r.label]));
 
 /** One administrator. Null rather than a throw when the row is absent or not readable. */
 export async function getAdmin(id) {
@@ -214,6 +268,342 @@ export async function createAdmin({ email, password, name, mobile = '', role }) 
     throw apiError(code, body?.detail);
   }
   return body?.id || null;
+}
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * Giving an existing account a role, which the browser CAN do
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The opposite case to createAdmin() above, and the one the panel had no answer for at all.
+ *
+ * createAdmin() exists because a *new* administrator has no `auth.users` row, and making one
+ * needs the secret key. A યુવક who is already registered has had one since the day he signed
+ * up — `profiles.id` **is** his `auth.users.id` — so appointing him is nothing more than an
+ * INSERT into `public.admins` carrying that id. No account is created, no password is set or
+ * seen, and nothing crosses a server function.
+ *
+ * Until now the only route was the add form, which would refuse him: the endpoint answers
+ * `email-taken`, and its own message says "give the person a role on that account instead of
+ * creating a second one" — advice the panel then offered no way to follow. The alternative
+ * people reach for is worse: a second account on a different address, which splits one person
+ * into two identities, leaves his learning record attached to the one he no longer signs in
+ * with, and puts a second row in `public.profiles` that every count then includes.
+ *
+ * Everything that decides whether this is allowed happens inside the one request. The insert
+ * policy asks for `admins.create`; `admins_guard()` refuses self-appointment, refuses a role
+ * at or above the caller's own rank, and refuses SUPER_ADMIN from anyone who is not one;
+ * `admins_fill_identity()` fills anything omitted from the profile; and `audit_admin()`
+ * records ROLE_ASSIGNED under the caller. `created_by` is deliberately not sent — the guard
+ * takes it from auth.uid(), which a browser cannot spoof.
+ *
+ * The identity columns ARE sent, though the trigger would fill them, because the profile is
+ * already in hand and a value read from the row the સંચાલક picked is better than one
+ * re-derived from an address. `mobile` is contact information here and grants nothing: login
+ * for an administrator is by email, and netlify/functions/login-mobile.js resolves numbers
+ * against `profiles` and never reads this column (0038).
+ */
+export async function promoteUser({ id, email = '', name = '', mobile = '', role }) {
+  const row = {
+    id,
+    role,
+    // Explicit, and it is what re-appoints somebody whose appointment was revoked. Without it
+    // the upsert below would leave `status` at whatever it was, so restoring a REVOKED person
+    // would quietly write his role and leave him not an administrator.
+    status: 'ACTIVE',
+    ...(String(email).trim() ? { email: String(email).trim().toLowerCase() } : {}),
+    ...(String(name).trim() ? { name: String(name).trim() } : {}),
+    // Omitted entirely when blank rather than sent as '': the column is nullable and CHECKed
+    // against '^[6-9][0-9]{9}$', which an empty string fails.
+    ...(String(mobile).trim() ? { mobile: String(mobile).trim() } : {}),
+  };
+
+  /*
+    Upsert on the primary key, not a plain insert.
+
+    An `admins` row is never deleted — `admins_no_delete()` refuses it for everyone including
+    service_role — so undoing an appointment leaves the row behind at `status = 'REVOKED'`
+    (0045). Appointing that person again is therefore an UPDATE, and a plain insert would come
+    back as `23505`: a duplicate-key error about a row the person cannot see, on a screen whose
+    search deliberately offers him because he is a યુવક again.
+
+    The guard runs either way and is what decides whether this is allowed. On the UPDATE path
+    it applies one extra rule: coming out of REVOKED asks for `admins.create` as well as
+    `admins.disable`, because putting somebody back is an appointment rather than switching
+    access on again.
+  */
+  const { data, error } = await supabase
+    .from(TABLE)
+    .upsert(row, { onConflict: 'id' })
+    .select(COLUMNS)
+    .single();
+  if (error) throw error;
+  return toAdmin(data);
+}
+
+/**
+ * Does this account already hold a role?
+ *
+ * Asked before the search results are shown, so somebody who is already an administrator is
+ * marked as one in the list instead of being offered as a candidate and then refused by the
+ * primary key with `23505` — a duplicate-key error is a true statement about a row and tells
+ * the person nothing about what to do next.
+ *
+ * Returns a Set of ids. RLS applies: without `admins.read` this comes back empty, and the
+ * caller then simply offers everybody, which is the honest degradation — the insert is still
+ * refused by the policy and the guard. Anyone who can reach this screen holds `admins.read`
+ * (it is what the tab is gated on), so that path is theoretical.
+ */
+export async function existingAdminIds(ids) {
+  const list = [...new Set((ids || []).filter(Boolean))];
+  if (!list.length) return new Set();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('id')
+    // REVOKED is deliberately not counted. That state means the appointment was undone, so the
+    // person is an ordinary યુવક again and appointing him is a perfectly ordinary thing to do -
+    // marking him "already an administrator" would refuse the one action the screen exists for.
+    // promoteUser() upserts, so the leftover row is updated rather than collided with.
+    .neq('status', 'REVOKED')
+    .in('id', list);
+  if (error) throw error;
+  return new Set((data || []).map((r) => r.id));
+}
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  Roles, the catalogue, and per-person exceptions — what /access is built on
+  ────────────────────────────────────────────────────────────────────────────
+
+  All of it is ordinary PostgREST against the four tables 0043 added. There is no endpoint and
+  no secret key anywhere in this half of the file, because none of it creates an account: a
+  role is a row, a permission binding is a row, and an exception is a row.
+
+  What stops any of it being dangerous is that the browser is not trusted with a single one of
+  these decisions. `role_permissions_guard()`, `admin_grants_guard()` and `admin_roles_guard()`
+  re-apply every rule — roles.manage, never SUPER_ADMIN, never at or above your own rank, never
+  a permission you do not hold yourself — and they are BEFORE triggers, so they bind
+  service_role too. Everything below is a form over a table whose triggers say no.
+*/
+
+/**
+ * The permission catalogue, grouped as the role editor renders it.
+ *
+ * `public.permissions` is written by migrations alone, so this list is fixed for a given
+ * deploy — but it is read rather than imported, because the label and the description live in
+ * the table. shared/domain/permissions.js carries the keys for the build to check against and
+ * deliberately carries no wording: a label in the bundle is one that can disagree with the key
+ * it labels, and the person editing a role is reading the label.
+ */
+export async function listPermissions() {
+  const { data, error } = await supabase
+    .from('permissions')
+    .select('key, resource, verb, label, description, is_section, sort')
+    .order('sort')
+    .order('key');
+  if (error) throw error;
+  return (data || []).map((p) => ({
+    key: p.key,
+    resource: p.resource,
+    verb: p.verb,
+    label: p.label || p.key,
+    description: p.description || '',
+    isSection: Boolean(p.is_section),
+    sort: p.sort ?? 0,
+  }));
+}
+
+/** Which permissions each role holds, as `{ ROLE_KEY: Set<permission> }`. */
+export async function listRolePermissions() {
+  const { data, error } = await supabase.from('role_permissions').select('role_key, permission');
+  if (error) throw error;
+  const out = {};
+  for (const r of data || []) (out[r.role_key] ||= new Set()).add(r.permission);
+  return out;
+}
+
+/**
+ * How many administrators hold each role.
+ *
+ * Through `admin_role_usage()` (0044) rather than counting the rows this client can see: the
+ * `admins` SELECT policy is `id = auth.uid() or has_permission('admins.read')`, so a browser
+ * count is a count of what the policy let past. A role editor that said "this affects 1
+ * administrator" when it affects nine is worse than one that said nothing.
+ */
+export async function roleUsage() {
+  const { data, error } = await supabase.rpc('admin_role_usage');
+  if (error) throw error;
+  const out = {};
+  for (const r of data || []) out[r.role_key] = { members: r.members, active: r.active_members };
+  return out;
+}
+
+/**
+ * Save a role's permission set as a diff, not as a replacement.
+ *
+ * The screen presents a grid of forty-six checkboxes and it would be simpler to delete every
+ * row for the role and insert the ticked ones. That is wrong here for two separate reasons,
+ * and the second is the serious one:
+ *
+ *   · `audit_role_permission()` writes one row per permission moved. A delete-all/insert-all
+ *     would record forty-six revocations and forty-six grants every time somebody changed one
+ *     checkbox, which buries the change that actually happened in the trail meant to show it.
+ *   · For a moment mid-save the role would hold nothing. Anyone signed in under it would have
+ *     his sidebar emptied and his next request refused — `has_permission()` reads these rows
+ *     live, on every query.
+ *
+ * So only the difference is written. Each statement is independently subject to the guard,
+ * which is also why they are not wrapped in a single call: a permission the caller may not
+ * grant is refused on its own row and the rest still apply, and the screen re-reads to show
+ * exactly what landed.
+ */
+export async function setRolePermissions(roleKey, next) {
+  const current = (await listRolePermissions())[roleKey] || new Set();
+  const want = new Set(next);
+
+  const toAdd = [...want].filter((p) => !current.has(p));
+  const toRemove = [...current].filter((p) => !want.has(p));
+
+  if (toAdd.length) {
+    const { error } = await supabase
+      .from('role_permissions')
+      .insert(toAdd.map((permission) => ({ role_key: roleKey, permission })));
+    if (error) throw error;
+  }
+  if (toRemove.length) {
+    const { error } = await supabase
+      .from('role_permissions')
+      .delete()
+      .eq('role_key', roleKey)
+      .in('permission', toRemove);
+    if (error) throw error;
+  }
+  return { added: toAdd.length, removed: toRemove.length };
+}
+
+/**
+ * A new role.
+ *
+ * `is_system` is never sent: the guard forces it false on insert, and a client that tried
+ * would be quietly overruled rather than refused — so not sending it keeps the request an
+ * honest description of what is being asked for.
+ *
+ * `rank` decides who may administer whom, and the guard refuses anything at or above the
+ * caller's own. The screen offers only ranks below his for that reason.
+ */
+export async function createRole({ key, label, description = '', rank }) {
+  const { data, error } = await supabase
+    .from('admin_roles')
+    .insert({ key: String(key).trim().toUpperCase(), label: String(label).trim(), description, rank })
+    .select('key, label, description, is_system, rank')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** The label, the description and the rank. Never the key - renaming a role would orphan the
+    `admins.role` rows pointing at it, which is what the foreign key is there to prevent. */
+export async function updateRole(key, { label, description, rank }) {
+  const patch = {};
+  if (label !== undefined) patch.label = String(label).trim();
+  if (description !== undefined) patch.description = description;
+  if (rank !== undefined) patch.rank = rank;
+  const { data, error } = await supabase
+    .from('admin_roles')
+    .update(patch)
+    .eq('key', key)
+    .select('key, label, description, is_system, rank')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete a role. Refused by the guard if it is a system role or if anybody holds it — the
+ * second names the number, so the message can be acted on rather than merely understood.
+ */
+export async function deleteRole(key) {
+  const { error } = await supabase.from('admin_roles').delete().eq('key', key);
+  if (error) throw error;
+}
+
+/** One administrator's exceptions, newest first. */
+export async function listGrants(adminId) {
+  const { data, error } = await supabase
+    .from('admin_grants')
+    .select('admin_id, permission, effect, reason, expires_at, granted_by, granted_at')
+    .eq('admin_id', adminId)
+    .order('granted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((g) => ({
+    adminId: g.admin_id,
+    permission: g.permission,
+    effect: g.effect,
+    reason: g.reason || '',
+    expiresAt: g.expires_at || null,
+    grantedBy: g.granted_by || null,
+    grantedAt: g.granted_at || null,
+  }));
+}
+
+/**
+ * Add or replace one exception.
+ *
+ * Upsert rather than insert: the primary key is (admin_id, permission), so changing an ALLOW
+ * to a DENY for the same permission is a change to the row that exists. An insert would come
+ * back as `23505` — a duplicate-key error about a row the person is looking at and asking to
+ * change, which is the least useful thing the screen could say.
+ */
+export async function setGrant({ adminId, permission, effect, reason, expiresAt = null }) {
+  const { data, error } = await supabase
+    .from('admin_grants')
+    .upsert(
+      {
+        admin_id: adminId,
+        permission,
+        effect,
+        reason: String(reason || '').trim(),
+        expires_at: expiresAt,
+      },
+      { onConflict: 'admin_id,permission' }
+    )
+    .select('admin_id, permission, effect, reason, expires_at')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeGrant(adminId, permission) {
+  const { error } = await supabase
+    .from('admin_grants')
+    .delete()
+    .eq('admin_id', adminId)
+    .eq('permission', permission);
+  if (error) throw error;
+}
+
+/**
+ * What this administrator may actually do, and why each one.
+ *
+ * `admin_effective_permissions()` (0044) rather than the same union assembled here from
+ * `role_permissions` and `admin_grants`. That JavaScript would be a second implementation of
+ * the resolution rule, and the first one is what every RLS policy in the schema consults — so
+ * the two disagreeing means the panel stating, with confidence, that somebody may do something
+ * the database will refuse. The screen exists to explain the gate; it must not be able to
+ * describe a different one.
+ *
+ * `source` is 'bootstrap' | 'role' | 'granted' | 'denied'. A 'denied' row is a permission he
+ * does NOT hold, returned so the screen can say why he is missing something the rest of his
+ * role has.
+ */
+export async function effectivePermissions(adminId) {
+  const { data, error } = await supabase.rpc('admin_effective_permissions', { p_admin: adminId });
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    permission: r.permission,
+    source: r.source,
+    expiresAt: r.expires_at || null,
+  }));
 }
 
 /**

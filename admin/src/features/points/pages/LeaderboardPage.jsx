@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import {
   BOARD_LIMIT,
   activityCounts,
@@ -15,8 +16,31 @@ import { dataError } from '../../../lib/errors';
 import { exportCsv, reportFilename } from '../../../lib/export';
 import { exportXlsx, xlsxFilename } from '../../../lib/xlsx';
 import { subZoneNameEn, zoneNameEn } from '../../../lib/labels';
-import { dateIST, todayIST } from '../../../../../shared/domain/constants.js';
+import { getUsersByIds } from '../../users/services/userService';
+import { dateIST, normaliseMobile, todayIST } from '../../../../../shared/domain/constants.js';
 import '../ledger.css';
+
+/**
+ * A stored મોબાઈલ → the two links beside a name on this board.
+ *
+ * `normaliseMobile()` and not the raw column, though registration already normalises what it
+ * stores: this board also lists યુવકો whose rows were imported from a spreadsheet or seeded, and
+ * a '+91 96012 69715' that reached the table by one of those routes would build `wa.me/+91 960…`
+ * and open WhatsApp on nothing. It strips a country code and any punctuation and answers ten
+ * digits or fewer, so the guard below is a length test rather than a regex.
+ *
+ * The country code is added back for WhatsApp because wa.me requires one and has no default —
+ * a bare ten digits opens a "phone number shared via url is invalid" page. `tel:` is the
+ * opposite: the handset's own dialler knows where it is, so the plain number is what a person
+ * would have typed and is what shows in the call log.
+ *
+ * Null when there is no usable number, and the caller draws nothing rather than a dead button.
+ */
+function contactLinks(mobile) {
+  const ten = normaliseMobile(mobile);
+  if (ten.length !== 10) return null;
+  return { ten, wa: `https://wa.me/91${ten}`, tel: `tel:${ten}` };
+}
 
 /**
  * §16, §38 — the board, as a સંચાલક needs to see it.
@@ -72,6 +96,8 @@ const EXPORT_HINT =
   'The board exactly as shown - the same window, the same city and zone, the same number of places. No mobile numbers and no email addresses.';
 
 export default function LeaderboardPage() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   // The window opens on the last thirty days rather than on all time: a board over the whole
   // history is a list of whoever joined first, which is a fact about the calendar and not about
   // this month. -29 and not -30 because both ends are included.
@@ -121,10 +147,43 @@ export default function LeaderboardPage() {
   );
   const counts = countsQ.data;
 
+  /**
+   * The મોબાઈલ behind each row, for the WhatsApp and Call actions.
+   *
+   * A second read for the ids already on screen, exactly as `countsQ` above is, and for the
+   * same reason: `admin_leaderboard()` does not return a phone number and must not start to.
+   * That function is 0032's, it is shaped by what a *board* is, and widening its SELECT to
+   * carry contact details would mean every caller of it — including the export path — began
+   * carrying them whether it wanted them or not. `getUsersByIds()` already exists, already
+   * batches at 200 ids, and reads the same `yuvaks` view the Users page reads, so the number
+   * shown here is the number shown there and there is no second source for it.
+   *
+   * **Unconditional, unlike `countsQ`.** The activity columns are behind a toggle because they
+   * are a report; a phone number is how a સંચાલક acts on what the board just told him, and
+   * making him tick a box first would be putting the point of the page behind a preference.
+   *
+   * A failure here costs the two buttons and nothing else — see the notice by the table. RLS
+   * decides what comes back: the `yuvaks` view is gated on `users.read`, which every admin role
+   * that can open this page already holds, so a VIEWER sees the number too. That is deliberate:
+   * he is on this page precisely to look, and a board he cannot act on is a board he has to
+   * take to somebody else.
+   */
+  const contactsQ = useAsync(
+    () => getUsersByIds(rows.map((r) => r.uid)),
+    [idsKey],
+    { skip: rows.length === 0 }
+  );
+  const contacts = contactsQ.data;
+
   /** The board's rows with their counts folded in, so one array builds the table and the file. */
   const tableRows = useMemo(
-    () => rows.map((r) => ({ ...r, counts: counts?.get(r.uid) || null })),
-    [rows, counts]
+    () =>
+      rows.map((r) => ({
+        ...r,
+        counts: counts?.get(r.uid) || null,
+        mobile: contacts?.get(r.uid)?.mobile || '',
+      })),
+    [rows, counts, contacts]
   );
 
   /** The મંડળ list narrows to the chosen city; with no city it offers all of them. */
@@ -227,6 +286,73 @@ export default function LeaderboardPage() {
         value: (r) => r.points,
         type: 'number',
       },
+      {
+        key: 'mobile',
+        className: 'pl-c-mobile',
+        label: 'Mobile',
+        /*
+          Latin digits, not gu(). Every other number on this board is a quantity and is read;
+          this one is dialled, checked against a contact list and read aloud down a phone, and
+          '૯૬૦૧૨૬૯૭૧૫' cannot be done any of those things with by somebody whose contacts are
+          in Latin. format.js's gu() is for figures; an identifier is not a figure — the SMK
+          column beside it makes the same call.
+        */
+        render: (r) => <span className="mono">{r.mobile || '-'}</span>,
+        // Text, not number: a leading zero must survive the trip into Excel, and a mobile is
+        // never summed or sorted arithmetically.
+        value: (r) => r.mobile,
+      },
+      {
+        key: 'contact',
+        className: 'pl-c-contact',
+        label: 'Contact',
+        /*
+          Two links, and deliberately links rather than buttons with onClick handlers: an <a>
+          with an href is what a browser and a phone already know how to hand to another app.
+          `wa.me` opens WhatsApp — the installed app on a phone, web.whatsapp.com on a laptop,
+          Google's own choice either way — and `tel:` opens the dialler.
+
+          `rel="noreferrer"` on the WhatsApp one and no `target` on the dialler: a `tel:` never
+          navigates, so a `_blank` would leave an empty tab behind on desktop.
+
+          Drawn only when there is a number to dial. A disabled-looking button beside a name
+          with no મોબાઈલ would read as "the action failed", when the truth is that this યુવક has
+          no number on file — the '-' in the column beside it already says so once.
+        */
+        render: (r) => {
+          const c = contactLinks(r.mobile);
+          if (!c) return <span className="hint">-</span>;
+          return (
+            <span className="pl-contact">
+              <a
+                className="btn btn-quiet btn-sm"
+                href={c.wa}
+                target="_blank"
+                rel="noreferrer"
+                // The name, so a screen reader hears whose WhatsApp this opens rather than the
+                // same two words repeated down the whole column.
+                aria-label={`WhatsApp ${r.name || c.ten}`}
+                title={`WhatsApp ${c.ten}`}
+              >
+                WhatsApp
+              </a>
+              <a
+                className="btn btn-quiet btn-sm"
+                href={c.tel}
+                aria-label={`Call ${r.name || c.ten}`}
+                title={`Call ${c.ten}`}
+              >
+                Call
+              </a>
+            </span>
+          );
+        },
+        /*
+          No `value`, and that is what keeps it out of the CSV and the Excel file — see
+          fileColumns below. A column of two links is a control, not a fact about a યુવક, and a
+          spreadsheet cell reading "WhatsApp Call" would be neither.
+        */
+      },
     ];
 
     if (!withCounts) return base;
@@ -248,9 +374,29 @@ export default function LeaderboardPage() {
     ];
   }, [withCounts]);
 
+  /*
+    The export's shape, and the one column that is not in it.
+
+    §11's rule is still one registry for three consumers, and this is not a second list — it is
+    the same array with the columns that have no `value` dropped. A column without one is by
+    definition not a fact that can be written to a cell: `contact` renders two links and holds
+    nothing a spreadsheet could carry. Filtering on `value` rather than on the key means a
+    future control column is excluded by being what it is, instead of by somebody remembering
+    to add its name here.
+
+    `mobile` HAS a value and so is exported, which is the right answer: a સંચાલક who exports
+    the board to work through it later needs the numbers in the file, not only on the screen.
+  */
   const fileColumns = useMemo(
-    () => columns.map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
-    [columns]
+    () =>
+      columns
+        .filter((c) => typeof c.value === 'function')
+        // The SMK column, dropped from the file for the same reason DataTable drops it from
+        // the table: without users.smk.read the numbers are not shown in bulk, and an export
+        // is the one place a hidden column would otherwise come straight back (0046).
+        .filter((c) => c.key !== 'smk' || can('users.smk.read'))
+        .map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
+    [columns, can]
   );
 
   /**
@@ -453,6 +599,17 @@ export default function LeaderboardPage() {
               The activity columns could not be read, so they are showing "-". The places and
               points beside them are unaffected.{' '}
               <button className="linklike" type="button" onClick={countsQ.retry}>Try again</button>
+            </div>
+          )}
+
+          {/* Same rule as the counts notice above it (§53): a number that could not be read is
+              not a યુવક with no phone, and the difference has to be on screen or every missing
+              row reads as a person who never gave one. The board itself is untouched. */}
+          {contactsQ.error && (
+            <div className="notice notice-warn" role="status">
+              The mobile numbers could not be read, so the Contact actions are not showing. The
+              board itself is unaffected.{' '}
+              <button className="linklike" type="button" onClick={contactsQ.retry}>Try again</button>
             </div>
           )}
 

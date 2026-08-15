@@ -217,6 +217,34 @@
 .pl-c-activity { min-width: 150px; }
 .pl-c-kind { min-width: 140px; }
 .pl-c-points { min-width: 110px; }
+/* Ten digits on one line. `nowrap` is not cosmetic here: a phone number broken across two lines
+   is two numbers as far as the eye reading it aloud is concerned. */
+.pl-c-mobile { min-width: 120px; white-space: nowrap; }
+/* Wide enough for the two actions side by side at desktop widths, so the column does not force
+   the pair to wrap on a laptop where there is room for them. */
+.pl-c-contact { min-width: 170px; }
+
+/* ---- the two contact actions ------------------------------------------------
+   WhatsApp and Call, beside each other where there is room and stacked where there is not.
+
+   `flex-wrap` rather than a media query for the desktop case: the pair wraps by itself the
+   moment the column is squeezed, which is a narrower condition than "the window is under
+   900px" and catches the case where the activity columns are switched on and every column
+   gives up width. The phone rule below then makes the stack unconditional. */
+.pl-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+/* A link wearing .btn is still an inline box: without this the two sit on the text baseline
+   with different heights depending on the row above. */
+.pl-contact > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
 
 /* The name is the one value here that can be genuinely long — three given names and a surname
    — so it is the one that may be trimmed. Every row carries the full text in a `title`, so
@@ -427,5 +455,27 @@
     align-items: center;
     min-height: var(--tap);
     max-width: none;
+  }
+
+  /*
+    The two contact actions, one under the other.
+
+    Side by side they are ~150px of a screen that is already scrolling sideways through eleven
+    columns, and both of them would be reached by a swipe. Stacked, the column is as wide as the
+    wider of the two words and the pair costs one swipe instead of two.
+
+    `--tap` on each, which is the rule these are here to satisfy in the first place: this is the
+    one column on the board that exists to be pressed with a thumb, and verify-admin-responsive
+    measures the anchor rather than the row around it (§36). `stretch` rather than a width, so
+    both buttons are as wide as the column and neither is a smaller target than the other.
+  */
+  .pl-contact {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+  .pl-contact > a {
+    min-height: var(--tap);
+    width: 100%;
   }
 }

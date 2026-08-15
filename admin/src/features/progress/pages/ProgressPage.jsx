@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import {
   activityCounts,
   buildProgressReport,
@@ -279,6 +280,8 @@ function writeStoredColumns(keys) {
 }
 
 export default function ProgressPage() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   // ---- the filters, all of them server-side ------------------------------
   const [term, setTerm] = useState('');
   const [search, setSearch] = useState('');
@@ -1099,8 +1102,14 @@ export default function ProgressPage() {
 
   /** The same array both files are built from — see buildProgressReport() in the service. */
   const fileColumns = useMemo(
-    () => visibleColumns.map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
-    [visibleColumns]
+    () =>
+      visibleColumns
+        // The SMK column, dropped from the file for the same reason DataTable drops it from
+        // the table: without users.smk.read the numbers are not shown in bulk, and an export
+        // is the one place a hidden column would otherwise come straight back (0046).
+        .filter((c) => c.key !== 'smk' || can('users.smk.read'))
+        .map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
+    [visibleColumns, can]
   );
 
   const sortPreset =

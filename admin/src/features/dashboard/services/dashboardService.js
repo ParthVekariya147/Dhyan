@@ -37,8 +37,6 @@ import { todayIST } from '../../../../../shared/domain/constants.js';
  * Firestore Timestamp before the migration; passing one now would serialise to an object
  * and the filter would silently match nothing.
  */
-const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
-
 /**
  * The groups from §14, loaded independently so one failure — a missing migration, say, or a
  * connection that dropped — degrades that band rather than blanking the page.
@@ -70,15 +68,24 @@ export async function loadDashboard() {
  * these as organisation-wide truth without the permission being checked first.
  */
 async function loadUserMetrics() {
-  const [total, gated, newWeek, newMonth] = await Promise.all([
+  /*
+    Two counts, and it used to be four.
+
+    The dashboard no longer shows "New in the last 7 days" or "New in the last 30 days", and
+    the two `created_at` counts behind them went with the tiles rather than being left to run
+    for nobody. A count that reaches the database on every dashboard open and is then thrown
+    away is not free — it is two more round trips on a panel whose whole promise is that the
+    figures are counted live rather than cached.
+
+    daysAgo() went too, for the same reason: it had no other caller.
+  */
+  const [total, gated] = await Promise.all([
     countUsers(),
     // "How many have reached લેવલ ૪" under the threshold that is published *now* — not
     // 0008's fixed 80. See userService's TABLE comment.
     countUsers({ level4Open: true }),
-    countUsers({ createdAfter: daysAgo(7) }),
-    countUsers({ createdAfter: daysAgo(30) }),
   ]);
-  return { total, gated, newWeek, newMonth };
+  return { total, gated };
 }
 
 /*

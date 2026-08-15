@@ -1,39 +1,89 @@
 /**
- * સંચાલક roles and what each one may do.
+ * સંચાલક permissions — the catalogue, and how the panel reads a resolved set.
  *
- * This file is the *UI* copy of the matrix. It decides what the panel renders. It is not
- * the security boundary and must never be treated as one: every permission below is
- * re-checked inside `public.has_permission()` in Postgres, which is called from the RLS
- * policy on every table. A yuvak who edits this file out of his own copy of the bundle
- * changes what he sees and nothing about what the database returns.
+ * ────────────────────────────────────────────────────────────────────────────
+ * What this file stopped being
+ * ────────────────────────────────────────────────────────────────────────────
  *
- * There are therefore two copies of one matrix — here, and in
- * `public.permissions_for(admin_role)` (supabase/migrations/0004_rbac.sql). That is
- * deliberate: the alternative is fetching the matrix over the wire before the panel can
- * draw its first menu, which trades a startup round-trip for a duplication the build can
- * check anyway. `node scripts/seed-admin.mjs` compares the two and reports any drift, the
- * same way it already does for the ADMIN_MOBILES list.
+ * Until 0043 this held MATRIX — a copy of `public.permissions_for()` — and answered
+ * `can(role, permission)` from it. That duplication was deliberate and 0004 argued for it:
+ * fetching the matrix before the panel could draw its first menu traded a startup round trip
+ * for a duplication the build could check anyway.
  *
- * Permission names are `resource.verb`. Only verbs the panel actually performs appear here —
- * there is no `users.create`, because a yuvak registers himself through the નોંધણી form.
- * A permission nothing checks is a false assurance.
+ * 0043 makes the matrix editable from the panel, and that argument does not survive the
+ * change. A bundle carrying last week's copy of a table that a સંચાલક edited on Tuesday would
+ * render a panel that disagrees with what the server enforces — offering a section that is
+ * refused on arrival, or hiding one the person has been given. Both are worse than a round
+ * trip, and the round trip turned out to be free: `adminAuth.jsx` already called
+ * `effective_role()` on every page load, and `public.admin_session()` returns the whole answer
+ * in that same call instead of half of it.
  *
- * `darshan.create` was once absent for the same reason, and no longer is. The master list
- * is still built by `npm run content` from the સંચાલક's sheet, and that remains the way a
- * batch of દ્રશ્યો arrives — a hundred rows typed into a panel one at a time is not a
- * pipeline. What the sheet could not do is add a single દ્રશ્ય *now*, without a build and a
- * deploy, and that gap is what this permission closes. It is deliberately separate from
- * `darshan.update`: editing the વર્ણન of a દ્રશ્ય that exists and calling a new one into
- * existence are different acts, and the second is the one that can renumber the
- * collection, so a CONTENT_MANAGER may do both while the matrix keeps them distinguishable
- * in the audit trail.
+ * **So MATRIX is deleted rather than deprecated.** A stale copy of a matrix that has moved
+ * into the database is worse than no copy, because it is confidently wrong in whichever
+ * direction is less obvious. `can()` now takes the permission list the server resolved.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What is still code, and why
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * PERMISSIONS below is the *catalogue* — the names that exist. That half stays here, and it
+ * stays here for the reason the whole design rests on: a permission name only means something
+ * because some RLS policy or SECURITY DEFINER function checks it. `public.permissions` is
+ * written by migrations and by nothing else (`permissions_immutable()`), so the panel can hand
+ * out any name in this list and cannot invent one. This array is the same list, for the build
+ * to check against — `scripts/test-permission-catalogue.mjs` asserts that this file, the
+ * table, and every permission named in a migration all agree.
+ *
+ * None of this is the security boundary and it must never be treated as one. Every permission
+ * is re-checked inside `public.has_permission()`, which is called from the RLS policy on every
+ * table. A yuvak who edits this file out of his own copy of the bundle changes what he sees
+ * and nothing about what the database returns.
  */
 
-/** @typedef {'SUPER_ADMIN'|'ADMIN'|'CONTENT_MANAGER'|'COORDINATOR'|'VIEWER'} AdminRole */
+/**
+ * Every permission the panel knows about, in the order the UI lists them.
+ *
+ * Mirrors the seed in supabase/migrations/0043_dynamic_rbac.sql. Labels and descriptions are
+ * deliberately NOT here — they live in `public.permissions` and arrive with the data, because
+ * the person editing a role needs to know what he is granting and a label in the bundle is one
+ * that can disagree with the key it labels.
+ */
+export const PERMISSIONS = [
+  'users.read', 'users.update', 'users.disable', 'users.test', 'users.purge', 'users.export',
+  'users.smk.read',
 
-export const ROLES = ['SUPER_ADMIN', 'ADMIN', 'CONTENT_MANAGER', 'COORDINATOR', 'VIEWER'];
+  'progress.read', 'progress.detail.read', 'progress.export', 'sessions.read',
 
-export const ROLE_LABELS = {
+  'darshan.read', 'darshan.create', 'darshan.update', 'darshan.disable',
+  'darshan.image.replace', 'darshan.reorder', 'darshan.import',
+
+  'points.read', 'points.ledger.read', 'points.daily.read', 'points.records.read',
+  'points.level3.read', 'points.leaderboard.read',
+  'points.config.update', 'points.bonus.update', 'points.adjust',
+
+  'levels.read', 'levels.update', 'level4.read', 'level4.update',
+
+  'settings.read', 'settings.update',
+  'video.update', 'navigation.update', 'appicon.update', 'dhun.update',
+
+  'admins.read', 'admins.create', 'admins.update', 'admins.disable',
+  'roles.assign', 'roles.manage', 'grants.manage', 'scope.assign',
+
+  'audit.read', 'audit.export',
+];
+
+/**
+ * The five roles the schema shipped with, and the only ones any code may name.
+ *
+ * They are not privileged — a custom role may hold exactly the same permissions and be exactly
+ * as powerful. What is true of these five is that their *keys* are load-bearing elsewhere:
+ * `admins_guard()` names SUPER_ADMIN in three rules, and `public.admin_roles.is_system` stops
+ * them being renamed or deleted for that reason. Anything else in a roles dropdown comes from
+ * the database, never from here.
+ */
+export const SYSTEM_ROLES = ['SUPER_ADMIN', 'ADMIN', 'CONTENT_MANAGER', 'COORDINATOR', 'VIEWER'];
+
+const SYSTEM_ROLE_LABELS = {
   SUPER_ADMIN: 'Super Admin',
   ADMIN: 'Admin',
   CONTENT_MANAGER: 'Content Manager',
@@ -41,111 +91,56 @@ export const ROLE_LABELS = {
   VIEWER: 'Viewer',
 };
 
-export const roleLabel = (r) => ROLE_LABELS[r] || r || '-';
-
-/** Every permission the panel knows about. The order is the order the UI lists them in. */
-export const PERMISSIONS = [
-  'users.read',
-  'users.update',
-  'users.disable',
-
-  /*
-    Marking an account as a test account, and deleting one.
-
-    Not part of `users.update`, and the distance between them is the point. An edit changes
-    what a row says; marking one `is_test` removes that person from every total, ranking,
-    list and export this panel produces (0040) while leaving him able to sign in and carry on
-    - a disappearance from the numbers that nobody would think to look for. `users.purge` then
-    deletes a test account outright, which is the only deletion of a person this application
-    allows anywhere.
-
-    Both are SUPER_ADMIN only, by being absent from every other role's list below.
-  */
-  'users.test',
-  'users.purge',
-
-  'progress.read',
-  'sessions.read',
-
-  'darshan.read',
-  'darshan.create',
-  'darshan.update',
-  'darshan.disable',
-
-  'settings.read',
-  'settings.update',
-
-  'admins.read',
-  'admins.create',
-  'admins.update',
-  'admins.disable',
-  'roles.assign',
-
-  'audit.read',
-];
-
 /**
- * The matrix.
+ * A role's label, for the places that have a key and no row to read it from.
  *
- * Read it against §10 of the governance spec — least privilege, and no role silently
- * inheriting the one above it:
+ * `public.admin_roles.label` is the real answer and every screen that has loaded the roles
+ * should prefer it — `admin_session()` returns the caller's own, and adminService.listRoles()
+ * returns the rest. This is the fallback for a key that arrived without one: the audit trail
+ * records `actor_role` as a bare key, and a role deleted last month still appears there with
+ * no row left to join to.
  *
- *   · ADMIN cannot create, change or disable administrators, and cannot assign roles.
- *     Only SUPER_ADMIN administers administrators.
- *   · CONTENT_MANAGER gets no user administration at all.
- *   · COORDINATOR sees people and progress but changes nothing.
- *   · VIEWER holds no `.update`, `.create`, `.disable` or `.assign` permission of any
- *     kind, and is deliberately kept out of `audit.read`: the audit trail names who did
- *     what, which is the panel's most sensitive read.
+ * ACCESS_MANAGER becomes "Access Manager" rather than being printed raw, which is what the
+ * panel would otherwise show in the one place a role name outlives the role.
  */
-const MATRIX = {
-  SUPER_ADMIN: PERMISSIONS,
-
-  ADMIN: [
-    'users.read',
-    'users.update',
-    'users.disable',
-    'progress.read',
-    'sessions.read',
-    'darshan.read',
-    'darshan.create',
-    'darshan.update',
-    'darshan.disable',
-    'settings.read',
-    'settings.update',
-    'admins.read',
-    'audit.read',
-  ],
-
-  CONTENT_MANAGER: [
-    'darshan.read',
-    'darshan.create',
-    'darshan.update',
-    'darshan.disable',
-    'settings.read',
-  ],
-
-  COORDINATOR: ['users.read', 'progress.read', 'sessions.read', 'darshan.read'],
-
-  VIEWER: ['users.read', 'progress.read', 'sessions.read', 'darshan.read', 'settings.read'],
+export const roleLabel = (key, labels) => {
+  if (!key) return '-';
+  if (labels && labels[key]) return labels[key];
+  if (SYSTEM_ROLE_LABELS[key]) return SYSTEM_ROLE_LABELS[key];
+  return String(key)
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
 };
 
-/** @param {AdminRole|null|undefined} role */
-export const permissionsFor = (role) => MATRIX[role] || [];
-
 /**
- * @param {AdminRole|null|undefined} role
+ * May this administrator do this one thing?
+ *
+ * Takes the resolved permission list rather than a role — that is the whole change 0043 makes
+ * to this file. The list comes from `public.admin_session()`, which resolves the role's
+ * permissions, adds every unexpired ALLOW grant and removes every DENY, on the server, in the
+ * same function the RLS policies consult.
+ *
+ * @param {string[]|null|undefined} permissions
  * @param {string} permission
  */
-export const can = (role, permission) => permissionsFor(role).includes(permission);
+export const can = (permissions, permission) =>
+  Array.isArray(permissions) && permissions.includes(permission);
 
-/** True when the role may perform any of the listed permissions. For menu visibility. */
-export const canAny = (role, permissions) => permissions.some((p) => can(role, p));
+/** True when any of the listed permissions is held. For menu visibility. */
+export const canAny = (permissions, list) => list.some((p) => can(permissions, p));
 
 /**
- * A role holding no permission ending in a mutating verb is read-only. Used by the panel
- * to show a single "ફક્ત જોવા માટે" banner rather than disabling controls one at a time,
- * and by the drift check to assert VIEWER never gains a write.
+ * Nothing held that ends in a mutating verb.
+ *
+ * Used by the panel to show a single "ફક્ત જોવા માટે" banner rather than disabling controls one
+ * at a time. The verb list grew with 0043's splits: `.manage`, `.adjust`, `.purge`, `.test`,
+ * `.replace`, `.reorder` and `.import` all write, and a banner that called a person read-only
+ * while he could replace દર્શન images would be worse than no banner.
  */
-const MUTATING = /\.(update|create|disable|assign)$/;
-export const isReadOnly = (role) => !permissionsFor(role).some((p) => MUTATING.test(p));
+const MUTATING = /\.(update|create|disable|assign|manage|adjust|purge|test|replace|reorder|import)$/;
+
+export const isReadOnly = (permissions) =>
+  Array.isArray(permissions) && permissions.length > 0 && !permissions.some((p) => MUTATING.test(p));

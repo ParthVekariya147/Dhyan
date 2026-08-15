@@ -105,12 +105,13 @@ export default function DashboardPage() {
       {usersError ? (
         <ErrorState message="The user statistics could not be loaded." onRetry={main.retry} />
       ) : main.loading ? (
-        <CardSkeleton count={4} />
+        // Two, matching the two tiles below — a skeleton that draws more boxes than the band
+        // ever fills makes the page settle by shrinking, which reads as something failing to
+        // load rather than as something arriving.
+        <CardSkeleton count={2} />
       ) : (
         <div className="grid-stats">
           <StatCard label="Total registered" value={gu(users?.total ?? 0)} />
-          <StatCard label="New in the last 7 days" value={gu(users?.newWeek ?? 0)} />
-          <StatCard label="New in the last 30 days" value={gu(users?.newMonth ?? 0)} />
           <StatCard
             /*
               Worded as the column on the યુવક list is, and for the same reason: this counts
@@ -138,7 +139,7 @@ export default function DashboardPage() {
         */
         <ErrorState message="The progress statistics could not be loaded." onRetry={main.retry} />
       ) : main.loading ? (
-        <CardSkeleton count={8} />
+        <CardSkeleton count={7} />
       ) : (
         <>
           {nothingRecorded && (
@@ -149,10 +150,16 @@ export default function DashboardPage() {
           )}
 
           {/*
-            The same eight figures the full report opens with, from the same
+            Seven of the figures the full report opens with, from the same
             admin_progress_summary() call — one document, so every tile is cut on the same
             scan and no two of them can describe different moments. guCount() prints '-'
             for a key that never arrived rather than a 0 nobody measured.
+
+            "Average remembered" was the eighth and is no longer drawn here. The figure itself
+            is untouched: admin_progress_summary() still returns it, `nothingRecorded` above
+            still reads `participants` from the same document to decide whether anything has
+            been recorded at all, and ProgressPage still shows the average in full. It is one
+            tile fewer on the glance, not one measurement fewer.
           */}
           <div className="grid-stats">
             <StatCard
@@ -163,7 +170,7 @@ export default function DashboardPage() {
             <StatCard label="Active today" value={guCount(progress?.activeToday)} sub="Counted in India (IST)" tone="ok" />
             <StatCard label="Level 1 completed" value={guCount(progress?.level1Completed)} />
             <StatCard label="Level 2 completed" value={guCount(progress?.level2Completed)} />
-            <StatCard label="Level 3 completed" value={guCount(progress?.level3Completed)} />
+            <StatCard label="Level 3 Full completed" value={guCount(progress?.level3Completed)} />
             {/*
               The same figure the Users band shows as a share of everyone registered, and
               deliberately both: this row is the levels read left to right and would have a
@@ -186,22 +193,6 @@ export default function DashboardPage() {
                   : null
               }
               tone="ok"
-            />
-            <StatCard
-              label="Average remembered"
-              /*
-                Null, not zero, when nobody has remembered anything yet: `avg` over no rows
-                has no answer, and a 0 here would be a statement about everybody that no
-                read supports (§62).
-              */
-              value={progress?.avgRemembered == null ? '-' : gu(progress.avgRemembered)}
-              sub={
-                progress?.avgRemembered == null
-                  ? 'Nobody has started yet'
-                  : `Among ${guCount(progress.participants)} who have started${
-                      progress.totalContent ? `, out of ${gu(progress.totalContent)}` : ''
-                    }`
-              }
             />
           </div>
 

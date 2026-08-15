@@ -3,7 +3,6 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../lib/adminAuth';
 import { tryWriteAudit } from '../features/audit/services/auditService';
 import { ACTIONS } from '../../../shared/domain/audit.js';
-import { roleLabel } from '../../../shared/domain/permissions.js';
 
 /**
  * §13 — the panel shell. Sidebar + top bar + content on a desktop; on a phone the
@@ -30,19 +29,28 @@ import { roleLabel } from '../../../shared/domain/permissions.js';
  * row the policy let past — as the size of the સંઘ. A confident wrong number is worse than
  * a missing menu item.
  *
- * `need` is a permission name read off `public.permissions_for()` in 0004_rbac.sql and its
- * UI copy in shared/domain/permissions.js. Never a name invented here: the two matrices are
- * already duplicated on purpose, and a third spelling would make the menu promise something
- * no policy grants.
+ * `need` is a permission name from the catalogue — `public.permissions` (0043) and its key
+ * list in shared/domain/permissions.js. Never a name invented here: the catalogue is written
+ * by migrations alone, so a name that is not in it is one no policy enforces, and a menu that
+ * named one would hide a section from everybody for ever.
+ * `scripts/test-permission-catalogue.mjs` asserts every `need` below exists.
  *
  * Each section names the permission governing the data it *reads*, because that is what
  * decides whether the page can say anything true — not the permission needed to save, which
- * is the individual control's business (§35). So Levels and Video sit under `settings.read`
- * with Settings: all three read settings/app, and a VIEWER may look at what is configured
- * while `settings.update` and the WITH CHECK behind it refuse the save. Dashboard counts
- * registrations and learning progress, so it is `users.read` and not `darshan.read` — every
- * role holds darshan.read, which would have kept the tile of wrong user totals visible to
- * exactly the role that must not see it.
+ * is the individual control's business (§35). A VIEWER may look at what is configured while
+ * the `.update` permission and the WITH CHECK behind it refuse the save.
+ *
+ * ── What 0043 changed here ──────────────────────────────────────────────────
+ *
+ * Nine of these named `settings.read` because that was the only read permission the app-shaped
+ * screens had. It was one tick that opened Levels, Level 4, Video, Navigation, Point Management
+ * and Settings together, so "he may change the video" could not be said without also saying
+ * "he may reprice the point engine".
+ *
+ * They now name their own permissions, which the catalogue carries. Nobody's menu changes on
+ * the day this ships: 0043 grants each new permission to exactly the roles that already held
+ * the coarse one it was carved out of, so a role holding `settings.read` holds `points.read`,
+ * `levels.read` and `level4.read` too. What changes is that they can now be separated.
  *
  * Exported because App.jsx opens the panel on the first section the role can actually use.
  * One table, so the sidebar and the landing page cannot disagree.
@@ -54,15 +62,17 @@ export const NAV = [
   { to: '/progress', label: 'Progress', icon: '◔', need: 'progress.read' },
   { to: '/sessions', label: 'Sessions', icon: '◷', need: 'sessions.read' },
   /*
-    ગુણ — six entries, and two permissions between them.
+    ગુણ — six entries, and six permissions between them since 0043.
 
     The five reading screens go to functions that each check `progress.read` before they answer
     — 0032's open with `admin_assert_progress_reader()` and 0035's લેવલ ૩ report raises
-    `level3_report_forbidden` itself — so all five name `progress.read`, the same permission
-    Progress names, and for the same reason: it is the one that decides whether the page can
-    say anything true. Point Management edits `settings['levels'].value.points`, so it names
-    `settings.read` like every other screen that edits a settings row, and its saves are
-    refused without `settings.update` by the policy and the trigger behind it.
+    `level3_report_forbidden` itself. They named that permission directly, which meant the five
+    could not be told apart: "he may see the leaderboard" also said "he may read every point
+    transaction of every યુવક", and those are not the same disclosure.
+
+    Each now names its own. The functions behind them still assert `progress.read` OR the fine
+    one, so a role holding the coarse permission is unaffected and a role given only
+    `points.leaderboard.read` reaches exactly one screen.
 
     Placed here, after Sessions, against the note above rather than by taste. This list decides
     every role's landing page — App.jsx opens the panel on `NAV.find(can)` — so an insertion
@@ -74,15 +84,14 @@ export const NAV = [
     font on the same machines: ◉ a mark being awarded, ▦ ruled rows and columns, ◧ one day out
     of the whole, ◭ a place on a podium.
   */
-  { to: '/points', label: 'Point Management', icon: '◉', need: 'settings.read' },
-  { to: '/points/ledger', label: 'Point Ledger', icon: '▦', need: 'progress.read' },
-  { to: '/points/daily', label: 'Daily Activity', icon: '◧', need: 'progress.read' },
+  { to: '/points', label: 'Point Management', icon: '◉', need: 'points.read' },
+  { to: '/points/ledger', label: 'Point Ledger', icon: '▦', need: 'points.ledger.read' },
+  { to: '/points/daily', label: 'Daily Activity', icon: '◧', need: 'points.daily.read' },
   // ◨ against Daily Activity's ◧ - the mirrored half, because the two are the same day seen from
   // opposite sides: what the app observed, and what the યુવક wrote down himself.
-  { to: '/points/records', label: 'Daily Records', icon: '◨', need: 'progress.read' },
+  { to: '/points/records', label: 'Daily Records', icon: '◨', need: 'points.records.read' },
   /*
-    §29's લેવલ ૩ report. `progress.read` like the other reading screens, because that is the
-    permission `admin_level3_users()` raises 42501 without.
+    §29's લેવલ ૩ report.
 
     It is a section rather than a filter on Progress for the reason its page states at length:
     Progress adds its લેવલ ૩ columns to a page of યુવકો it has already paginated, so a threshold
@@ -90,14 +99,13 @@ export const NAV = [
     Daily Activity's ◧ and Daily Records' ◨, from the same Geometric Shapes block as every icon
     here so it renders from the same font on the same machines.
   */
-  { to: '/points/level3', label: 'Level 3 Report', icon: '◫', need: 'progress.read' },
-  { to: '/points/leaderboard', label: 'Leaderboard', icon: '◭', need: 'progress.read' },
-  { to: '/levels', label: 'Level', icon: '⧉', need: 'settings.read' },
+  { to: '/points/level3', label: 'Level 3 Report', icon: '◫', need: 'points.level3.read' },
+  { to: '/points/leaderboard', label: 'Leaderboard', icon: '◭', need: 'points.leaderboard.read' },
+  { to: '/levels', label: 'Level', icon: '⧉', need: 'levels.read' },
   // Its own entry rather than a link buried inside Levels: લેવલ ૪ is a container the સંચાલક
   // fills — which દર્શન each sub-level asks for — and that is a section's worth of work, not
-  // a setting. `settings.read` for the same reason its neighbours have it: a VIEWER may read
-  // what is configured while settings.update and the policy behind it refuse every save.
-  { to: '/levels/4', label: 'Level 4', icon: '⌗', need: 'settings.read' },
+  // a setting, and since 0043 it is its own permission for the same reason.
+  { to: '/levels/4', label: 'Level 4', icon: '⌗', need: 'level4.read' },
   { to: '/video', label: 'Video', icon: '▷', need: 'settings.read' },
   /*
     The bottom bar of the યુવક app — settings/nav.
@@ -118,6 +126,24 @@ export const NAV = [
   // same font on the same machines.
   { to: '/navigation', label: 'Navigation', icon: '▥', need: 'settings.read' },
   { to: '/settings', label: 'Settings', icon: '⚙', need: 'settings.read' },
+  /*
+    Access — સંચાલકો, roles, the permission catalogue, and what one person may actually do.
+
+    A section of its own since the roles became editable (0043). Before that the only screen
+    on this subject was the સંચાલક list, and it lived as a tab of /users because it was one
+    more population of people. Roles and grants are not a population - they are the rules
+    those people are governed by - and burying the only place they can be edited three clicks
+    inside a page named after somebody else is why nobody could find it.
+
+    `admins.read` and not `roles.manage`: the section holds four tabs and only the role editor
+    needs the narrower one. The tab strip filters itself.
+
+    Placed second-to-last, after Settings, against the note at the top of this list rather
+    than by taste: NAV decides every role's landing page through `NAV.find(can)`, so an
+    insertion near the top would silently move somebody's front door. Nothing this far down
+    can. ⚿ - a key - from the same symbol family as its neighbours.
+  */
+  { to: '/access', label: 'Access', icon: '⚿', need: 'admins.read' },
   { to: '/audit-logs', label: 'Audit Log', icon: '✎', need: 'audit.read' },
 ];
 
@@ -160,12 +186,21 @@ export const NAV_GROUPS = [
   },
   {
     label: 'System',
-    items: [at('/video'), at('/navigation'), at('/points'), at('/settings'), at('/audit-logs')],
+    items: [at('/video'), at('/navigation'), at('/points'), at('/settings')],
   },
+  /*
+    Its own group rather than another row under System, and the two entries in it are the pair
+    that answer for each other: Access is who may do what, and the Audit Log is what they did.
+    Somebody who has just changed a role is one click from the record of having changed it.
+
+    Audit Log moves out of System for that reason. It was there because it was the last thing
+    in the list, not because it is a setting.
+  */
+  { label: 'Access & audit', items: [at('/access'), at('/audit-logs')] },
 ];
 
 export default function AdminShell() {
-  const { user, profile, role, logout, via, can } = useAdminAuth();
+  const { user, profile, role, roleLabel, logout, via, can } = useAdminAuth();
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const drawerRef = useRef(null);
@@ -351,7 +386,7 @@ export default function AdminShell() {
               {/* The role, not the word "સંચાલક": a COORDINATOR and a SUPER_ADMIN see
                   different panels, and which one you are holding is worth being able to
                   read off the screen. */}
-              <span className="who-role" title={role || ''}>{roleLabel(role)}</span>
+              <span className="who-role" title={role || ''}>{roleLabel}</span>
             </span>
             <span className="account-caret" aria-hidden="true">▾</span>
           </button>
@@ -363,7 +398,7 @@ export default function AdminShell() {
                 {/* The email as well as the name: two સંચાલકો may share a name, and this
                     is the string you quote when asking for a role to be changed. */}
                 {user?.email && who !== user.email && <span>{user.email}</span>}
-                <span className="pill pill-info">{roleLabel(role)}</span>
+                <span className="pill pill-info">{roleLabel}</span>
               </div>
               <a
                 className="menu-item"

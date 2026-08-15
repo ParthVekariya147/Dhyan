@@ -39,7 +39,16 @@ import { loginError, NOT_ADMIN } from '../../../lib/errors';
 const looksLikeEmail = (v) => /^[^\s@]+@[^\s@]+$/.test(v.trim());
 
 export default function LoginPage() {
-  const { login, resetPassword, logout, status, user, unconfigured } = useAdminAuth();
+  const {
+    login, resetPassword, logout, status, user, unconfigured,
+    /*
+      Renamed on the way in. This page already has an `error` of its own - the one a wrong
+      password produces - and the two are different things that would read identically at the
+      use site: one is "what you typed was refused", the other is "whether you may be here
+      could not be established". Aliasing keeps both names honest.
+    */
+    error: authError, recheck,
+  } = useAdminAuth();
   const loc = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,7 +81,23 @@ export default function LoginPage() {
    * refusal names the account it applies to, which is meaningless if that account has
    * already been forgotten by the time it is read.
    */
-  const refused = status === 'denied';
+  /*
+    Two ways to reach 'denied', and this used to word both of them as the first one.
+
+    `status === 'denied'` alone printed "You do not have permission to use the Admin Panel"
+    whether the database had *answered* no or the check had never completed — a failed RPC, a
+    dropped connection, a function the deployed bundle expects and the schema has not got yet.
+    RequireAdmin has always told those two apart (see the long note in its 'denied' branch);
+    this screen did not, and it is the screen a person actually meets, because it is where you
+    are standing at the moment you sign in.
+
+    That is not a cosmetic difference. It tells a real સંચાલક, by name, that his account lacks
+    a permission it holds — so he goes looking for someone to grant him access he already has,
+    while the actual fault is on the wire or in the schema and nothing on screen hints at it.
+    `error` carries dataError()'s sentence, which names the real cause.
+  */
+  const refused = status === 'denied' && !authError;
+  const uncheckable = status === 'denied' && Boolean(authError);
 
   /**
    * The identity exists and effective_role() has not answered yet. Held in the pending
@@ -166,6 +191,28 @@ export default function LoginPage() {
             <p className="gate-foot">
               <button className="linklike" type="button" onClick={logout}>
                 Log out {user?.email} and use a different account
+              </button>
+            </p>
+          </div>
+        )}
+
+        {/*
+          The other kind of refusal. It still fails closed - the panel does not open - but it
+          says what actually happened and offers the one thing that can help, which is asking
+          again. Signing out is offered second and as a link rather than as the only move: for
+          this case it is almost always the wrong one, because the account is fine.
+        */}
+        {uncheckable && (
+          <div className="notice notice-warn" role="alert">
+            <p><strong>Could not check your permission.</strong></p>
+            <p>{authError}</p>
+            <p className="gate-foot">
+              <button className="linklike" type="button" onClick={recheck}>
+                Try again
+              </button>
+              {' · '}
+              <button className="linklike" type="button" onClick={logout}>
+                Log out {user?.email}
               </button>
             </p>
           </div>

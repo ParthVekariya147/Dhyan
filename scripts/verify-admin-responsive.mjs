@@ -90,6 +90,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { PERMISSIONS } from '../shared/domain/permissions.js';
 
 const require_ = createRequire(import.meta.url);
 const puppeteer = require_('puppeteer-core');
@@ -207,6 +208,31 @@ const genericRow = (i) => ({
 
 const PAGE_OF_ROWS = Array.from({ length: 20 }, (_, i) => genericRow(i));
 
+/*
+  The permission catalogue, imported rather than restated.
+
+  shared/domain/permissions.js carries the keys for exactly this purpose — it is the copy the
+  build checks against public.permissions (scripts/test-permission-catalogue.mjs), so a list
+  typed here would be a third spelling and the one nothing checks. A SUPER_ADMIN holds every
+  permission that exists, so the fixture is the catalogue.
+*/
+const ALL_PERMISSIONS = [...PERMISSIONS];
+
+/* Enough shape for the catalogue screen to render each row: the resource is the part before
+   the first dot, which is how the page groups them. */
+const PERMISSION_ROWS = ALL_PERMISSIONS.map((key, i) => {
+  const [resource, ...rest] = key.split('.');
+  return {
+    key,
+    resource,
+    verb: rest.join('.'),
+    label: key,
+    description: 'Fixture description.',
+    is_section: rest.join('.') === 'read',
+    sort: i * 10,
+  };
+});
+
 /**
  * The answers that are not just "a page of rows".
  *
@@ -215,7 +241,51 @@ const PAGE_OF_ROWS = Array.from({ length: 20 }, (_, i) => genericRow(i));
  * and every one that does is recorded so the run can report what it actually answered.
  */
 const FIXTURES = {
+  /*
+    What the panel asks on every page load.
+
+    `effective_role` answered this until 0043. The panel now calls `admin_session()`, which
+    returns role, label, rank, the resolved permission list and whether the caller is standing
+    on the bootstrap allowlist — in the one round trip that was already being made.
+
+    The permission list matters more than the role does now: AdminShell filters NAV on it and
+    RequirePermission gates each route on it, so a fixture returning the role alone renders a
+    panel with an empty sidebar and every page refused. That is exactly what happened when
+    this was left behind — every route came back blank and the run reported "Nothing failed,
+    but the routes above rendered nothing", which is the check doing its job.
+
+    It is built from the permission *catalogue* rather than from a list typed here, so a
+    permission added by a later migration is covered without this file being touched — and a
+    SUPER_ADMIN holding everything is precisely what public.permissions defines.
+  */
+  admin_session: () => [{
+    role: 'SUPER_ADMIN',
+    role_label: 'Super Admin',
+    rank: 100,
+    permissions: ALL_PERMISSIONS,
+    is_bootstrap: false,
+  }],
+  // Kept: src/lib/auth.jsx in the યુવક app still calls it for its cosmetic isAdmin flag, and
+  // an unmocked RPC would answer with a page of generic rows.
   effective_role: () => 'SUPER_ADMIN',
+  // The four tables behind /access. Empty lists render the empty states rather than nothing,
+  // which is a real state and one the layout has to survive.
+  permissions: () => PERMISSION_ROWS,
+  admin_roles: () => [
+    { key: 'SUPER_ADMIN', label: 'Super Admin', description: 'Holds everything.', is_system: true, rank: 100 },
+    { key: 'ADMIN', label: 'Admin', description: 'Runs the panel.', is_system: true, rank: 80 },
+    { key: 'VIEWER', label: 'Viewer', description: 'Reads.', is_system: true, rank: 10 },
+  ],
+  role_permissions: () => ALL_PERMISSIONS.map((permission) => ({ role_key: 'SUPER_ADMIN', permission })),
+  admin_grants: () => [],
+  admin_role_usage: () => [{ role_key: 'SUPER_ADMIN', members: 1, active_members: 1 }],
+  admin_effective_permissions: () =>
+    ALL_PERMISSIONS.map((permission) => ({ permission, source: 'role', expires_at: null })),
+  admins: () => [{
+    id: UID, email: 'admin@varni.com', name: 'Parth Vekariya', mobile: '9925842081',
+    role: 'SUPER_ADMIN', status: 'ACTIVE', display_name: null,
+    created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', created_by: null,
+  }],
   scenes: () => SCENE_ROWS,
   profiles: () => [{ id: UID, name: 'Parth Vekariya', status: 'ACTIVE', mobile: '9925842081' }],
   // A key/jsonb table. An empty object means every page falls back to its published
@@ -271,6 +341,13 @@ const ROUTES = [
   ['/points/records', 'Daily records'],
   ['/points/level3', 'Level 3 report'],
   ['/points/leaderboard', 'Leaderboard'],
+  // Each tab separately: they are four different layouts under one route, and the role
+  // editor in particular is a two-column grid that has to collapse. A single /access entry
+  // would only ever have checked whichever tab happens to be first.
+  ['/access?tab=admins', 'Access - administrators'],
+  ['/access?tab=roles', 'Access - roles'],
+  ['/access?tab=permissions', 'Access - permissions'],
+  ['/access?tab=effective', 'Access - effective'],
   ['/audit-logs', 'Audit log'],
 ];
 
@@ -634,7 +711,16 @@ for (const [route, name] of ROUTES) {
 
     // One screenshot per route, at the narrowest width, so a failure can be looked at.
     if (firstShot) {
-      await page.screenshot({ path: path.join(SHOTS, `${route.replace(/\//g, '_')}.png`), fullPage: true });
+      /*
+        Every character Windows forbids in a filename, not just the slash.
+
+        `?` arrived with the /access routes, which name a tab in the query string — and it is
+        illegal in an NTFS filename, so the screenshot threw ENOENT mid-run and took the whole
+        verification with it after twenty routes had already passed. The others in the class
+        are here too rather than waiting to be discovered one at a time by a future route.
+      */
+      const file = route.replace(/[\/?<>:*|"\\]/g, '_');
+      await page.screenshot({ path: path.join(SHOTS, `${file}.png`), fullPage: true });
       firstShot = false;
     }
   }

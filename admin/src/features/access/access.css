@@ -1,0 +1,394 @@
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  /access — roles, the catalogue, and effective access
+  ────────────────────────────────────────────────────────────────────────────
+
+  Nothing here is shared with the યુવક app, in keeping with §8: the two stylesheets have no
+  common ancestor and this file inherits only the panel's own tokens.
+*/
+
+/*
+  The role list beside the role editor.
+
+  Two columns on a desktop and one on a phone, and the *list* is what collapses to the top
+  rather than the editor: the editor is the working surface and the list is navigation, so
+  stacking them the other way would put a scroll between a person and the thing he came to
+  change. Below 900px they become one column and the list keeps its own bounded height, so
+  the grid below is reachable without paging past twelve roles.
+*/
+.access-split {
+  display: grid;
+  grid-template-columns: minmax(15rem, 20rem) 1fr;
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .access-split { grid-template-columns: 1fr; }
+  .role-list ul { max-height: 14rem; overflow-y: auto; }
+}
+
+.role-list {
+  border: 1px solid var(--line);
+  /* Grid items default to min-width:auto, which is a floor set by their content - so a long
+     role key would push this track wider than the column it lives in. */
+  min-width: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--sp-2);
+}
+
+.role-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2) var(--sp-2);
+}
+
+.role-list-head h3 { margin: 0; font-size: var(--fs-section); }
+
+.role-list ul { list-style: none; margin: 0; padding: 0; }
+
+.role-pick {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-2);
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.role-pick:hover { background: var(--surface-2); }
+
+/* Border and tint together, never colour alone: the heading of the editor beside it names the
+   same role, so there are two independent statements of what is selected. */
+.role-pick.is-picked {
+  border-color: var(--accent);
+  background: var(--accent-soft, var(--surface-2));
+}
+
+.role-pick-main { display: flex; align-items: center; gap: var(--sp-2); }
+
+.role-pick-sub {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-micro);
+  color: var(--muted);
+}
+
+.role-editor {
+  border: 1px solid var(--line);
+  min-width: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--sp-4);
+}
+
+.role-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+}
+
+.role-editor-head h3 { margin: 0 0 var(--sp-1); }
+
+.role-meta-actions,
+.role-meta-edit { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+.role-meta-edit input { min-width: 10rem; }
+
+/*
+  The permission grid.
+
+  auto-fill rather than a fixed column count, because the groups are wildly uneven - `points`
+  has nine permissions and `dhun` has one - and a fixed grid would leave a column of white
+  space beside the short ones on a wide screen.
+*/
+/*
+  `min(18rem, 100%)` rather than a bare 18rem.
+
+  A bare minmax() minimum is a *floor the track cannot go below*, so at 320px the 288px column
+  plus the group's padding plus the editor's padding came to 344px and the whole page scrolled
+  sideways — which scripts/verify-admin-responsive.mjs caught at 320, 360 and 390. min() lets
+  the track collapse to the container on a narrow screen and keeps the 18rem preference on a
+  wide one.
+*/
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
+  gap: var(--sp-3);
+}
+
+.perm-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.perm-group legend {
+  font-weight: 600;
+  font-size: var(--fs-help);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0 var(--sp-1);
+}
+
+/*
+  A whole row is the label, so the tick target is the sentence and not a 13px square. The
+  checkbox stays a real input rather than a styled div - it is already keyboard reachable,
+  already announces its state, and already respects the disabled attribute that the "you
+  cannot grant what you do not hold" rule sets.
+*/
+.perm {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-2);
+  align-items: start;
+  padding: var(--sp-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.perm:hover { background: var(--surface-2); }
+.perm input { margin-top: 0.2em; }
+
+.perm-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.perm-label { font-weight: 600; display: flex; align-items: center; gap: var(--sp-2); }
+.perm-desc { font-size: var(--fs-help); color: var(--muted); }
+.perm-key { font-size: var(--fs-micro); color: var(--muted); opacity: 0.8; }
+
+/* Marks a permission that alone opens a section of the panel, so unticking it does not
+   silently make a screen disappear. */
+.perm-flag {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Not merely disabled - the reason is printed, because a control that is off for a rule the
+   person cannot see reads as a bug. */
+.perm.is-blocked { opacity: 0.6; cursor: not-allowed; }
+.perm-blocked { font-size: var(--fs-micro); color: var(--danger, #b3261e); }
+
+.role-editor-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.role-editor-foot span:last-child { display: flex; gap: var(--sp-2); }
+
+.change-list { margin: 0 0 var(--sp-3); padding-left: var(--sp-4); font-size: var(--fs-table); }
+.change-list.is-removing { color: var(--danger, #b3261e); }
+
+/* ── the catalogue ───────────────────────────────────────────────────────── */
+
+.perm-catalogue { list-style: none; margin: 0; padding: 0; }
+
+.perm-catalogue > li {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.perm-cat-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.perm-cat-key { font-size: var(--fs-micro); color: var(--muted); }
+.perm-cat-desc { margin: var(--sp-1) 0; color: var(--muted); font-size: var(--fs-table); }
+.perm-cat-roles { display: flex; gap: var(--sp-1); flex-wrap: wrap; }
+
+/* ── effective access ────────────────────────────────────────────────────── */
+
+.eff-block { margin-top: var(--sp-5); }
+.eff-block h3 { margin: 0 0 var(--sp-2); }
+
+.eff-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/*
+  The sidebar as he sees it.
+
+  Rendered from AdminShell's own NAV rather than from a list restated here, so a section added
+  to the menu appears in this preview on the same commit. A second copy would answer this
+  screen's question about a panel that no longer exists.
+*/
+.eff-nav { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.eff-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: var(--fs-table);
+}
+
+/* Not colour alone: a closed section also carries the name of the permission it wants, which
+   is the thing somebody would go and grant. */
+.eff-nav-item.is-closed {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.eff-nav-why { font-size: var(--fs-micro); color: var(--muted); }
+
+.eff-group { margin-top: var(--sp-3); }
+
+.eff-group h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-table);
+}
+
+.eff-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.eff-list li { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; font-size: var(--fs-table); }
+
+/* A denial is a permission he does NOT hold. Struck through as well as tinted, so it does not
+   depend on colour to be read as an absence. */
+.eff-list.is-denied .mono { text-decoration: line-through; color: var(--danger, #b3261e); }
+
+.eff-reason { color: var(--muted); font-style: italic; font-size: var(--fs-table); }
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  Page-wise access — the role editor, and the effective-access table
+  ────────────────────────────────────────────────────────────────────────────
+
+  The catalogue is organised resource.verb because that is what a policy names. This is the
+  same set of permissions arranged the way the decision is actually made: one row per page of
+  the panel, a View tick, and every action that page offers beside it.
+*/
+
+.page-perms { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.page-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+  min-width: 0;
+}
+
+/* A page he can open reads as present rather than as one of a list of greys. The border does
+   the work so the row does not depend on a background that changes with the theme. */
+.page-row.is-open { border-color: var(--brand-300, var(--line)); }
+
+.page-row-head { display: flex; flex-direction: column; gap: 1px; margin-bottom: var(--sp-2); }
+.page-row-name { font-weight: 600; }
+.page-row-what { font-size: var(--fs-help); color: var(--text-muted); }
+
+.page-row-perms { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.page-row-none { font-size: var(--fs-help); }
+
+/*
+  Each permission is a chip with the checkbox inside it, so the whole label is the tap target
+  rather than a 13px square. min-height keeps it at the panel's tap size on a phone.
+*/
+.perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: var(--fs-table);
+  min-height: var(--tap);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.perm-chip span { overflow-wrap: anywhere; }
+.perm-chip:hover { background: var(--surface-2); }
+
+/* View is the one that decides whether the page opens at all, so it is separated from the
+   actions rather than sitting among them as an equal. */
+.perm-chip.is-view { font-weight: 600; }
+
+.perm-chip.is-on { border-color: var(--brand-600, var(--accent)); }
+
+/* Destructive or irreversible. Marked at the moment of granting, not only when used. */
+.perm-chip.is-danger.is-on { border-color: var(--danger, #b3261e); }
+
+.perm-chip.is-blocked { opacity: 0.5; cursor: not-allowed; }
+
+.page-row-note,
+.page-row-warnings {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-help);
+  color: var(--text-muted);
+}
+
+.page-row-warnings { padding-left: var(--sp-4); }
+.page-row-warnings li { margin-top: 2px; }
+
+/* ── effective access, page by page ──────────────────────────────────────── */
+
+.eff-pages { width: 100%; border-collapse: collapse; }
+
+.eff-pages th,
+.eff-pages td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.eff-pages thead th {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.eff-pages tbody th { font-weight: 600; }
+
+/* A page he cannot open is dimmed rather than hidden: "he cannot see Progress" is an answer
+   somebody came here for, and a row that is absent cannot give it. */
+.eff-pages tr.is-closed { opacity: 0.55; }
+
+.eff-page-name { display: block; }
+.eff-page-what { display: block; font-weight: 400; font-size: var(--fs-help); color: var(--text-muted); }
+
+.eff-actions { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+
+/*
+  On a phone the three columns become blocks.
+
+  A table this wide cannot keep its columns at 320px, and a horizontal scroll inside it would
+  hide the "can change" column - which is the one the whole screen is about.
+*/
+@media (max-width: 600px) {
+  .eff-pages, .eff-pages tbody, .eff-pages tr, .eff-pages th, .eff-pages td { display: block; }
+  .eff-pages thead { display: none; }
+  .eff-pages tr { border-bottom: 1px solid var(--line); padding: var(--sp-2) 0; }
+  .eff-pages th, .eff-pages td { border: 0; padding: var(--sp-1) 0; }
+}

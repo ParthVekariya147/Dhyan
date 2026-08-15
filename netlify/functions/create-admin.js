@@ -49,10 +49,22 @@ const reply = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
-// public.admin_role (0004_rbac.sql:35). Restated rather than imported because shared/domain
-// carries the permission matrix, not the enum, and a wrong value here would reach the database
-// as a cast error rather than as a sentence.
-const ROLES = ['SUPER_ADMIN', 'ADMIN', 'CONTENT_MANAGER', 'COORDINATOR', 'VIEWER'];
+/*
+  A role key's *shape*, and deliberately not a list of the roles that exist.
+
+  This used to be the five labels of the public.admin_role enum, restated here so a wrong value
+  reached the person as a sentence rather than the database as a cast error. 0043 retires the
+  enum: roles are rows in `public.admin_roles` that a સંચાલક creates from the panel, so a fixed
+  list here would refuse every role made after this file was last deployed — with a flat
+  `bad-request` naming nothing, on an appointment that was perfectly legitimate.
+
+  The shape check stays, because it is cheap and it keeps obvious rubbish out of a round trip.
+  What decides whether the role *exists* is the foreign key `admins_role_fkey`, checked inside
+  the same insert that checks `admins.create` and runs `admins_guard()` — one request, one
+  authority, and no list here that can drift away from it. A 23503 comes back through the
+  refusal path below with the constraint named in `detail`.
+*/
+const ROLE_KEY_RE = /^[A-Z][A-Z0-9_]{2,31}$/;
 
 // profiles.mobile's shape, reused for admins.mobile, which is contact information and optional.
 const MOBILE_RE = /^[6-9][0-9]{9}$/;
@@ -106,7 +118,7 @@ export const handler = async (event) => {
 
   if (!EMAIL_RE.test(email)) return reply(400, { code: 'bad-request', gu: 'ઈમેલ બરાબર લખો.' });
   if (!name) return reply(400, { code: 'bad-request', gu: 'નામ લખો.' });
-  if (!ROLES.includes(role)) return reply(400, { code: 'bad-request', gu: 'ભૂમિકા બરાબર નથી.' });
+  if (!ROLE_KEY_RE.test(role)) return reply(400, { code: 'bad-request', gu: 'ભૂમિકા બરાબર નથી.' });
   if (mobile && !MOBILE_RE.test(mobile)) {
     return reply(400, { code: 'bad-request', gu: 'મોબાઈલ નંબર બરાબર નથી.' });
   }

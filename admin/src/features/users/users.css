@@ -55,3 +55,86 @@
     display: none;
   }
 }
+
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  The user picker, inside "Give an existing user access"
+  ────────────────────────────────────────────────────────────────────────────
+
+  A list of buttons rather than a table or a <select>.
+
+  A <select> was the obvious first choice and is wrong for this: the thing being chosen is an
+  *identity*, and two યુવકો genuinely do share a name. An option that reads "Parth Vekariya"
+  three times is a control that cannot be used correctly, and appointing the wrong person is
+  not a mistake that announces itself. Each row therefore carries the four facts that tell two
+  people apart - name, SMK, mobile, email - and the id that gets written is the id of the row
+  that was pressed, never a value re-derived from what is displayed.
+
+  Buttons and not rows with an onClick, because this is a choice made with a pointer or a
+  keyboard and a <button> is already reachable by both, already has a pressed state to
+  announce (aria-pressed), and already refuses to be activated when disabled - which is how a
+  person who already holds a role is kept out of the selection.
+*/
+.pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  /* Bounded, because a search for a common name legitimately returns twenty-five rows and a
+     dialog that grows past the viewport puts its own confirm button off screen. */
+  max-height: 15rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--sp-1);
+}
+
+.pick {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-2);
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.pick:hover:not(:disabled) { background: var(--surface-2); }
+
+/* The chosen row is marked with a border and a tint rather than colour alone - the confirm
+   button also names the person, so there are two independent statements of who is selected. */
+.pick.is-picked {
+  border-color: var(--accent);
+  background: var(--accent-soft, var(--surface-2));
+}
+
+.pick:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.pick-main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  justify-content: space-between;
+}
+
+.pick-sub {
+  display: flex;
+  gap: var(--sp-3);
+  font-size: 0.85em;
+  color: var(--muted);
+  /* Two facts of very different lengths on one line; the address is the one that gives way. */
+  flex-wrap: wrap;
+}
+
+.pick-note {
+  font-size: 0.8em;
+  color: var(--muted);
+  font-style: italic;
+}

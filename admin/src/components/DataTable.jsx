@@ -26,11 +26,38 @@
  *                   column claims it the first is used — see `pinnedKey` below for why that
  *                   default is worth overriding on most pages.
  */
+import { useAdminAuth } from '../lib/adminAuth';
+
 export default function DataTable({
-  columns, rows, rowKey, sort, onSort, caption, onRowClick, wrapClassName = '',
+  columns: given, rows, rowKey, sort, onSort, caption, onRowClick, wrapClassName = '',
 }) {
+  const { can } = useAdminAuth();
   const sortable = typeof onSort === 'function';
   const cls = (...parts) => parts.filter(Boolean).join(' ');
+
+  /*
+    The SMK column, dropped here rather than in each of the seven pages that has one.
+
+    `users.smk.read` (0046) decides whether a સંચાલક is shown membership numbers in bulk. Seven
+    tables carry the column — યુવકો, Progress, the Point Ledger, Daily Activity, Daily Records,
+    the લેવલ ૩ report and the Leaderboard — and filtering it seven times would be seven places
+    that have to agree, which is how the eighth table written next year quietly ships without
+    the check. One rule, applied where the column is rendered.
+
+    This does put a permission check inside an otherwise presentational component, and that is
+    a real cost, paid deliberately: the alternative is a rule about one field enforced in seven
+    files by convention. The coupling is contained — DataTable is used by the panel and by
+    nothing else, and the યુવક app has no import path to it (§8).
+
+    Matched on `key`, which all seven use. A column rendering an SMK under some other key would
+    slip past, which is why the key is the thing the migration, the access map and this all
+    name — and why scripts/test-permission-catalogue.mjs asserts those first two agree.
+
+    Not a security boundary, and 0046 says so at length: `users.read` governs public.profiles
+    and `smk` is a column of it, so the number is readable over the API either way. This
+    governs bulk exposure on a screen, which is the thing that was asked for.
+  */
+  const columns = can('users.smk.read') ? given : given.filter((c) => c.key !== 'smk');
 
   /*
     Which column does not move when the table is swiped.

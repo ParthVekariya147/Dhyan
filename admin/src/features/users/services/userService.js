@@ -110,19 +110,73 @@ function applyDateRange(q, { fromIso = null, toIsoExclusive = null } = {}) {
  * string is a mobile" would eventually disagree with the table it claims to be exporting,
  * which is the one thing a report must never do.
  *
- * Returns the query plus whether it wants a name ordering, because only the prefix branch
- * has a name to order by.
+ * Returns the query plus whether it wants a name ordering, because only the name branch has
+ * a name to order by.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why every branch of this was rewritten
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The previous version answered three questions, and got two of them wrong in the same way:
+ * it only ever matched from the *start* of a value, or not at all.
+ *
+ *   mobile   `/^\d{10}$/` → `eq`. A ten-digit string was a mobile number and anything
+ *            shorter was not a number at all. Typing half a number - which is what a person
+ *            does, because that is the half they remember - fell through to the branch
+ *            below and was tried as a *name*: `name ilike '98000%'`. Nothing matched, ever,
+ *            and the failure was silent because "no results" is what a search with no
+ *            matches looks like.
+ *
+ *   name     `name.ilike.'<term>%'` - a prefix. "Vekariya" found nobody called
+ *            "Parth Vekariya", because the name does not begin with it. Around here a
+ *            person is looked up by the part of the name the person asking remembers, and
+ *            that is at least as often the surname as the given name.
+ *
+ *   smk      `smk.eq` - exact, uppercased. Half an SMK found nothing.
+ *
+ * All three are now contains matches. The cost is a sequential scan, and 0039 already did
+ * that arithmetic when it declined to add a trigram index: "a sequential scan over 500 short
+ * strings - roughly a tenth of a millisecond". Its advice stands unchanged, and so does the
+ * threshold it names: revisit with pg_trgm when `profiles` passes ~50,000 rows.
+ *
+ * The one `eq` kept is a full ten-digit number, which is both the common case and the only
+ * one that can use the UNIQUE index on `mobile`.
  */
 function applyTerm(q, termRaw) {
-  const term = String(termRaw || '').trim();
-  if (!term) return { q, byName: false };
+  /*
+    `%` and `_` are stripped along with PostgREST's own `,()`.
 
-  if (/^\d{10}$/.test(term)) return { q: q.eq('mobile', term), byName: false };
-  if (term.includes('@')) return { q: q.eq('email', term.toLowerCase()), byName: false };
+    The first two are LIKE metacharacters: a term containing `%` would match every row and
+    read as a broken search rather than as a wildcard nobody typed on purpose. The last three
+    are PostgREST's `or` syntax, and a term carrying them would be parsed as more filters -
+    which is what the original stripped them for.
+  */
+  const safe = String(termRaw || '').trim().replace(/[,()%_]/g, '');
+  if (!safe) return { q, byName: false };
 
-  // ilike is case-insensitive; the comma-separated `or` is one round trip.
-  const safe = term.replace(/[,()]/g, '');
-  return { q: q.or(`smk.eq.${safe.toUpperCase()},name.ilike.${safe}%`), byName: true };
+  // An address is unambiguous, and `profiles_email_idx` (0039) serves the prefix. Contains,
+  // like the rest, because a person pasting a fragment of an address means the fragment.
+  if (safe.includes('@')) return { q: q.ilike('email', `%${safe.toLowerCase()}%`), byName: false };
+
+  if (/^\d+$/.test(safe)) {
+    // A whole number: `eq`, which is an index lookup on the UNIQUE constraint.
+    if (safe.length === 10) return { q: q.eq('mobile', safe), byName: false };
+    /*
+      Part of one. Matched anywhere in the number rather than only at the front, because the
+      digits a person remembers are as often the last four as the first four - the last four
+      are what gets read aloud.
+
+      `smk` is searched alongside it: an SMK is letters and digits, so a digits-only term is
+      a plausible fragment of one, and answering "no results" to somebody who typed the
+      numeric part of an SMK is the same silent failure this whole function is being fixed
+      for.
+    */
+    return { q: q.or(`mobile.ilike.%${safe}%,smk.ilike.%${safe}%`), byName: false };
+  }
+
+  // ilike is case-insensitive, so the SMK no longer needs uppercasing to be found; the
+  // comma-separated `or` is one round trip.
+  return { q: q.or(`smk.ilike.%${safe}%,name.ilike.%${safe}%`), byName: true };
 }
 
 /**
@@ -164,9 +218,11 @@ export async function listUsers({
 /**
  * §17 — search without downloading everyone and filtering in React.
  *
- * A ten-digit string is a mobile number and an @ is an email — both exact. Anything else
- * is tried as an SMK *and* as a name prefix, because a સંચાલક typing "PGV" means one and
- * typing "પ્રથમ" means the other. One query does both, since `or` is native here.
+ * A full ten-digit string is a mobile number, exactly. Everything else is a fragment and is
+ * matched as one: part of a number is looked for anywhere in `mobile` and `smk`, and any
+ * other text anywhere in `smk` and `name` — because a સંચાલક typing "PGV" means one and
+ * typing "પ્રથમ" means the other, and typing "Vekariya" means a surname. One query does
+ * both, since `or` is native here. See applyTerm() for why none of it is a prefix any more.
  *
  * No Algolia, no Elastic. At ~2,000 rows that would be infrastructure with nothing to do.
  *

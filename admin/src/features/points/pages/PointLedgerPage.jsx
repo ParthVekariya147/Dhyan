@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import {
   AWARD_KINDS,
   EXPORT_CAP,
@@ -123,6 +124,8 @@ const EXPORT_HINT =
   'Every award matching the filters above - not just this page - with exactly the columns chosen here. No mobile numbers and no email addresses.';
 
 export default function PointLedgerPage() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   /*
     The યુવક filter lives in the URL, and that is deliberate rather than decorative.
 
@@ -575,8 +578,14 @@ export default function PointLedgerPage() {
 
   /** The same array both files are built from — see buildLedgerReport() in the service. */
   const fileColumns = useMemo(
-    () => visibleColumns.map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
-    [visibleColumns]
+    () =>
+      visibleColumns
+        // The SMK column, dropped from the file for the same reason DataTable drops it from
+        // the table: without users.smk.read the numbers are not shown in bulk, and an export
+        // is the one place a hidden column would otherwise come straight back (0046).
+        .filter((c) => c.key !== 'smk' || can('users.smk.read'))
+        .map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
+    [visibleColumns, can]
   );
 
   /**

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import DataTable, { Pager } from '../../../components/DataTable';
 import { AsyncBlock, TableSkeleton } from '../../../components/StateBlocks';
 import { PageHeader, StatusBadge } from '../../../components/StatCard';
@@ -132,6 +133,8 @@ const SELF_REPORT_HINT =
   'This count is higher than the app observed. Activity done away from the phone still counts, so his own figure is the one that is used - it is marked only so a reader knows which figures rest on it.';
 
 export default function DailyRecordsPage() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   /*
     The range opens on the last seven days rather than on all time.
 
@@ -661,8 +664,12 @@ export default function DailyRecordsPage() {
         // The action column has no value, and a blank column in a report is noise a reader has to
         // account for before trusting the rest of the sheet.
         .filter((c) => c.key !== 'open')
+        // The SMK column, dropped from the file for the same reason DataTable drops it from
+        // the table: without users.smk.read the numbers are not shown in bulk, and an export
+        // is the one place a hidden column would otherwise come straight back (0046).
+        .filter((c) => c.key !== 'smk' || can('users.smk.read'))
         .map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
-    [visibleColumns]
+    [visibleColumns, can]
   );
 
   /**

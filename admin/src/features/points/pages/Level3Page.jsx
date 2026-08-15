@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
+import { useAdminAuth } from '../../../lib/adminAuth';
 import DataTable, { Pager } from '../../../components/DataTable';
 import { AsyncBlock, TableSkeleton } from '../../../components/StateBlocks';
 import { PageHeader } from '../../../components/StatCard';
@@ -125,6 +126,8 @@ const SCENES_HINT =
   'Distinct darshan across all his revisions, counted once each however many times they were revised. Withheld darshan are not counted.';
 
 export default function Level3Page() {
+  // Only for the export's SMK column - the table's own is dropped by DataTable (0046).
+  const { can } = useAdminAuth();
   // ---- the filters, all of them server-side -------------------------------
   const [term, setTerm] = useState('');
   const [search, setSearch] = useState('');
@@ -562,8 +565,14 @@ export default function Level3Page() {
 
   /** The same array both files are built from - see buildLevel3Report() in the service. */
   const fileColumns = useMemo(
-    () => columns.map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
-    [columns]
+    () =>
+      columns
+        // The SMK column, dropped from the file for the same reason DataTable drops it from
+        // the table: without users.smk.read the numbers are not shown in bulk, and an export
+        // is the one place a hidden column would otherwise come straight back (0046).
+        .filter((c) => c.key !== 'smk' || can('users.smk.read'))
+        .map((c) => ({ label: c.label, value: c.value, type: c.type || 'text' })),
+    [columns, can]
   );
 
   /**
