@@ -30,6 +30,21 @@ import { loadEnv } from 'vite';
 // which is also what keeps `..` out of the path built below.
 const ROUTE = /^\/(?:api|\.netlify\/functions)\/([a-z0-9-]+)\/?$/;
 
+/*
+  Paths that are not /api/<name> but are still answered by a function in production, because
+  something other than this app's own code chooses the URL.
+
+  /manifest.webmanifest is the only one so far. netlify.toml rewrites it to manifest.js — with
+  `force = true`, since a real dist/manifest.webmanifest would otherwise shadow the rule — so
+  that the app icon comes from settings['app'] rather than from the build. Routed here as well
+  for a reason the /api aliases do not have: the path is written into index.html's <link> and
+  requested by the browser's install machinery, so it cannot be swapped for /api/manifest while
+  testing. vite-plugin-pwa serves nothing at this path in dev (devOptions is not enabled), so
+  without this line `npm run dev` 404s the manifest and the one thing worth checking locally —
+  that a saved icon reaches it — cannot be checked at all.
+*/
+const STATIC_ROUTES = new Map([['/manifest.webmanifest', 'manifest']]);
+
 const FUNCTIONS_DIR = 'netlify/functions';
 
 // Netlify caps a function body at 6 MB; both functions here take small JSON. The ceiling is
@@ -89,9 +104,12 @@ export default function netlifyFunctionsDev() {
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url || '/', 'http://localhost');
         const match = ROUTE.exec(url.pathname);
-        if (!match) return next();
+        // The exact-path table is consulted first and the regex second; neither can produce a
+        // name with a separator in it, so the path built below still cannot leave the
+        // functions directory.
+        const name = STATIC_ROUTES.get(url.pathname) ?? (match ? match[1] : null);
+        if (!name) return next();
 
-        const name = match[1];
         const file = path.join(config.root, FUNCTIONS_DIR, `${name}.js`);
         // Not one of ours — hand it back rather than answering 404 on Vite's behalf.
         if (!fs.existsSync(file)) return next();

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useSettings, youtubeId } from './lib/useSettings';
+import { useAppIcon, useSessionExpiry } from './lib/useAppShell';
 import { guardRoute, resolveEntryRoute } from './lib/entryRoute';
 import DhunPlayer from './components/DhunPlayer';
 import InstallPrompt from './components/InstallPrompt';
@@ -24,6 +25,25 @@ import EntryGate from './pages/EntryGate';
  * A returning યુવક usually resumes at a level rather than here, and when he does land here
  * the chunk arrives while auth is still resolving — so in practice nobody waits for it.
  */
+/*
+  Split out of the entry chunk, and this one is worth explaining because it is not a route.
+
+  The notice is shown to a single population — somebody on an iPhone, who has ALREADY installed
+  the app, at the moment the સંચાલક publishes an icon he can never receive. Nobody else ever
+  renders it, and the person who does renders it once. Carried eagerly it cost the entry chunk
+  its whole remaining margin: the measurement in scripts/verify-admin-separation.mjs went from
+  62.0 KB to 70.4 KB against a 64 KB limit, for markup that two thousand yuvaks download and
+  none of them see.
+
+  It is imported without a <Suspense> of its own because it is rendered inside AuthProvider and
+  outside <Routes> — the boundary at line 434 does not cover it. React 19 suspends the nearest
+  parent boundary, and there is none here, so the fallback is `null`: nothing is on screen while
+  the chunk arrives, which is exactly right for a sheet that is itself deciding whether to
+  appear at all. Contrast InstallPrompt, which stays eager because it reads a beforeinstallprompt
+  event that fires early and is not replayed.
+*/
+const ReinstallNotice = lazy(() => import('./components/ReinstallNotice'));
+
 const Home = lazy(() => import('./pages/Home'));
 
 /**
@@ -363,6 +383,35 @@ function GateRoute() {
 }
 
 export default function App() {
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    The two things that are true of the whole app rather than of any page in it.
+    ────────────────────────────────────────────────────────────────────────────
+
+    Here, above <BrowserRouter> and above <AuthProvider>, rather than inside a route or a
+    layout - and each of the three possible homes for them is wrong in its own way:
+
+      * inside a route, they would stop and restart on every navigation, and the session
+        check would be re-armed each time a યુવક moved between screens;
+      * inside <AppShell>, they would be mounted only for a signed-in યુવક standing on a
+        page that has the bottom bar - so the tab icon would never be corrected on લોગિન,
+        which is the first screen most visitors ever see;
+      * inside <AuthProvider>, they would be re-run whenever the auth context's value
+        changed, which is every profile read.
+
+    Neither reads auth context, deliberately. useSessionExpiry() observes the same Supabase
+    client from the outside (see src/lib/useAppShell.js) precisely so that a session policy
+    cannot become a change to how src/lib/auth.jsx reports a session, which every route
+    decision in this file depends on.
+
+    Both are safe on the unconfigured build that renders <ConfigNotice /> below: they check
+    the environment before touching the client, exactly as AuthProvider does, and a settings
+    read that fails ends at {} rather than at an error. Nothing here can keep the app from
+    rendering.
+  */
+  const { icon } = useAppIcon();
+  useSessionExpiry();
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -701,6 +750,32 @@ export default function App() {
           catch; it carries no data and pulls nothing but its own stylesheet.
         */}
         <InstallPrompt />
+
+        {/*
+          "નવો આઇકન આવ્યો છે" - the iPhone-only counterpart of the invitation above, and it
+          sits beside it for the same reason: it is about the app rather than about any page,
+          so no page owns it and no navigation may unmount it.
+
+          The two are mutually exclusive by construction and not by a check. <InstallPrompt />
+          computes `mode: 'none'` for anybody already installed, and "already installed" is a
+          precondition of this one - so they can never draw two sheets over each other,
+          although they share a stylesheet and a z-index.
+
+          `icon` is passed down rather than read again here, exactly as `mode` is passed to
+          <InstallSheet />: the hook above is the single place the row is turned into an icon,
+          so the tab's mark and the sentence about the home screen cannot disagree about which
+          version is in force.
+
+          It renders null for everybody else - Android, desktop, Safari-not-yet-installed, and
+          anyone who has already dismissed this version - and it renders null for a signed-out
+          visitor, which is what keeps it off લોગિન and નોંધણી. That last rule is the one worth
+          stating: a visitor who has not signed in is either not the installed યુવક this is
+          addressed to, or is about to type a password, and neither is a moment to put a sheet
+          about deleting the app in front of.
+        */}
+        <Suspense fallback={null}>
+          <ReinstallNotice icon={icon} />
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -434,6 +434,30 @@
   border-top: 1px solid var(--border);
 }
 
+/*
+   The spreadsheet chooser in step 1.
+
+   A file input is the one control admin.css cannot reach through its own rules, because
+   almost everything about it is drawn by the browser rather than by the page: its box is
+   sized from the UA's own button, which comes out 24px tall, and verify-admin-responsive
+   measured exactly that at every touch width on this route. §36 asks for 44px, and the whole
+   box counts - a click anywhere inside a file input opens the picker, not only on the button
+   - so raising the box is a real target rather than a padded number. `--tap` is the panel's
+   own token and already rises from 34px to 44px under `pointer: coarse`, which is what keeps
+   the desktop console dense while the phone gets a thumb's worth.
+
+   The MP3 chooser on Settings had this treatment already, inline, and the two now agree;
+   this one is in the stylesheet because દર્શન import has a stylesheet to put it in.
+
+   The font size that goes with it is not here on purpose. Both file inputs used to compute
+   Chrome's 13.333px UA default on a touch pointer - below the 16px at which iOS Safari zooms
+   the page on focus and never zooms back - because admin.css's `pointer: coarse` block named
+   the input types it raised and no list ever grows a `file` entry on its own. That has since
+   been rewritten there as an exclusion, so every input type is covered once, centrally, and
+   repeating it here would be a second place to keep in step.
+*/
+.d-file { min-height: var(--tap); }
+
 /* The rows a step's buttons sit on. Replaces four copies of the same inline flex style, and
    on a phone the primary action goes full width instead of hiding at one end of the row. */
 .d-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; margin-bottom: var(--sp-4); }
@@ -463,8 +487,13 @@
 
 /* ---------------------------------------------------------------- responsive */
 
-/* 900px is where admin.css turns every table into a stack of cards; the import preview's own
-   columns are already labelled for that, so nothing more is needed here. 640px is the phone. */
+/* 900px is where admin.css puts a table into its narrow form: still a table, scrolled
+   sideways, with its identity column pinned - not the stack of label/value cards it used to
+   become. The import preview's own table declares both halves of that contract in the JSX
+   (`data-label` on every `th` and `td`, `.is-pin` on the spreadsheet row number), and it
+   drops no column on a narrow screen, so there is nothing left for this stylesheet to say at
+   that width. 640px is the phone, and everything below is about the bars and the reorder row
+   rather than about the table. */
 
 @media (max-width: 640px) {
   /* The tools stop hugging the far end — there is no far end left on one column. */

@@ -107,6 +107,12 @@ const KIND_LABEL = {
 };
 
 function Breakdown({ title, note, rows, empty }) {
+  // Held in a variable rather than written twice: the heading and the cells' `data-label` are one
+  // fact about one column, and a `th` reading "Level" over cells labelled "Kind" would be the two
+  // disagreeing about it. That matters more now than when this was a card layout - the labels are
+  // what a hide rule selects on, and hiding a `td` without its `th` puts every column after it
+  // under the wrong heading.
+  const firstCol = title === 'By level' ? 'Level' : 'Kind';
   return (
     <div style={breakdownCol}>
       <h3 style={miniHead}>{title}</h3>
@@ -117,13 +123,24 @@ function Breakdown({ title, note, rows, empty }) {
       ) : (
         <div className="table-wrap">
           <table className="dt">
+            {/*
+              A hand-built table rather than a DataTable, because it is three cells of a summary
+              and not a list anybody pages, sorts or exports. It still has to keep DataTable's two
+              phone habits, since admin.css styles it by the same `.dt` class: `data-label` on the
+              header cells as well as the body ones, and `.is-pin` on the column that says what
+              each row is about.
+
+              The pin is the kind or the level. It is the only column here that is not a number:
+              two figures with nothing beside them are two figures about nobody, so it is what has
+              to stay on screen if this ever scrolls sideways in a narrow card.
+            */}
             <thead>
               <tr>
-                <th scope="col">{title === 'By level' ? 'Level' : 'Kind'}</th>
-                <th scope="col" className="ta-r">
+                <th scope="col" className="is-pin" data-label={firstCol}>{firstCol}</th>
+                <th scope="col" className="ta-r" data-label="Rows">
                   Rows
                 </th>
-                <th scope="col" className="ta-r">
+                <th scope="col" className="ta-r" data-label="Points">
                   Points
                 </th>
               </tr>
@@ -131,9 +148,9 @@ function Breakdown({ title, note, rows, empty }) {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.key}>
-                  <td>{r.label}</td>
-                  <td className="ta-r mono">{gu(r.rows)}</td>
-                  <td className="ta-r mono">{gu(r.points)}</td>
+                  <td className="is-pin" data-label={firstCol}>{r.label}</td>
+                  <td className="ta-r mono" data-label="Rows">{gu(r.rows)}</td>
+                  <td className="ta-r mono" data-label="Points">{gu(r.points)}</td>
                 </tr>
               ))}
             </tbody>

@@ -145,7 +145,7 @@
  * `@media` in the panel — this file and the feature stylesheets — must use one of these:
  *
  *   1200px   content gets its side rails back / two-column detail splits
- *    900px   sidebar becomes a drawer; tables become cards
+ *    900px   sidebar becomes a drawer; tables go dense and pin their identity column
  *    640px   phone: single column, full-width controls, dialogs become sheets
  *    380px   small phone: tighten padding only. Never a new layout. */
 
@@ -299,7 +299,12 @@ h1, h2, h3, p, dd, li, label { overflow-wrap: anywhere; }
   font-size: var(--fs-micro); font-weight: var(--fw-semi); color: var(--brand-700);
   max-width: 18ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.account-caret { color: var(--text-faint); font-size: 10px; flex: 0 0 auto; }
+/* --fs-micro, not 10px. The floor in this file is 11.5px and it is not a per-element
+   judgement — the caret was the one thing in the panel undercutting it, which the measured
+   run caught on all twenty-four routes at every width where the caret is not hidden. A ▾ has
+   no matras to lose, but "this glyph is exempt because I looked at it" is how a floor stops
+   being a floor. */
+.account-caret { color: var(--text-faint); font-size: var(--fs-micro); flex: 0 0 auto; }
 
 .menu {
   position: absolute; top: calc(100% + var(--sp-2)); inset-inline-end: 0; z-index: 40;
@@ -980,27 +985,129 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 
   .detail-cols { grid-template-columns: 1fr; }
 
-  /* §30, §55 — rows become cards rather than a ten-column squeeze. Horizontal scrolling
-   * hides exactly the column you were looking for, so the table stops being a table. */
-  .table-wrap { border: 0; background: transparent; overflow: visible; box-shadow: none; }
-  .dt thead { display: none; }
-  .dt, .dt tbody, .dt tr, .dt td { display: block; width: 100%; }
-  .dt tr {
-    background: var(--surface-card); border: 1px solid var(--border);
-    border-radius: var(--r-lg); margin-bottom: var(--sp-3);
-    padding: var(--sp-1) var(--sp-3); box-shadow: var(--sh-1);
+  /*
+    §30, §55 — a table on a phone stays a table, pinned by its identity column.
+
+    ── Why this replaced the card stack ────────────────────────────────────────
+
+    Every row used to become a card: one label-and-value line per column, stacked. The
+    reasoning was sound as far as it went — "horizontal scrolling hides exactly the column
+    you were looking for" — but measured against what a સંચાલક actually does with these
+    screens it was the wrong trade, and the cost was not small:
+
+      * EIGHT LINES PER યુવક. /users renders SMK, Name, Mobile, Email, Subzone, Registered,
+        Status and Level 4, so one યુવક was roughly 230px tall and a page of twenty was some
+        4,600px of scrolling. Finding the fourth યુવક meant a swipe; comparing the fourth
+        against the eleventh meant remembering the first one's numbers.
+      * A COLUMN COULD NOT BE READ DOWN. The whole reason a list is a table is that the eye
+        runs down one column and finds the outlier. Stacked into cards there is no column to
+        run down — every value is on its own line beside its own label, and the comparison
+        the report exists to support is the one thing the layout will not do.
+      * HALF THE ROW WAS LABELS. The label repeats on every single card, so a list of ninety
+        યુવકો painted "Mobile" ninety times. In a table it is written once, in the header.
+
+    A pinned first column answers the original objection directly. Horizontal scrolling
+    hides a column, yes — but never the one that says WHOSE row this is, because that column
+    does not move. Swiping now means "show me more about this person", which is a question
+    with an obvious gesture, rather than "find your place again", which is not.
+
+    This is the convention every dense operational console settles on, and at organisation
+    scale it is the only one that survives the list getting longer.
+
+    ── What still hides ────────────────────────────────────────────────────────
+
+    The per-page rules that drop bookkeeping columns below this width are MORE useful now,
+    not less: every column dropped is a column nobody has to swipe past. They are unchanged
+    in intent, but they must now hide the `th` as well as the `td` — a `td` hidden without
+    its header shifts every column after it under the wrong heading, which is a worse bug
+    than the one it was fixing. `DataTable` writes `data-label` onto both, so one selector
+    reaches the pair.
+  */
+  .table-wrap {
+    /* The scroll container, and the fade that says there is more to the right. The gradient
+       is painted on the wrap rather than on a pseudo-element of the table so it does not
+       scroll away with the content it is advertising. */
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
   }
-  .dt tbody tr:hover { background: var(--surface-card); }
-  .dt td {
-    border-bottom: 1px solid var(--border); display: flex;
-    justify-content: space-between; align-items: center; gap: var(--sp-4);
-    text-align: end; padding: var(--sp-2) 0;
+
+  .dt th, .dt td {
+    padding: var(--sp-2) var(--sp-3);
+    /* One row, one line. A wrapped cell makes rows of different heights, and a table whose
+       rows are different heights cannot be read down a column, which is the entire point of
+       going back to a table. The width that costs is paid for by the swipe. */
+    white-space: nowrap;
   }
-  .dt td:last-child { border-bottom: 0; }
-  .dt td::before {
-    content: attr(data-label); color: var(--text-muted); font-size: var(--fs-help);
-    font-weight: var(--fw-medium); text-align: start; flex: 0 0 auto;
+  /* §37 — a row is a tap target on the way to the detail page, so it gets a thumb's height
+     even when its tallest cell is one line of 13px text. */
+  .dt tbody td { height: var(--tap); }
+
+  /*
+    The pinned column.
+
+    `.is-pin` is placed by DataTable on the column a page names as the one that identifies a
+    row — never blindly the first, because the first is sometimes a code that is mostly
+    empty (on /users it is SMK, which many યુવકો do not have, and a pinned column of dashes
+    would be a column pinned for nothing).
+
+    An opaque background is not decoration here: a sticky cell is painted over the cells
+    sliding beneath it, so a transparent one shows both at once. It therefore has to repeat
+    every background the row can take — plain, hovered, and clickable-hovered — which is why
+    those three are restated below rather than inherited.
+  */
+  .dt th.is-pin, .dt td.is-pin {
+    position: sticky; inset-inline-start: 0; z-index: 2;
+    background: var(--surface-card);
+    /* A hairline plus a short shadow, so the pinned column reads as sitting above the
+       scrolled ones rather than as merely being first. */
+    box-shadow: 1px 0 0 var(--border), 8px 0 8px -8px rgba(20, 26, 33, .18);
+    /* It may not eat the screen: past this the swipe has nothing left to reveal. */
+    max-width: 46vw; overflow: hidden; text-overflow: ellipsis;
   }
+  /* Above the body's pinned cells AND above the ordinary sticky header, so the top-left
+     corner cell stays put in both axes at once. */
+  .dt th.is-pin { z-index: 3; background: var(--surface-sunken); }
+  .dt tbody tr:hover td.is-pin { background: var(--surface-hover); }
+  .dt tr.is-clickable:hover td.is-pin { background: var(--brand-50); }
+
+  /* The label lives in the header again, so the card's per-cell label must not also print —
+     it would appear as a duplicate word inside every cell. `data-label` itself stays on the
+     element: it is what the per-page hide rules select on, and what
+     scripts/verify-admin-responsive.mjs reads to prove every column is still named. */
+  .dt td::before { content: none; }
+
+  /*
+    A cell that is nothing but a link, made a thumb's target — declared once here instead of
+    six times across the features.
+
+    Three ways of doing this were tried and measured before this one, and the two that failed
+    are worth recording because both look obviously right:
+
+      * `display: flex; align-items: center` DESTROYS `text-overflow: ellipsis`. A flex
+        container's text sits in an anonymous item that the property does not reach, so a
+        long name is chopped mid-letter with no ellipsis painted — and a name cut without an
+        ellipsis does not read as truncated, it reads as a shorter name. That is worse than
+        the overflow it was fixing, and the pinned column is exactly where the 46vw cap makes
+        it happen.
+      * `min-height: var(--tap)` on the link makes 60px rows. The cell is already `--tap`
+        tall AND carries `--sp-2` top and bottom, so a 44px child adds the padding on top of
+        a height that had allowed for it.
+
+    `line-height` is what works: the link fills the row exactly, the cell gives up its
+    vertical padding to the link that is now providing it, and because the link stays a block
+    box the ellipsis keeps working. Measured at 360px: link 44px, row 45px including its
+    border, ellipsis painted.
+
+    `:only-child` so this never touches a cell that pairs a link with a badge or a hint —
+    those are laid out by the feature that built them. `:has()` has a precedent in this
+    project (src/components/bottom-nav.css) and degrades honestly: on an engine without it
+    the selector never matches and the cell keeps its ordinary padding, which is the layout
+    as it was rather than a broken one.
+  */
+  .dt tbody td:has(> a:only-child) { padding-block: 0; }
+  .dt tbody td > a:only-child { display: block; line-height: var(--tap); }
+
   .ta-r { text-align: end; }
 }
 
@@ -1059,9 +1166,16 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   /* 16px is not a taste decision. iOS Safari zooms the page when a field smaller than
    * this takes focus, and it does not zoom back out on blur — so one tap on a filter
    * leaves the સંચાલક on a page wider than his screen, which is the "the keyboard broke
-   * the layout" bug. Scoped to coarse pointers so the desktop console stays dense. */
-  input[type="text"], input[type="email"], input[type="password"], input[type="search"],
-  input[type="tel"], input[type="url"], input[type="number"], input[type="date"],
+   * the layout" bug. Scoped to coarse pointers so the desktop console stays dense.
+   *
+   * Written as an exclusion rather than as a list of the types that need it, and that is a
+   * fix. The list used to be enumerated — text, email, password, search, tel, url, number,
+   * date — and an enumerated list is a list somebody has to remember to add to. Nobody did:
+   * the file inputs on દર્શન import and Settings were never on it, so they kept Chrome's UA
+   * default of 13.333px and both screens zoomed on focus. Measured, not reasoned about.
+   * A checkbox and a radio are excluded because their box is not drawn from the font size
+   * and 16px would only inflate the label's line box. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
   select, textarea { font-size: 16px; }
 
   /* `all: unset` leaves .linklike with no box at all, so it inherited the line's 19px and
@@ -1073,6 +1187,40 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
     display: inline-flex; align-items: center;
     min-height: var(--tap);
   }
+
+  /*
+    The breadcrumb is navigation, not prose, and it was a row of 20px words.
+    Measured at every touch width on every દર્શન and લેવલ ૪ page: "Darshan", "Levels",
+    "Level 4" — each one the way back out of a detail page, each one a third of the 44px
+    floor §36 asks for.
+
+    Scoped to the breadcrumb rather than applied to `a` at large, and the distinction is the
+    whole policy: a link that is a DESTINATION ON ITS OWN owes the floor, a link that is a
+    word inside a sentence does not. Giving every `a` a 44px box would space out the running
+    text in every `.card-note` in the panel to no purpose — the target there is the sentence,
+    which is already tall enough to hit.
+
+    `inline-flex` is safe here where it is not safe in a table cell: these are short words
+    with no `text-overflow` on them, so there is no ellipsis for a flex box to break (see the
+    note on `.dt td > a` in the 900px block for what happens when there is).
+  */
+  .breadcrumb a {
+    display: inline-flex; align-items: center;
+    min-height: var(--tap);
+  }
+
+  /*
+    The sort button was 19px — the shortest control in the panel, and one of the few that a
+    સંચાલક presses repeatedly rather than once. `all: unset` leaves it with no box of its own
+    (the same trap `.linklike` fell into above), so it inherited the header's line height.
+
+    The header cell gives up its vertical padding to the button that is now supplying it,
+    exactly as a cell does for a link in the 900px block — otherwise the 44px control is
+    added to padding that had already allowed for a line of text, and the header row goes to
+    60px on every table in the panel.
+  */
+  .dt th:has(> .th-sort) { padding-block: 0; }
+  .th-sort { min-height: var(--tap); }
 }
 
 /* §44 — motion is a courtesy, never a dependency. Everything below still communicates

@@ -1,0 +1,101 @@
+-- વર્ણી ધ્યાન — the bottom bar could not be saved by anybody, and the reason was a grant.
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- THE DEFECT
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- A સંચાલક saves the mobile navigation. PostgREST answers 403 and the body is
+--
+--   {"code":"42501","message":"permission denied for function nav_config_error"}
+--
+-- No permission he can be granted changes this, because 42501 is not RLS and not
+-- `has_permission()`. It is a Postgres EXECUTE grant, and the role being denied is
+-- `authenticated` — which is what every signed-in user is, super admin or not. The panel's own
+-- idea of who he is never enters into it.
+--
+-- The path is three lines long:
+--
+--   * `settings_check_mobile_nav()` (0019) is the BEFORE trigger on `settings`. It is SECURITY
+--     INVOKER. A trigger firing does not check EXECUTE on the trigger function itself, so the
+--     trigger runs — but its body runs as the CALLER.
+--   * Its one statement is `msg := public.nav_config_error(new.value -> 'mobileBottom')`.
+--   * `nav_config_error(jsonb)` carries `revoke all ... from public` (0019:325) and no migration
+--     ever grants it to a client role — deliberately, since no client has any business calling
+--     the validator as an RPC.
+--
+-- So the caller is `authenticated`, the function is closed to `authenticated`, and the write
+-- dies inside the guard that exists to let good writes through. The same applies to everything
+-- `nav_config_error()` calls in turn: `nav_registry()`, `nav_routes()`, `nav_normalize_route()`
+-- and `nav_icons()` are all closed the same way, so granting the one function named in the error
+-- would only move the error to the next name.
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- WHY IT SURFACED WHEN IT DID
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- This has been latent since 0019. It was invisible because production carried a blanket
+--
+--   grant execute on all functions in schema public to anon, authenticated;
+--
+-- issued outside these migrations, which handed `authenticated` every function the schema had
+-- explicitly closed — including `award_points()` and `point_award()`, the two ledger writers.
+-- `supabase/repair/0000_revoke_blanket_grants.sql` takes that back, correctly, and saving the
+-- bar stopped working the moment it ran. The blanket grant was not the cause; it was the thing
+-- standing in for a fix nobody knew was missing.
+--
+-- The tests did not catch it for the ordinary reason: they connect as owner or service role,
+-- which is not the role the defect is about. A test that never puts on `authenticated` cannot
+-- see a grant defect, however many rules of the bar it checks.
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- THE FIX
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- The trigger becomes SECURITY DEFINER. Its body then runs as the function's owner, which owns
+-- the helpers, and the helpers stay closed to every client role — the validator is reachable
+-- from the write it guards and from nowhere else. That is the shape the read side already has:
+-- `settings_mobile_nav()` (0028) is SECURITY DEFINER for exactly this reason, which is why
+-- reading the bar never broke and only writing it did.
+--
+-- It is a safe definer function, in the narrow sense that matters: it reads NEW, calls one pure
+-- validator, and either returns NEW or raises. It selects no table, writes nothing, and accepts
+-- nothing from the caller except the row already being written — a caller who could not write
+-- that row at all is stopped by `settings writable by permission` (0004) long before the trigger
+-- fires. `search_path` is pinned in the function definition (0019:373), which is the part that
+-- actually matters once `prosecdef` is true.
+--
+-- `alter function` rather than a redefinition, so the body stays in 0019 where its comments are.
+--
+-- ════════════════════════════════════════════════════════════════════════════
+
+begin;
+
+alter function public.settings_check_mobile_nav() security definer;
+
+commit;
+
+-- ================================================================ notes for the next reader
+--
+-- **Only this one trigger needed it.** The other guards on `settings` — `settings_check_slideshow`
+-- (0018), `settings_check_points` (0034), `settings_check_leaderboard` (0023) and
+-- `settings_check_pace` (0035) — decide everything inside their own bodies and call nothing that
+-- 0000_revoke_blanket_grants.sql closed, so they are unaffected. The trigger functions that DO
+-- call closed helpers — `level4_attempts_award()` (0021), `activity_attempts_level3_award()`
+-- (0035), `audit_point_bonus_rule()` (0033) — were already SECURITY DEFINER, which is why the
+-- yuvak-facing writes kept working while the panel's did not.
+--
+-- **The property to check, not this function.** The defect class is "a SECURITY INVOKER trigger
+-- calling a function no client role may execute", and it is silent until someone who is not the
+-- owner performs the write. It is answerable in one query and worth asking whenever a trigger is
+-- added:
+--
+--   select t.tgname, p.proname
+--     from pg_trigger t
+--     join pg_proc p on p.oid = t.tgfoid
+--    where not t.tgisinternal and not p.prosecdef;
+--
+-- Each name that comes back must either touch no closed function, or become a definer.
+--
+-- **Production is repaired separately.** `supabase/repair/0001_nav_trigger_definer.sql` is this
+-- same `alter function`, standing alone, because production's `schema_migrations` does not list
+-- this file's neighbours and must not be migrated to reach one statement.

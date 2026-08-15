@@ -268,9 +268,11 @@ export default function PointLedgerPage() {
    *
    * Each entry carries how it *renders* and how it *exports*, side by side, because a report
    * whose file disagrees with the screen that produced it is the failure this page exists to
-   * avoid. Every label reads on its own: below ~820px DataTable turns each row into a card of
-   * label/value pairs, and "Kind" beside a lone word says nothing without the header row that
-   * is no longer there.
+   * avoid. Every label reads on its own, and it has three readers rather than one: it is the
+   * column heading, it is the `data-label` DataTable writes onto the `th` and the `td` alike -
+   * which is what the mobile hide rules in ledger.css select on - and it is the header cell of
+   * the CSV and the Excel file, where there is no table around it at all. "Award kind" and not
+   * "Kind" is that last reader being served.
    *
    * No column is sortable and that is not an omission. `admin_point_transactions()` orders by
    * `created_at desc, id desc` and takes no sort parameter, so a clickable header would either
@@ -299,6 +301,17 @@ export default function PointLedgerPage() {
         className: 'pl-c-user',
         label: 'Yuvak',
         base: true,
+        /*
+          The name is what identifies a row here, so it is the column that stays put when the
+          table is swiped below 900px.
+
+          Not the date, which is the first column and would otherwise be pinned by default: half
+          the rows on a page share one, so a pinned date holds the same six characters on screen
+          while the names - the only thing that says whose award each row is - scroll away. Not
+          SMK either, which is unique but is a code a large share of યુવકો do not have. A pinned
+          column of dashes is a column pinned for nothing.
+        */
+        pin: true,
         // `title` because the cell may ellipsize a long name (see .pl-c-user in ledger.css),
         // and an ellipsis with no way to read the rest is a value the સંચાલક cannot act on.
         render: (r) => (
@@ -540,6 +553,11 @@ export default function PointLedgerPage() {
         // so anything not named here is silently dropped - and `className` is what the whole
         // column-width block in ledger.css matches on.
         className: c.className,
+        // `pin` for the same reason, and it is the one the picker makes interesting: the name can
+        // be switched off, and when it is, DataTable finds no pinned column and falls back to the
+        // first visible one rather than pinning nothing. That fallback is only correct because it
+        // is a fallback - dropping this line would make it the rule.
+        pin: c.pin,
       })),
     [visibleColumns]
   );

@@ -29,6 +29,43 @@
   to = "/.netlify/functions/create-admin"
   status = 200
 
+# Deleting a test યુવક. The database removes the data (it is the only thing that can check the
+# caller may, and that the account is really a test one); this removes the GoTrue login, which
+# lives in a schema the application does not own.
+[[redirects]]
+  from = "/api/purge-test-account"
+  to = "/.netlify/functions/purge-test-account"
+  status = 200
+
+
+# The web app manifest, served by netlify/functions/manifest.js instead of as the static file
+# vite-plugin-pwa builds into dist/. The icon in it comes from settings['app'].appIcon, so the
+# સંચાલક can change the mark on two thousand home screens without a redeploy — Chrome re-fetches
+# this URL roughly once a day for every installed Android app and mints an updated WebAPK when
+# the icon differs. A static manifest can never differ from itself, which is the whole reason
+# this rule exists.
+#
+# DO NOT REMOVE `force = true`. It is not redundant and it is not defensive habit.
+#
+# Netlify serves static files BEFORE it consults redirects, and `npm run build` really does
+# produce dist/manifest.webmanifest — vite-plugin-pwa writes it on every build, from the
+# `manifest` block in vite.config.js. Netlify's own documentation states the rule and the
+# exception: "By default, you can't
+# shadow a URL that actually exists within the site… If you're 100% sure that you'll always want
+# to redirect, even when the URL matches a static file, you can append an exclamation mark to
+# the rule" (Redirects → Rewrites and proxies → Shadowing). `force = true` in TOML is that
+# exclamation mark; `force` is documented as "whether to override any existing content in the
+# path or not; false by default".
+#
+# So without it this rule never fires even once. The static file is served, the manifest is
+# frozen at build time, and the icon setting becomes a control that reports "Saved" while every
+# installed Android phone keeps the old mark indefinitely — with nothing failing, nothing logged
+# and no way to tell from the panel.
+[[redirects]]
+  from = "/manifest.webmanifest"
+  to = "/.netlify/functions/manifest"
+  status = 200
+  force = true
 
 # સંચાલક પેનલ — its own SPA, its own fallback, and it MUST come before the yuvak
 # catch-all below.

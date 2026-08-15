@@ -13,6 +13,12 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import DhunCard from '../components/DhunCard';
 import DriveFolderCard from '../components/DriveFolderCard';
 import GalleryCard from '../components/GalleryCard';
+/* The two halves of 0042 - the icon on the home screen, and the session age that is what
+   actually gets it there. See the note beside where they are mounted. */
+import AppIconCard from '../components/AppIconCard';
+import SessionCard from '../components/SessionCard';
+import { APP_ICON_KEY } from '../../../../../shared/domain/appicon.js';
+import { SESSION_KEY } from '../../../../../shared/domain/session.js';
 import {
   DEFAULT_TICK_WORD,
   SLIDESHOW_KEY,
@@ -358,6 +364,32 @@ export default function SettingsPage() {
 
           {/*
             ────────────────────────────────────────────────────────────────────
+            The app shell - the mark on the home screen, and what makes it arrive
+            ────────────────────────────────────────────────────────────────────
+
+            Two more fields of the same settings['app'] row (0042_app_shell.sql), so they belong
+            on this page for the reason the two ધૂન and the Drive folder do: one row, one page,
+            one SETTINGS_UPDATED entry per save.
+
+            They are mounted together and in this order because they are one idea seen from two
+            ends. An installed app is opened and closed for weeks without ever being *loaded*,
+            so a phone can sit on June's build all summer - and AppIconCard on its own would be
+            a control that reports "Saved" while two thousand home screens keep the old mark for
+            months. SessionCard is what makes a load happen. The icon is the change; the session
+            is the delivery. Reading them in the other order makes the second card look like a
+            security setting nobody asked for.
+
+            Each saves through its own card for the same reason DhunCard does: uploading a PNG,
+            measuring it and drawing the Android crop over it is nothing like saving a text
+            field, and both have bounds the database enforces and therefore refusal paths that
+            belong beside the control that caused them.
+          */}
+          <AppIconCard appIcon={state.data?.[APP_ICON_KEY]} onSaved={state.retry} />
+
+          <SessionCard session={state.data?.[SESSION_KEY]} onSaved={state.retry} />
+
+          {/*
+            ────────────────────────────────────────────────────────────────────
             Points and the leaderboard — the same page, a different row
             ────────────────────────────────────────────────────────────────────
 
@@ -412,7 +444,7 @@ export default function SettingsPage() {
                   Point values, repeat rules, the Level 3 tick mode and per-test prices are now
                   set in their own section, together with the ledger they pay into.
                 </p>
-                <Link to="/points">Open Point Management</Link>
+                <Link to="/points" style={destinationLink}>Open Point Management</Link>
               </div>
               {/*
                 Below the values it ranks people by, because that is the order of the
@@ -435,24 +467,24 @@ export default function SettingsPage() {
             </p>
             <ul style={linkList}>
               <li style={linkRow}>
-                <Link to="/video">Video</Link>
+                <Link to="/video" style={destinationLink}>Video</Link>
                 <span className="hint">The YouTube link on the Entry Gate.</span>
               </li>
               <li style={linkRow}>
-                <Link to="/levels">Levels</Link>
+                <Link to="/levels" style={destinationLink}>Levels</Link>
                 <span className="hint">
                   Which levels are offered, what they are called, and what opens Level 4.
                 </span>
               </li>
               <li style={linkRow}>
-                <Link to="/navigation">Navigation</Link>
+                <Link to="/navigation" style={destinationLink}>Navigation</Link>
                 <span className="hint">
                   The buttons at the bottom of a phone - which ones, in what order, and under
                   what word.
                 </span>
               </li>
               <li style={linkRow}>
-                <Link to="/levels/4">Level 4</Link>
+                <Link to="/levels/4" style={destinationLink}>Level 4</Link>
                 <span className="hint">
                   The sub-levels (4.1, 4.2 …) and which Darshan each one asks for.
                 </span>
@@ -503,3 +535,26 @@ const linkList = { listStyle: 'none', display: 'grid', gap: 'var(--sp-3)' };
 /** Name over description, so a long Gujarati caption wraps under the link rather than
  *  pushing it out of the card. */
 const linkRow = { display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 };
+
+/**
+ * A link that is a destination on its own, given the tap floor §36 asks for.
+ *
+ * Measured at 22px on a touch screen — half the 44px minimum — on all five of them: the four
+ * in the list above and "Open Point Management". The panel's rule is that an inline link
+ * inside a sentence is exempt (WCAG 2.5.8 excludes a target "in a sentence or block of
+ * text", and spacing out running prose to satisfy a floor makes the prose worse), but none
+ * of these is in a sentence. The comment above the list says so itself: it was rewritten
+ * away from a paragraph precisely so the destinations would be a findable list rather than
+ * links buried in prose — and a list of destinations is navigation, which owes the floor.
+ *
+ * `inline-flex` is safe here for the reason it is not safe inside a table cell: these are
+ * short names with no `text-overflow` on them, so there is no ellipsis for a flex box to
+ * silently break. `align-self: start` keeps the box only as wide as the name, so the target
+ * is the link and not the empty width of the card beside it.
+ */
+const destinationLink = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  alignSelf: 'start',
+  minHeight: 'var(--tap)',
+};

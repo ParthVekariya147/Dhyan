@@ -92,6 +92,32 @@ export const PERIOD_LABEL_EN = Object.freeze({
   [LEADERBOARD_PERIOD.ALL]: 'All time',
 });
 
+/**
+ * The board's own heading — "Today Top 5", "All Time Top 20".
+ *
+ * The one string in the યુવક app that is deliberately not Gujarati, and it is a choice rather
+ * than an oversight: §14 puts the whole app in Gujarati and every other word on /leaderboard
+ * obeys it, but "Top 10" is how a board is titled here in speech as well as in writing, and the
+ * heading was asked for in exactly those words. The number goes with it in Latin digits — the
+ * tab labels, the ranks and the points all stay Gujarati (`gu()`), so the heading is a title and
+ * everything under it is the app's own script.
+ *
+ * Separate from PERIOD_LABEL_EN and not a reuse of it, because the two are read in different
+ * places and want different capitals: the panel's are field labels in a sentence ("the top 20
+ * names for This week"), these are the words inside a page title, so they are title-cased. One
+ * map serving both would have to be wrong for one of them.
+ */
+export const PERIOD_HEADING_EN = Object.freeze({
+  [LEADERBOARD_PERIOD.DAY]: 'Today',
+  [LEADERBOARD_PERIOD.WEEK]: 'This Week',
+  [LEADERBOARD_PERIOD.MONTH]: 'This Month',
+  [LEADERBOARD_PERIOD.ALL]: 'All Time',
+});
+
+/** `{ period, topN }` → the heading a યુવક reads at the top of the board. */
+export const leaderboardHeading = (period, topN) =>
+  `${PERIOD_HEADING_EN[period] ?? ''} Top ${topN}`.trim();
+
 export const LEADERBOARD_KEY = 'leaderboard';
 
 /**

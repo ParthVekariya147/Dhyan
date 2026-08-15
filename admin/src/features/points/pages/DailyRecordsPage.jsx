@@ -305,16 +305,20 @@ export default function DailyRecordsPage() {
    *
    * Each entry carries how it *renders* and how it *exports*, side by side, because a report
    * whose file disagrees with the screen that produced it is the failure this page exists to
-   * avoid. Every label reads on its own: below ~820px DataTable turns each row into a card of
-   * label/value pairs, and "Level 2" beside a lone number says neither which figure it is nor
-   * what it is being compared with.
+   * avoid. Every label reads on its own, and it has three readers rather than one: it is the
+   * column heading, it is the `data-label` DataTable writes onto the `th` and the `td` alike -
+   * which is what the mobile hide rules in ledger.css select on - and it is the header cell of the
+   * CSV and the Excel file, where there is no table around it at all. "Level 2 reported" and not
+   * "Level 2" is that last reader being served.
    *
    * **Reported and recorded are two columns per level rather than one column holding a pair.**
    * A single "3 / 2" cell reads well on screen and is useless in a spreadsheet - neither half is
    * a number Excel can sum, which is the entire reason xlsx.js exists. Two numeric columns give
-   * the sanchalak both sums, and on a phone DataTable stacks them as consecutive label/value
-   * lines, which is if anything clearer than the pair. The badge that marks a self-reported
-   * figure sits on the reported cell, where the figure it describes is.
+   * the sanchalak both sums, and the two sit side by side at every width - the phone keeps the
+   * table and scrolls it rather than stacking each value onto a line of its own, so the
+   * comparison the report exists for is a glance across two adjacent cells there as well. The
+   * badge that marks a self-reported figure sits on the reported cell, where the figure it
+   * describes is.
    *
    * No column is sortable and that is not an omission. `admin_daily_records()` takes no sort
    * parameter, so a clickable header would either lie or would re-order the twenty rows on
@@ -381,6 +385,20 @@ export default function DailyRecordsPage() {
         className: 'pl-c-user',
         label: 'Yuvak',
         base: true,
+        /*
+          The name is what identifies a row, so it is the column that stays put when the table is
+          swiped below 900px.
+
+          A record is (yuvak, day) and neither half identifies it alone, which makes the choice
+          look closer than it is. The Day is the first column and would be pinned by default, and
+          it is the wrong one: a week's report repeats each date across every yuvak who filled a
+          record in on it, so a pinned Day holds a value shared by twenty rows while the twenty
+          names scroll away. Pinned the other way round, the date is one swipe back and the reader
+          always knows whose row he is reading. SMK would be unique and is not offered either - a
+          large share of યુવકો do not have one, and a pinned column of dashes is a column pinned
+          for nothing.
+        */
+        pin: true,
         // `title` because the cell may ellipsize a long name (see .pl-c-user in ledger.css), and
         // an ellipsis with no way to read the rest is a value the sanchalak cannot act on.
         render: (r) => (
@@ -616,6 +634,11 @@ export default function DailyRecordsPage() {
         // so anything not named here is silently dropped - and `className` is what the column
         // width block in ledger.css matches on.
         className: c.className,
+        // `pin` for the same reason, and it is the one the picker makes interesting: the name can
+        // be switched off, and when it is, DataTable finds no pinned column and falls back to the
+        // first visible one rather than pinning nothing. That fallback is only correct because it
+        // is a fallback - dropping this line would make it the rule.
+        pin: c.pin,
       })),
     [visibleColumns]
   );
@@ -1106,7 +1129,9 @@ function RecordDetail({ open, query, onClose }) {
                 <DataTable
                   caption="What was reported and what the app recorded, level by level"
                   columns={[
-                    { key: 'level', label: 'Level', render: (r) => levelLabel(r.levelId) },
+                    // One row per rung, so the level is what a row *is* - and with three numeric
+                    // columns beside it, it is what has to stay on screen when this is swiped.
+                    { key: 'level', label: 'Level', pin: true, render: (r) => levelLabel(r.levelId) },
                     {
                       key: 'reported',
                       label: 'Reported',
@@ -1163,7 +1188,10 @@ function RecordDetail({ open, query, onClose }) {
                 <DataTable
                   caption="Every edit to this record, newest first"
                   columns={[
-                    { key: 'at', className: 'pl-c-when', label: 'At', render: (r) => dateTimeGu(r.at) },
+                    // Every row is an edit to the same record, so the moment is the only thing
+                    // that tells two of them apart: it is the row's identity and the column that
+                    // stays put when this is swiped.
+                    { key: 'at', className: 'pl-c-when', label: 'At', pin: true, render: (r) => dateTimeGu(r.at) },
                     {
                       key: 'level',
                       label: 'Level',
@@ -1243,12 +1271,15 @@ function RecordDetail({ open, query, onClose }) {
               <DataTable
                 caption="Every ledger row written for this day, oldest first"
                 columns={[
-                  { key: 'at', className: 'pl-c-when', label: 'Written at', render: (r) => dateTimeGu(r.createdAt) },
+                  // The ledger rows for one day are read in the order they happened, and the
+                  // instant is what places each one in that order - so it is the row's identity
+                  // and the column that stays put when this is swiped.
+                  { key: 'at', className: 'pl-c-when', label: 'Written at', pin: true, render: (r) => dateTimeGu(r.createdAt) },
                   {
                     key: 'activity',
                     className: 'pl-c-activity',
                     label: 'Activity',
-                    // The level travels in the same cell as the name. Below ~820px this row is a
+                    // The level travels in the same cell as the name. Below ~900px this row is a
                     // card with no neighbouring column to borrow context from, so "Revision" alone
                     // would not say which rung it came from.
                     render: (r) => (

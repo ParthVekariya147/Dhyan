@@ -157,8 +157,11 @@ export default function LeaderboardPage() {
    *
    * The activity columns appear only when they have been asked for, and they are appended
    * rather than interleaved, so the board reads as a board first and a report second. Every
-   * label reads on its own, because below ~820px each row becomes a card of label/value pairs
-   * with no header row above it.
+   * label reads on its own, and it has three readers rather than one: it is the column heading,
+   * it is the `data-label` DataTable writes onto the `th` and the `td` alike - which is what the
+   * mobile hide rules in ledger.css select on - and it is the header cell of the CSV and the
+   * Excel file, where there is no table around it at all. "Points in this range" and not "Points"
+   * is that last reader being served.
    */
   const columns = useMemo(() => {
     /** A count that has not arrived yet is absent, never 0: 0 is a claim about a યુવક. */
@@ -183,6 +186,18 @@ export default function LeaderboardPage() {
         key: 'name',
         className: 'pl-c-user',
         label: 'Yuvak',
+        /*
+          The name and not the Place, though the Place is first and this is a board.
+
+          It was a genuine choice, and it turns on what a pinned column is for: it answers "whose
+          row am I looking at" while everything else slides under the thumb. A place cannot answer
+          that here. Ties share a place - two યુવકો on 800 are both 3rd - so the number is not even
+          unique down the column, and on a board filtered to one city the ranks are the whole
+          project's and have gaps, so "7th, 11th, 12th" pinned beside scrolling figures is a column
+          of trivia. The name is what a સંચાલક is reading across to, and it is what he needs held
+          still while he swipes out to the activity columns.
+        */
+        pin: true,
         render: (r) => (
           <Link to={`/progress/${r.uid}`} title={r.name || undefined}>
             {r.name || r.uid.slice(0, 8)}

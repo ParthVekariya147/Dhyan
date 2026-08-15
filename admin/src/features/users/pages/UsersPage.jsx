@@ -4,10 +4,11 @@ import Tabs, { TabPanel } from '../../../components/Tabs';
 import { PageHeader } from '../../../components/StatCard';
 import UsersTab from './UsersTab';
 import AdminsTab from './AdminsTab';
+import TestAccountsTab from './TestAccountsTab';
 
 /**
  * ────────────────────────────────────────────────────────────────────────────
- * /users — two populations, one section
+ * /users — three populations, one section
  * ────────────────────────────────────────────────────────────────────────────
  *
  * Until 0038 there was one table of people: an administrator was a `profiles` row with an
@@ -17,14 +18,17 @@ import AdminsTab from './AdminsTab';
  *
  * 0038 splits them - `public.admins` keys off `auth.users`, and `public.yuvaks` is
  * `profiles_level4` minus anyone holding an admins row - and this page is where that split
- * becomes visible. Two tabs over one section rather than two entries in the sidebar, for two
- * reasons:
+ * becomes visible. 0040 subtracts one more group for one more reason: an account marked
+ * `is_test` behaves like any other yuvak but is counted in no total, ranking, list or export,
+ * so `yuvaks` excludes it and `public.test_yuvaks` is the only place it is listed. Tabs over
+ * one section rather than separate entries in the sidebar, for two reasons:
  *
- *   · they are one question asked about two groups ("who is in this system and what state is
- *     their account in"), and the answer is read side by side far more often than either half
- *     is read alone;
- *   · a second sidebar entry would be a section three of the five roles may not open, and the
- *     menu already carries as many of those as it needs to.
+ *   · they are one question asked about several groups ("who is in this system and what state
+ *     is their account in"), and the answer is read side by side far more often than any one
+ *     part of it is read alone;
+ *   · a second sidebar entry would be a section three of the five roles may not open, and a
+ *     third would be one that four of the five may not - the menu already carries as many of
+ *     those as it needs to.
  *
  * ── The tab is in the URL, and that is not decoration ───────────────────────
  *
@@ -34,7 +38,7 @@ import AdminsTab from './AdminsTab';
  * every one of those three is a property of the address and none of them can be a property of
  * a useState.
  *
- * ── A COORDINATOR must not learn that the other tab exists ──────────────────
+ * ── A COORDINATOR must not learn that the other tabs exist ──────────────────
  *
  * The સંચાલક tab is not rendered disabled, not rendered greyed, not rendered at all without
  * `admins.read`. That is the same rule AdminShell applies to sidebar sections and it is
@@ -43,6 +47,14 @@ import AdminsTab from './AdminsTab';
  * the filter prevents is a panel that advertises a list it will then show as empty - and an
  * RLS *read* denial returns zero rows rather than an error, so "empty" is exactly what a
  * COORDINATOR would have been shown about a list that is full (admin/src/lib/errors.js).
+ *
+ * Test accounts are filtered out the same way and the case is stronger, because there the tab
+ * would not even be empty. `test_yuvaks` needs only `users.read` to select from, which every
+ * role that can open this section holds - so an ADMIN offered the tab would see the full list
+ * of test accounts and then find that neither button on it does anything, since `users.test`
+ * and `users.purge` are SUPER_ADMIN alone and the trigger behind the flag *holds* a change it
+ * refuses rather than raising. A tab that shows real rows and silently declines to act on them
+ * is a worse answer than a tab that is not offered.
  *
  * A URL asking for a tab the role may not see falls back to the first tab in silence. No
  * notice, no redirect: he did not do anything wrong - he opened a link somebody else sent him
@@ -80,7 +92,32 @@ const TABS = [
     need: 'admins.read',
     sub: 'Who runs the panel, and what each of them may do. Administrators are not counted as yuvaks.',
   },
+  {
+    id: 'test',
+    label: 'Test accounts',
+    /*
+      `users.test` and not `users.purge`, though the tab holds an action needing each. It is
+      the permission for the population the tab is *about* - the one that decides who is in the
+      list and who may put them there or take them out - and purging is a further grant on top
+      of it. 0040 gives both to SUPER_ADMIN alone, so today the two are the same set of people;
+      naming the narrower one would mean a SUPER_ADMIN who somehow held only `users.test`
+      could mark an account and then have nowhere to see it.
+
+      Last in the strip because it is the population that is read least often, and because the
+      order of the three is now "everyone who counts, everyone who runs it, everyone who counts
+      for nothing".
+    */
+    need: 'users.test',
+    sub: 'Accounts that exist to try the app. They behave like any other yuvak and are counted in nothing.',
+  },
 ];
+
+/** Tab id → the list it shows. Keys match TABS above; nothing else may add one. */
+const PANELS = {
+  users: UsersTab,
+  admins: AdminsTab,
+  test: TestAccountsTab,
+};
 
 export default function UsersPage() {
   const { can } = useAdminAuth();
@@ -113,7 +150,17 @@ export default function UsersPage() {
     setParams(next);
   };
 
-  const panel = active.id === 'admins' ? <AdminsTab /> : <UsersTab />;
+  /*
+    Keyed off `active.id`, which came out of `tabs` and therefore out of the permission filter
+    above - so a `?tab=test` in the address of an ADMIN has already fallen back to the first tab
+    by the time this line runs, and there is no branch here that a URL alone can reach.
+
+    A lookup rather than a chain of ternaries now that there are three: the mapping from tab id
+    to component is the one thing this shell exists to do, and at three branches a ternary chain
+    is already the sort of line where a fourth gets appended in the wrong place.
+  */
+  const Panel = PANELS[active.id] || UsersTab;
+  const panel = <Panel />;
 
   return (
     <>

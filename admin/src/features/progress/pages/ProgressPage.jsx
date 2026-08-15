@@ -543,9 +543,13 @@ export default function ProgressPage() {
    * back a token `p_sort` accepts with no lookup table in between — naming a sort twice is
    * how a rename gets to be silently wrong.
    *
-   * Every label reads on its own: below ~820px `DataTable` turns each row into a card of
-   * label/value pairs, and "L4" beside a lone number says nothing without the header row
-   * that is no longer there.
+   * Every label reads on its own, and it still has to: the label is the whole of the column
+   * heading on a phone, where the table scrolls sideways and a heading may be the only thing
+   * on screen beside the name. "L4" arriving over a lone number, several swipes from where
+   * the eye started, says nothing that "Level 4 gate" does not say by itself. The label is
+   * also the string the CSV and the Excel file are headed with, and the one the responsive
+   * rules in progress.css select on to hide a column, so a rename here is felt in four
+   * places at once.
    *
    * Mobile numbers and email addresses are not on this list and are not offered as a choice.
    * A progress report is read out at a meeting and forwarded on WhatsApp, and there is no
@@ -562,6 +566,16 @@ export default function ProgressPage() {
         label: 'User',
         sortKey: 'name',
         base: true,
+        /*
+          The column that stays put when the table is swiped on a phone (§55).
+
+          The name and not SMK, even though SMK is the unique key (§4) and the tidier thing
+          to pin: a large share of યુવકો have no SMK at all, so pinning it would hold a
+          column of dashes on screen while the one thing that says whose row this is scrolled
+          away - the exact failure the pin exists to prevent. A સંચાલક swiping this report is
+          asking "how far has *he* got", and the answer has to keep his name in view.
+        */
+        pin: true,
         // `title` because the cell may ellipsize a long name (see .pf-c-user in progress.css)
         // and an ellipsis with no way to read the rest is a value the સંચાલક cannot act on.
         render: (r) => (
@@ -1056,6 +1070,12 @@ export default function ProgressPage() {
         // element - the table still shredded "Surat" into "Sur / at" and the stylesheet
         // looked correct. Found by measuring the rendered cells, not by reading either file.
         className: c.className,
+        // Carried for the same reason, and it fails the same silent way: `pin` left out here
+        // would leave `DataTable` to its default of pinning the first column, which on this
+        // page is the name only for as long as nobody reorders the registry or switches the
+        // name off in the picker. The declaration is in the registry; this line is what lets
+        // it arrive.
+        pin: c.pin,
       })),
     [visibleColumns]
   );

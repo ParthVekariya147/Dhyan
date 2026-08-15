@@ -586,7 +586,27 @@ const selectField = { marginBottom: 'var(--sp-3)', flex: '0 1 200px' };
 /** Shrinkable, but never below a width where three digits and the spinner still fit. */
 const numField = { marginBottom: 'var(--sp-3)', flex: '0 1 180px' };
 
-const checkField = { marginBottom: 'var(--sp-3)', flex: '0 0 auto' };
+/**
+ * The enable row - one field, alone on its own `controlRow`.
+ *
+ * It was `0 0 auto`, reasoned from the line rather than from the screen: there is nothing
+ * beside it to share the width with, so there seemed to be nothing to shrink against. There
+ * is. `flex-basis: auto` on a flex item resolves to its content width, and for a flex base
+ * size that means MAX-content - the whole hint on one line, never wrapped - and
+ * `flex-shrink: 0` then refuses to give any of it back. The longer of the two hints under the
+ * box, "Off - no yuvak sees any other name anywhere in the app.", is 301px of one line; at
+ * 320px the card has 288px to offer, so the field hung 6px past the right edge and made the
+ * whole of /settings scroll sideways. `body { overflow-x: hidden }` in admin.css HIDES that
+ * scrollbar rather than preventing it, which is exactly why it went unseen until
+ * verify-admin-responsive measured every element against the viewport at 320px.
+ *
+ * `0 1 auto` changes nothing on any width that has the room - the field still asks for its
+ * content width, still does not grow, still sits alone on its line - and simply lets the hint
+ * wrap onto a second line instead of widening the page when the room runs out. It does not
+ * need a `min-width: 0` of its own: `.field` in admin.css already carries one, which is what
+ * lets a shrinkable item go below its min-content width.
+ */
+const checkField = { marginBottom: 'var(--sp-3)', flex: '0 1 auto' };
 
 const checkStack = { display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' };
 

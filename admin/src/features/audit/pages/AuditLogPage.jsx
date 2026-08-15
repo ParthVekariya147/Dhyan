@@ -66,18 +66,41 @@ export default function AuditLogPage() {
 
   // Six short columns, each answering one of the four questions a trail is read for —
   // when, who, what, and to which thing — plus the diff. Every label is a full phrase
-  // because below 900px DataTable prints it beside its value with no header row above it:
-  // "Type" alone, on a card, does not say type of what.
+  // because the header is all a reader has to go on and half of these columns are only
+  // reached by swiping on a phone: "Type" alone, arriving at the edge of the screen, does
+  // not say type of what.
   const columns = [
-    { key: 'at', label: 'When', render: (r) => dateTimeGu(r.at) },
+    {
+      key: 'at',
+      label: 'When',
+      /*
+        The column that does not move when the trail is swiped on a phone.
+
+        The candidates were the actor, the action and the time, and only one of them is a
+        property of the ROW rather than of a group of rows. "Who did it" repeats down the
+        page — one સંચાલક doing an evening's work is thirty rows with his name on them — and
+        "Action" repeats harder still and is also the page's one filter, so it is frequently
+        the same word on every visible row; a pinned column of thirty identical values is a
+        column pinned for nothing. The timestamp is what actually distinguishes one entry
+        from the next, it is the key the trail is ordered by (newest first), and it is what a
+        person is holding in their head when they read a log at all — "what happened around
+        the time the settings changed". Swiping right from it means "tell me more about this
+        moment", which is the question this page is opened with.
+
+        It is the first column too, so this changes nothing today. Written anyway, because
+        DataTable's fallback is position rather than meaning, and a later column added in
+        front of it should not silently take the pin.
+      */
+      pin: true,
+      render: (r) => dateTimeGu(r.at),
+    },
     {
       key: 'actorName',
       label: 'Who did it',
       render: (r) => (
-        // One inline-block wrapper, so the name and the role stay a single unit: in the
-        // phone card view the cell is a flex row and two loose children would be pushed to
-        // opposite ends of it. Alignment is left to the cell — start in the table, end on
-        // a card — which is why nothing here sets text-align.
+        // One inline-block wrapper, so the name and the role stay a single unit rather than
+        // two loose children the cell may lay out independently. Alignment is left to the
+        // cell, which is why nothing here sets text-align.
         <span style={{ display: 'inline-block', maxWidth: '100%', minWidth: 0 }}>
           <span style={{ display: 'block' }}>
             {r.actorName || <span className="mono">{r.actorId?.slice(0, 8)}…</span>}
@@ -106,11 +129,18 @@ export default function AuditLogPage() {
         // before 0004 added the column — theirs is '' (the NOT NULL default the ALTER
         // gave existing rows), and those દર્શન entries are still worth linking.
         r.resourceType === 'scenes' || r.targetId?.startsWith('darshan-') ? (
-          <Link className="mono" to={`/darshan/${r.targetId}`}>{r.targetId}</Link>
+          // `cellLink`, for the same reason UsersTab gives it to the name: admin.css gives
+          // every `tbody td` the --tap floor on a phone, and a bare `a` is a 20px line of
+          // text sitting inside a 44px row, so most of the target a thumb aims at is dead
+          // space beside the link rather than the link. Filling the cell makes the row's
+          // height the link's height.
+          <Link className="mono" style={cellLink} to={`/darshan/${r.targetId}`}>{r.targetId}</Link>
         ) : (
-          // A uuid is 36 unbroken characters. `overflow-wrap: anywhere` is inherited from
-          // the td (admin.css), so it breaks inside the id rather than widening the column
-          // past the phone; max-width keeps it inside the flex cell it sits in.
+          // A uuid is 36 unbroken characters. On a desk `overflow-wrap: break-word` is
+          // inherited from the td (admin.css) so it breaks inside the id rather than
+          // widening the column; on a phone the cell is nowrap and the id is simply one of
+          // the things the sideways swipe pays for. max-width keeps it inside its cell in
+          // both cases.
           <span className="mono" style={{ maxWidth: '100%' }}>{r.targetId || '-'}</span>
         ),
     },
@@ -217,23 +247,23 @@ function shortValue(v) {
  * One changed field, as a chip.
  *
  * Chips instead of one long mono line, for a phone as much as for a desk: a run of forty
- * characters, a dot, another forty is a single unbreakable-looking string that pushed the
- * cell wider than the card holding it. Each field is now its own box that wraps where the
- * cell ends, `max-width: 100%` keeps the widest one inside a 320px card, and the `.chip`
- * border gives the eye the boundary between two fields that a middle dot never did.
+ * characters, a dot, another forty is a single unbreakable-looking string that no eye finds
+ * a boundary in. Each field is now its own box, `max-width: 100%` keeps the widest one
+ * inside its cell, and the `.chip` border gives the eye the separation between two fields
+ * that a middle dot never did.
  *
- * They are inline-level, so they follow the cell's own alignment — start in the table,
- * end in the phone card view — which is why nothing here sets text-align either.
+ * They are inline-level, so they follow the cell's own alignment, which is why nothing here
+ * sets text-align either.
  */
 /**
  * The one box every chip lives in.
  *
- * Below 900px admin.css turns each `td` into a flex row — the label on one side, the value
- * on the other — so a cell that returns four loose chips returns four flex items, and
- * `justify-content: space-between` spreads them across the card instead of wrapping them.
- * One inline-block wrapper makes the whole diff a single item that shrinks and lets its
- * chips wrap inside it; `min-width: 0` is what allows it to shrink past its widest chip
- * rather than pushing the card wider than the phone (§36).
+ * This is the last column of the widest table in the panel, so on a phone it is the far end
+ * of the swipe and on a desk it is whatever room the five columns before it left. A single
+ * inline-block wrapper is what keeps the diff one shrinkable unit in both cases: the cell
+ * can size itself against the whole group rather than against each chip in turn, and
+ * `min-width: 0` is what allows that group to shrink past its widest chip instead of
+ * pushing the table wider than it has to be (§36).
  */
 function Changes({ children }) {
   return <span style={{ display: 'inline-block', maxWidth: '100%', minWidth: 0 }}>{children}</span>;
@@ -289,3 +319,21 @@ function Details({ row }) {
     </Changes>
   );
 }
+
+/* ---------------------------------------------------------------------------
+ * Layout constants — module scope, so paging through the trail does not allocate a fresh
+ * style object per row.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A link that is as tall as the row it sits in.
+ *
+ * admin.css gives every `tbody td` a height of --tap below 900px so that a row is a
+ * thumb-sized target. An `a` inside one is an inline box the height of its text — measured
+ * at 20px — so the row was tall enough and the part of it that navigated was not, and a
+ * thumb aimed at the middle of the row landed beside the link. `align-items: center` keeps
+ * the id optically where it was rather than riding the top of a 44px box, and `height: 100%`
+ * rather than a floor of its own means the link only ever matches whatever the cell settled
+ * on, including on a desk where there is no floor at all.
+ */
+const cellLink = { display: 'flex', alignItems: 'center', height: '100%' };

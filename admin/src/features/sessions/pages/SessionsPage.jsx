@@ -147,14 +147,41 @@ export default function SessionsPage() {
     setPage(0);
   };
 
-  // Every label reads on its own. Below 900px DataTable turns each row into a card and
-  // prints these labels beside their values with no header row above them, so a heading
-  // that only made sense in a column ("Session", "Memory Darshan") becomes a question.
+  // Every label reads on its own. Nine columns do not fit a phone, so most of them are
+  // reached by swiping the table sideways and arrive at the edge of the screen with only
+  // their own header for context — a heading that only made sense while its neighbours were
+  // visible ("Session", "Memory Darshan") becomes a question there.
   const columns = [
     {
       key: 'user',
       label: 'User',
-      render: (r) => (r.user ? <Link to={`/users/${r.uid}`}>{r.user.name}</Link> : <span className="mono">-</span>),
+      /*
+        The column that does not move when the table is swiped on a phone.
+
+        It is the first column as well, so this changes nothing today — but DataTable's
+        fallback is "whichever column happens to be first", which is a fact about the order
+        somebody typed them in rather than about what identifies a round. Here the identity
+        is emphatically the યુવક and emphatically not the alternative candidate: `sessionId`
+        is a uid glued to a round number, unique but unreadable, and a pinned column of
+        those would anchor the table to the one value nobody can recognise. Naming the
+        column also means a column inserted in front of User later cannot quietly take the
+        pin.
+      */
+      pin: true,
+      render: (r) =>
+        r.user ? (
+          // `cellLink` for the same reason UsersTab gives it to the name: admin.css puts the
+          // --tap floor on every `tbody td` below 900px, and a bare `a` is a 20px line
+          // inside a 44px row, so most of the row a thumb aims at was not the link. The
+          // inner span keeps the pinned column's ellipsis working - `text-overflow` acts on
+          // a block container and a flex link is not one, so without it a long name would
+          // be cut off with nothing saying it continued.
+          <Link to={`/users/${r.uid}`} style={cellLink}>
+            <span style={cellLinkText}>{r.user.name}</span>
+          </Link>
+        ) : (
+          <span className="mono">-</span>
+        ),
     },
     { key: 'subZone', label: 'Subzone', render: (r) => subZoneNameEn(r.user?.subZoneId) },
     { key: 'sessionId', label: 'Session id', render: (r) => <span className="mono">{r.sessionId}</span> },
@@ -341,3 +368,30 @@ export default function SessionsPage() {
     </>
   );
 }
+
+/* ---------------------------------------------------------------------------
+ * Layout constants — module scope, so paging does not allocate a fresh style object per row.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A link that is as tall as the row it sits in.
+ *
+ * admin.css gives every `tbody td` a height of --tap below 900px so a row is a thumb-sized
+ * target. An `a` inside one is an inline box the height of its text — measured at 20px — so
+ * the row was tall enough and the part of it that navigated was not. `height: 100%` rather
+ * than a floor of its own, so the link matches whatever the cell settled on and adds nothing
+ * on a desk, where the cell has no floor. `min-width: 0` because this link sits in the
+ * pinned column, which is the one column with a width it may not exceed, and a flex item
+ * refuses to shrink below its content unless it is told it may.
+ */
+const cellLink = { display: 'flex', alignItems: 'center', height: '100%', minWidth: 0 };
+
+/**
+ * The name inside that link.
+ *
+ * `.is-pin` caps the pinned column at 46vw and ellipsizes what does not fit, but
+ * `text-overflow` needs a block container and a flex container is not one. This span puts
+ * one back inside the link, so a long name is still cut with an ellipsis rather than cut
+ * silently.
+ */
+const cellLinkText = { overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 };

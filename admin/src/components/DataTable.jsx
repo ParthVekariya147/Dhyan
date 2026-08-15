@@ -1,9 +1,11 @@
 /**
  * §54, §55 — one table, used by every list page.
  *
- * On a wide screen it is a table. Below ~820px the same rows render as cards, one
- * label-and-value pair per line: a ten-column table squeezed into a phone is unreadable,
- * and horizontal scrolling hides exactly the column you were looking for.
+ * It is a table at every width. Below 900px it becomes a *dense* table that scrolls
+ * sideways with its identity column pinned, rather than the stack of label/value cards it
+ * used to become — admin.css carries the full reasoning at that breakpoint, and the short
+ * version is that a card per row cost eight lines and 230px per યુવક and made it impossible
+ * to read a column downwards, which is the one thing a list is for.
  *
  * Sorting is opt-in per column and is *reported*, not performed — the caller decides
  * whether that means a new query or an in-memory sort of the current page.
@@ -19,12 +21,30 @@
  *                   by making the wrap the vertical scroll container (see admin.css).
  *   column.className  applied to that column's `th` AND its `td`, so a min-width or a
  *                   `white-space: nowrap` is declared once and cannot drift between the two.
+ *   column.pin      names this column the row's identity: below 900px it is the one that
+ *                   stays put while the rest scroll under the thumb. At most one, and if no
+ *                   column claims it the first is used — see `pinnedKey` below for why that
+ *                   default is worth overriding on most pages.
  */
 export default function DataTable({
   columns, rows, rowKey, sort, onSort, caption, onRowClick, wrapClassName = '',
 }) {
   const sortable = typeof onSort === 'function';
   const cls = (...parts) => parts.filter(Boolean).join(' ');
+
+  /*
+    Which column does not move when the table is swiped.
+
+    The first column is only the default, not the rule, and the difference matters: on
+    /users the first column is SMK, which a large share of યુવકો simply do not have, so
+    pinning it would hold a column of dashes on screen and scroll the names away — the exact
+    failure the pin exists to prevent. A page that knows better says so with `pin: true`.
+
+    Resolved by key rather than by index so it survives a column being hidden, reordered or
+    dropped from the picker, and falls back rather than pinning nothing if a `pin` is left
+    behind on a column that no longer renders.
+  */
+  const pinnedKey = (columns.find((c) => c.pin) || columns[0])?.key;
 
   return (
     <div className={cls('table-wrap', wrapClassName)}>
@@ -39,7 +59,13 @@ export default function DataTable({
                 <th
                   key={c.key}
                   scope="col"
-                  className={cls(c.align === 'right' && 'ta-r', c.className)}
+                  /* The same `data-label` the cells carry. A per-page rule that hides a
+                     bookkeeping column on a phone has to hide the header with it — a `td`
+                     dropped on its own shifts every column after it under the wrong
+                     heading — and one attribute on both halves is what lets a single
+                     selector do that without the two ever drifting apart. */
+                  data-label={c.label}
+                  className={cls(c.align === 'right' && 'ta-r', c.key === pinnedKey && 'is-pin', c.className)}
                   aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   {canSort ? (
@@ -72,7 +98,7 @@ export default function DataTable({
                 <td
                   key={c.key}
                   data-label={c.label}
-                  className={cls(c.align === 'right' && 'ta-r', c.className)}
+                  className={cls(c.align === 'right' && 'ta-r', c.key === pinnedKey && 'is-pin', c.className)}
                 >
                   {c.render ? c.render(row) : row[c.key] ?? '-'}
                 </td>

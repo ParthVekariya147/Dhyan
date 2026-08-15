@@ -217,16 +217,39 @@
 
 /* ---- the quiet states --------------------------------------------------------- */
 
-/* Three sentences share this: the board switched off, a window with nobody in it yet, and a
-   યુવક who has not earned anything in this one. All three are ordinary states rather than
-   failures, so all three are set the same calm way - centred, muted, and given room above so
-   they do not sit tight under the tabs as though something had failed to load. */
+/* Two sentences share this: the board switched off, and a window with nobody in it yet. Both are
+   ordinary states rather than failures, so both are set the same calm way - centred, muted, and
+   given room above so they do not sit tight under the tabs as though something had failed to
+   load.
+
+   It was three. The third was the line shown to a યુવક who had earned nothing in the window, and
+   it is gone rather than restyled: see the note at the head of Leaderboard.jsx. */
 .lb-quiet {
   margin-top: var(--sp-6);
   padding: 0 var(--sp-3);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   color: var(--color-muted);
+  text-align: center;
+}
+
+/* ---- અભિનંદન, under the list -------------------------------------------------- */
+
+/* The page's last word, and the only warm thing on it.
+
+   Gold and centred, so it reads as the close of the list rather than as one more row; but at
+   --fs-label with the letter-spacing of a caption, not at heading size - it congratulates the
+   board, and a large exclamation under a ranking would turn the list into a prize-giving. The
+   space above is a full --sp-6 so it detaches from the last name and is not mistaken for an
+   entry with no number. */
+.lb-congrats {
+  margin-top: var(--sp-6);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-label);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-gold);
   text-align: center;
 }
 

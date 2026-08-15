@@ -281,6 +281,7 @@ export default function DarshanImportPage() {
                 <label htmlFor="csv">Choose a file</label>
                 <input
                   id="csv"
+                  className="d-file"
                   type="file"
                   ref={fileRef}
                   accept=".xlsx,.csv,.tsv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values,text/plain"
@@ -566,23 +567,45 @@ export default function DarshanImportPage() {
                       </div>
                     </div>
 
-                    {/* Below 900px admin.css turns every row into a card and reads the column
-                        name out of `data-label` — without them the phone view is four
-                        unlabelled lines per row. */}
+                    {/*
+                      Built by hand rather than through DataTable, because a preview row is not
+                      a record: three of the four cells are components that read the whole
+                      entry, not a field of it. That means everything DataTable does for a
+                      table on a phone has to be done here, deliberately, and below 900px
+                      admin.css asks for two things.
+
+                      `data-label` on the `th` AS WELL AS the `td`. Below 900px the table stays
+                      a table and scrolls sideways — it is no longer a stack of labelled cards
+                      — so the attribute is no longer what names a value on a phone; the header
+                      is. It is still written on both halves because that is the hook a rule
+                      that drops a bookkeeping column on a narrow screen uses, and such a rule
+                      MUST hide the `th` with the `td`: a cell dropped on its own shifts every
+                      column after it under the wrong heading, which is a silent wrong answer
+                      rather than a cramped one. Nothing hides a column here today, and the
+                      attribute is what makes that possible without touching this markup again.
+
+                      `.is-pin` on the spreadsheet row number, on both halves, because that is
+                      the column that says WHICH row this is. It is deliberately not the
+                      દર્શન id beside it: the id is exactly what an import is often supplying
+                      for the first time, so on a create-only file that column is a column of
+                      dashes, and a pinned column of dashes holds nothing on screen while
+                      scrolling away the one number the સંચાલક is matching against his
+                      spreadsheet. The row number is present on every row by construction.
+                    */}
                     <div className="table-wrap">
                       <table className="dt">
                         <thead>
                           <tr>
-                            <th>Row</th>
-                            <th>Darshan</th>
-                            <th>What changes</th>
-                            <th>Result</th>
+                            <th className="is-pin" data-label="Row">Row</th>
+                            <th data-label="Darshan">Darshan</th>
+                            <th data-label="What changes">What changes</th>
+                            <th data-label="Result">Result</th>
                           </tr>
                         </thead>
                         <tbody>
                           {shown.map((e) => (
                             <tr key={e.rowNumber}>
-                              <td className="mono" data-label="Row">{e.rowNumber}</td>
+                              <td className="mono is-pin" data-label="Row">{e.rowNumber}</td>
                               <td className="mono" data-label="Darshan">{e.id || '-'}</td>
                               <td data-label="What changes"><Changes entry={e} /></td>
                               <td data-label="Result">

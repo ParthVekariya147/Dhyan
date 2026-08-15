@@ -249,9 +249,50 @@ check(`યુવક bundle within ${kb(BUDGET)}`, total <= BUDGET, kb(total));
  * The measured chunk is 62.0 KB against 64, which restores the margin to ~1.6% — the check
  * was passing by 40 bytes before this threshold moved, which is not a budget, it is a
  * coincidence waiting to fail on the next unrelated edit. The next KB argues for itself.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 64 KB → 72 KB, for the સંચાલક's app icon and the session age, and the argument
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * This is the largest single raise this threshold has taken and it should be read with the
+ * most suspicion, so here is the whole of it.
+ *
+ * `src/lib/useAppShell.js` (0042) does two things, and both are eager by construction rather
+ * than by convenience:
+ *
+ *   * **It rewrites `<link rel="icon">` and `<link rel="apple-touch-icon">`.** The second one
+ *     is the constraint. iOS reads apple-touch-icon at the instant "Add to Home Screen" is
+ *     tapped and never again — there is no second chance and no event to wait for, exactly as
+ *     `beforeinstallprompt` had none. A link patched from a lazy chunk is a link that is
+ *     sometimes still the old one when it is read, and the result of losing that race is a
+ *     home-screen icon that is wrong permanently, on a device that cannot be corrected.
+ *   * **It attaches the resume listener.** `visibilitychange`/`pageshow` on an installed PWA
+ *     can fire seconds after boot, and a listener that is not attached yet does not get a
+ *     replay. This is the same argument installPrompt.js made above, made by the same shape
+ *     of browser API.
+ *
+ * The shared rules it stands on — resolveAppIcon(), appIconLinks(), resolveSessionPolicy(),
+ * sessionExpired() — come with it, because a resolver that ran late would be a phone deciding
+ * with last month's answer.
+ *
+ * What that buys is that everything else stayed out, and each was measured rather than assumed:
+ *
+ *   * `ReinstallNotice` — the iPhone-only sheet, its six Gujarati sentences and the stylesheet
+ *     it shares with InstallSheet — is a 2.55 KB chunk fetched only on the load where there is
+ *     genuinely something to say. Carried eagerly it took the entry chunk to 70.4 KB on its
+ *     own, which is markup two thousand યુવકો download and only iPhone owners ever see.
+ *   * `validateAppIcon()`, `validateAppIconFile()` and `appIconManifestIcons()` are panel- and
+ *     server-only and are tree-shaken out entirely — verified by grepping the built chunk for
+ *     their sentences ("must be square", "must be a PNG", "512 KB or smaller"): none present.
+ *   * `validateSessionPolicy()` likewise; the app resolves and never refuses.
+ *
+ * The measured chunk is 68.3 KB against 72, a ~5% margin — the widest this check has had, and
+ * deliberately so: 64 was reached twice in a row by features that could not be split, and a
+ * threshold that has to move on every second commit is not protecting anything. The next KB
+ * still argues for itself.
  */
 const entry = yuvak.find((f) => /^index-.*\.js$/.test(f.name));
-check('યુવક entry chunk is app code only', !!entry && entry.size < 64 * 1024,
+check('યુવક entry chunk is app code only', !!entry && entry.size < 72 * 1024,
   entry ? kb(entry.size) : 'no entry chunk');
 const adminEntry = admin.find((f) => /^index-.*\.js$/.test(f.name));
 check('સંચાલક entry chunk is panel code only', !!adminEntry && adminEntry.size < 60 * 1024,

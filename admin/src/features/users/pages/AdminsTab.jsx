@@ -208,6 +208,22 @@ export default function AdminsTab() {
     {
       key: 'name',
       label: 'Name',
+      /*
+        The column that stays put when the table is swiped on a phone.
+
+        Here it happens to be the first column as well, so `pin: true` changes nothing today
+        — it is written anyway because DataTable's default is "the first column", and that
+        default is an accident of order rather than a decision about meaning. The moment
+        somebody puts an avatar, a row number or a select-all checkbox in front of Name, the
+        pin would silently move to it and the administrator list would scroll with nothing
+        on screen saying which administrator each row is about. Naming the column makes that
+        a deliberate change rather than a side effect.
+
+        Name and not Email, even though email is what an administrator signs in with: the
+        row also carries "You" and the display name in this cell, so it is the cell that
+        says whose row this is, and an email address is the widest thing on the table.
+      */
+      pin: true,
       render: (a) => (
         <span style={{ display: 'inline-block', maxWidth: '100%', minWidth: 0 }}>
           <span style={{ display: 'block' }}>{a.name || '-'}</span>
@@ -251,8 +267,8 @@ export default function AdminsTab() {
     and none of the three write permissions — 0004's matrix reserves administering
     administrators for SUPER_ADMIN alone — so for him this would be a whole column of dashes
     headed "Actions", which is a column that exists to say he cannot do anything. Below 900px
-    it would be worse: DataTable prints every column as a labelled line on the row's card, so
-    each administrator would carry a line reading "Actions -".
+    it would be worse: the table scrolls sideways there, so an empty last column is a column
+    an ADMIN would swipe the whole width of the row to reach and find nothing in.
   */
   if (can('roles.assign') || can('admins.disable') || can('admins.update')) {
     columns.push({

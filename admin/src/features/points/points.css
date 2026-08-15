@@ -58,7 +58,10 @@
 .p4-table td { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
 
 /* The code column is the row's identity and is read down the column, so it never wraps: '4.10'
-   broken across two lines stops being a code. */
+   broken across two lines stops being a code. It is also the column Level4Table marks `.is-pin`,
+   which is the same claim made to a second audience - below 900px the table scrolls sideways and
+   the code is what must stay on screen, because a row of two unlabelled price boxes belongs to
+   nothing without it. */
 .p4-table td:first-child { white-space: nowrap; font-weight: var(--fw-semi); }
 
 /* A price cell is as narrow as five digits and a spinner, so the title column keeps the room.
@@ -231,6 +234,15 @@
    and never carries it alone (§43). */
 .pts-bonus-preview-table tr.is-on { background: var(--brand-50); }
 
+@media (max-width: 900px) {
+  /* The pinned cell has to repeat the tint, for the reason admin.css restates every row
+     background on `.is-pin`: a sticky cell is painted over the cells sliding beneath it, so it
+     needs an opaque ground of its own and takes the card surface by default. Without this line
+     the chosen row would be tinted everywhere except the one cell that never scrolls away, which
+     reads as the tint having been applied to the wrong row. */
+  .pts-bonus-preview-table tr.is-on td.is-pin { background: var(--brand-50); }
+}
+
 /* ---------------------------------------------------------------- configuration history */
 
 /*
@@ -269,6 +281,15 @@
   one the layout engine will make a character wide when five columns compete for a row. The
   window is the widest floor because it holds two dates and the separator between them, and a
   range folded across two lines stops reading as a range.
+
+  There is deliberately no mobile override of these. There used to be one: below 900px the panel
+  turned every row into a stack of label/value cards, each value on its own full-width line, and
+  a 210px floor there only made the card wider than the phone. That layout is gone - admin.css
+  now keeps the table a table at every width and lets it scroll sideways under a pinned identity
+  column - so on a phone these floors do exactly what they do on a laptop, which is stop five
+  columns being squeezed into one character each. The width they cost is paid for by a swipe
+  rather than by an overflowing page, and the `nowrap` on the window is if anything more
+  necessary down there, where the column is narrowest.
 */
 .pts-cfg-c-version { min-width: 110px; }
 .pts-cfg-c-window { min-width: 210px; white-space: nowrap; }
@@ -281,20 +302,6 @@
    sentence of four is one nobody finishes reading. */
 .pts-cfg-changes { margin: 0; padding-inline-start: var(--sp-4); }
 .pts-cfg-changes li { margin: 0; }
-
-@media (max-width: 820px) {
-  /* The floors above are desktop column widths. Below admin.css's own card breakpoint each value
-     sits on its own labelled line, where a 210px floor only makes the card wider than the phone -
-     and the date range has the whole width to wrap into, so it no longer needs protecting. */
-  .pts-cfg-c-version,
-  .pts-cfg-c-window,
-  .pts-cfg-c-values,
-  .pts-cfg-c-changes {
-    min-width: 0;
-    max-width: none;
-    white-space: normal;
-  }
-}
 
 @media (max-width: 640px) {
   /* The save bar is the one thing on a phone that must not eat the screen: on a 640px-tall

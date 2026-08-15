@@ -336,7 +336,18 @@ function parseSigned(textValue) {
 
 const searchField = { marginBottom: 'var(--sp-3)', flex: '1 1 240px' };
 
-/** The button lines up with the box beside it rather than with its label. */
+/**
+ * The button lines up with the box beside it rather than with its label.
+ *
+ * `0 0 auto` is kept here, and deliberately, where `checkField` in RuleFields.jsx had to give it
+ * up. The failure that constant had is a field that cannot shrink around a *sentence*: a hint of
+ * forty words sizes to max-content, refuses to give any of it back, and pushes the page sideways.
+ * This field holds one button whose longest state is the word "Searching…", so its max-content is
+ * a little over 100px - narrower than the narrowest card this page has - and there is nothing in
+ * it that a shrink factor could usefully take away. Refusing to shrink is what keeps the button
+ * from being squeezed into two lines when the search box beside it is still greedy for width,
+ * which is the whole reason the two are on one row.
+ */
 const buttonField = { marginBottom: 'var(--sp-3)', flex: '0 0 auto', justifyContent: 'flex-end' };
 
 const amountField = { marginBottom: 'var(--sp-3)', flex: '0 1 200px' };

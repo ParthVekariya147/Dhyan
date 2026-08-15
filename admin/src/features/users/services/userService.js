@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { saveError } from '../../../lib/errors';
 
 /**
  * યુવક data access. Every function here is bounded — none can return 2,000 rows (§15, §18).
@@ -307,7 +308,327 @@ export async function getUsersByIds(ids) {
   return out;
 }
 
-function toUser(v) {
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * Test accounts (0040)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Some accounts exist only to try the app. They behave exactly like a real યુવક — they sign
+ * in, they earn points, they write progress — and they must appear in no total, no ranking,
+ * no list and no export, because a report is a thing people act on and three invented yuvaks
+ * in it is three yuvaks that were never there.
+ *
+ * Almost none of that is this file's problem, and that is the point of how 0040 was built.
+ * `public.yuvaks` — the TABLE constant at the top, which the list, the counts and the export
+ * already read — gained one more term and now excludes test accounts too. So the yuvak list
+ * became correct without a line of admin/src changing, and nothing above this comment had to
+ * be touched.
+ *
+ * What is left is the other side of it: the one screen that *does* list them, and the two
+ * writes that move an account between the two populations.
+ */
+
+/*
+  The view that lists only test accounts. Same columns as `yuvaks`, deliberately, so one
+  DataTable and one row mapper serve both screens.
+
+  It is NOT a table and it does NOT carry `is_test`. Both halves matter here. `test_yuvaks` is
+  `profiles_level4` filtered by id against the marked rows, and `profiles_level4` is a 0014
+  view defined as `select p.*, …` — a view freezes the column list that `*` expanded to on the
+  day it was created, so the three columns 0040 added to `profiles` in 2026 are simply not in
+  it and never will be. 0040 says so in a comment beside the view and explains why re-creating
+  it is a `drop … cascade` through every dependent view rather than a one-line fix.
+
+  The consequence is small but has to be handled honestly rather than assumed: selecting
+  `is_test` or `test_marked_at` from this view is a 42703 (undefined column) at runtime, not a
+  null. Which is why listTestUsers() reads the marks separately — see readTestMarks().
+*/
+const TEST_TABLE = 'test_yuvaks';
+
+/*
+  …and the table the flag actually lives on.
+
+  A third constant beside TABLE and LOOKUP, and for a third reason. TABLE is the population
+  that counts, LOOKUP is how a person already on screen is named, and MARKS is where the two
+  columns that say "this one does not count" are physically stored. Only the marking screen
+  touches it, and only for those columns.
+
+  This is also the one write in the whole of userService. §19 keeps the panel read-only over
+  people and that has not changed: nothing here edits a name, a mobile number or a score. It
+  sets a flag that decides whether an account is counted, which is bookkeeping about the
+  account rather than an edit of the person's record.
+*/
+const MARKS = 'profiles';
+
+/**
+ * The whole list of test accounts, and it fits.
+ *
+ * No pager, for the same reason listAdmins() has none: this is a handful of rows by
+ * construction — if it ever holds hundreds, something has gone wrong that a Pager would
+ * politely help you page through. The cap exists anyway, because "there are only ever a few"
+ * is an assumption, and it is reported rather than silently applied.
+ */
+export const TEST_LIST_CAP = 200;
+
+export async function listTestUsers({ term = '' } = {}) {
+  const q = supabase.from(TEST_TABLE).select('*');
+
+  // The same predicate the yuvak list and the export use, not a second one written here. A
+  // search that means "a ten-digit string is a mobile" on one tab and something else on the
+  // next is how two lists of the same people start disagreeing.
+  const applied = applyTerm(q, term);
+
+  // One extra row, exactly as listAdmins() does, so "the cap was reached" is answered without
+  // a second count query.
+  const { data, error } = await (applied.byName
+    ? applied.q.order('name')
+    : applied.q.order('created_at', { ascending: false })
+  ).range(0, TEST_LIST_CAP);
+  if (error) throw error;
+
+  const all = data || [];
+  const page = all.slice(0, TEST_LIST_CAP);
+  const marks = await readTestMarks(page.map((r) => r.id));
+
+  return {
+    // `isTest: true` is stated rather than read, and it is not a shortcut: every row here came
+    // out of a view whose entire definition is "the profiles where is_test", so it is true of
+    // all of them by construction — and the column itself is not in the view to be read. See
+    // TEST_TABLE above.
+    rows: page.map((r) => toUser(r, { isTest: true, testMarkedAt: marks.get(r.id) || null })),
+    truncated: all.length > TEST_LIST_CAP,
+    cap: TEST_LIST_CAP,
+  };
+}
+
+/**
+ * When each of these accounts was marked — the one column the list needs and the view cannot
+ * give it.
+ *
+ * A second round trip is a real cost and it is paid deliberately. The alternative was reading
+ * the whole screen from `profiles` instead of from `test_yuvaks`, which would mean this tab
+ * computing "who is a test account" for itself out of a raw table while every other screen
+ * asks the view — two definitions of the same population, and the moment they disagree the
+ * panel is showing somebody in a list he is not in. One extra `in` over a handful of ids is
+ * cheaper than that in every sense that matters.
+ *
+ * Not batched, unlike getUsersByIds(): TEST_LIST_CAP is 200, which is exactly ID_BATCH, so
+ * this can never build a URL longer than the one that function already sizes for.
+ *
+ * A failure here is thrown rather than shrugged off. It cannot realistically happen on its
+ * own — `test_yuvaks` is security_invoker over the same `profiles` policy this reads, so a
+ * refusal would have emptied the list one line above — and a "Marked on" column silently full
+ * of dashes would read as "nobody knows", which is a different and untrue statement.
+ */
+async function readTestMarks(ids) {
+  if (!ids.length) return new Map();
+  const { data, error } = await supabase.from(MARKS).select('id, test_marked_at').in('id', ids);
+  if (error) throw error;
+  return new Map((data || []).map((r) => [r.id, r.test_marked_at || null]));
+}
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * Marking an account, and reading back what actually happened
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The re-read is the whole function. Everything else is one UPDATE.
+ *
+ * `profiles_guard_test_flag()` (0040) is a BEFORE UPDATE trigger that *holds* `is_test` when
+ * the caller does not hold `users.test`: it copies the old value back over the new one and
+ * returns the row. It does not raise. That is the right behaviour for the trigger — it matches
+ * `profiles_guard_status()`, and the યુવક app sends whole profile rows, so raising would break
+ * saves that are perfectly legitimate and touched nothing — but it means PostgREST answers
+ * `200, no error` to a write that was refused.
+ *
+ * The RLS policy can produce the same silence from the other direction: `own profile updatable`
+ * is `id = auth.uid() or has_permission('users.update')`, and an UPDATE that matches no row
+ * under the policy is zero rows affected, not a 403.
+ *
+ * So a client that treated "no error" as "saved" would tell a COORDINATOR his colleague is now
+ * a test account, leave him counted in every report, and give nobody a reason to look again.
+ * This reads the row back and answers from the row.
+ *
+ * The permission is still enforced entirely in the database — this is the panel finding out
+ * what the database decided, not the panel deciding.
+ */
+export async function setTestAccount(userId, isTest) {
+  const want = !!isTest;
+
+  /*
+    Exactly the one column, and never `test_marked_at` or `test_marked_by` alongside it. The
+    trigger stamps both from `now()` and `auth.uid()`, which is the only clock and the only
+    identity that cannot be lied to; sending our own would be a client asserting who did
+    something and when.
+  */
+  const { error } = await supabase.from(MARKS).update({ is_test: want }).eq('id', userId);
+  if (error) throw error;
+
+  const { data, error: readError } = await supabase
+    .from(MARKS)
+    .select('id, is_test, test_marked_at')
+    .eq('id', userId)
+    .maybeSingle();
+  if (readError) throw readError;
+
+  if (!data) {
+    throw refusal(
+      'This account could not be read back after the change, so there is no way to say whether it was applied. Reload the list and look again before trying a second time.'
+    );
+  }
+
+  if (!!data.is_test !== want) {
+    // The silent hold, said out loud. Worded for both routes into it - the trigger and the
+    // policy - because from here they are indistinguishable and both mean the same thing to
+    // the person reading: the change did not happen and pressing the button again will not
+    // make it happen.
+    throw refusal(
+      want
+        ? 'The database refused to mark this account. Marking one needs the Super Admin permission for test accounts, and this session does not hold it. Nothing was changed.'
+        : 'The database refused to return this account to normal. It needs the Super Admin permission for test accounts, and this session does not hold it. Nothing was changed.'
+    );
+  }
+
+  return { id: data.id, isTest: !!data.is_test, testMarkedAt: data.test_marked_at || null };
+}
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * Purging one, which takes two systems
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * This was written first as a plain `supabase.rpc('admin_purge_test_account')`, and that was
+ * wrong in a way worth recording rather than quietly fixing.
+ *
+ * The RPC does delete the profile and, by cascade, every point transaction, daily record,
+ * attempt, revision and progress row behind it — all of the application's data, and it is
+ * where the entire safety argument lives (it refuses unless the caller holds `users.purge`
+ * AND the row is already marked `is_test`, so a real યુવક cannot be reached by it at all).
+ *
+ * What it cannot touch is the `auth.users` row, which belongs to GoTrue in a schema this
+ * application does not own. Left behind, that is not a tidy-up job: the credential still
+ * works, `src/lib/auth.jsx` sees a signed-in user with no profile — the *unregistered* state —
+ * and the account registers itself again and takes a fresh place in everybody's numbers.
+ * "Purged" has to mean the account is gone.
+ *
+ * So it goes through netlify/functions/purge-test-account.js, which calls the RPC with the
+ * caller's own token (the database checks the permission, the is_test guard and writes the
+ * audit row against the person actually signed in) and only then deletes the login with the
+ * secret key. Same shape as createAdmin() next door, and for the same reason: a secret key in
+ * a browser bundle is a secret key published on the internet (§50).
+ *
+ * ── 207 is not a failure ────────────────────────────────────────────────────
+ *
+ * If the data went and the login did not, the endpoint answers 207 with the summary. That is
+ * returned, not thrown, and `authDeleted: false` is how the caller knows. Calling it an error
+ * would have somebody retry a purge against an account that no longer exists; calling it a
+ * success would leave a working credential that nobody knows about. It is its own outcome and
+ * the screen says so in its own words.
+ */
+export async function purgeTestAccount(userId) {
+  /*
+    getSession() rather than a token kept in a module variable: supabase-js refreshes the
+    access token in the background, and a copy taken at sign-in would be an hour stale by the
+    time somebody purges an account — which the endpoint would correctly answer as
+    not-authenticated, on a screen where the session is plainly fine.
+  */
+  const { data: auth, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  const token = auth?.session?.access_token;
+  // Refused here rather than sent anonymously, so the sentence read is about a lapsed session
+  // and not about a permission the person does hold.
+  if (!token) throw apiError('not-authenticated');
+
+  const res = await fetch('/api/purge-test-account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ userId }),
+  });
+
+  const body = await res.json().catch(() => ({}));
+
+  // The half-done state, before the !res.ok branch: 207 is not ok, and falling through would
+  // turn "the data is gone" into "something went wrong, try again".
+  if (res.status === 207) return { ...purgeSummary(body?.summary), authDeleted: false };
+
+  if (!res.ok) {
+    // `code` with `error` as a fallback, exactly as createAdmin() reads it - the two endpoints
+    // answer with the same envelope and a client that reads one spelling turns every named
+    // refusal into the generic sentence.
+    const code = body?.code ?? body?.error;
+    console.error('[admin] purge-test-account refused', res.status, code || '', body?.detail || '');
+    throw apiError(code, body?.detail);
+  }
+
+  return { ...purgeSummary(body), authDeleted: body?.authDeleted !== false };
+}
+
+/** snake_case off the wire, camelCase above it — the same translation toUser() does. */
+const purgeSummary = (s) => ({
+  id: s?.id || null,
+  name: s?.name || '',
+  email: s?.email || '',
+  pointsRemoved: Number(s?.points_removed) || 0,
+  daysRemoved: Number(s?.days_removed) || 0,
+});
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * What was refused, said in a sentence
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Shaped after adminWriteError() in adminService.js beside it, and needed for the same reason:
+ * saveError() words a SQLSTATE, and neither of the two failures that matter here is one.
+ *
+ * A refusal that arrived as a *held value* has no code at all — it is this file noticing that
+ * the row came back unchanged — and saveError() would answer it with "There was a problem
+ * saving. Please try again.", which is wrong twice over: nothing went wrong, and trying again
+ * is the one thing guaranteed not to help.
+ *
+ * A refusal from the purge endpoint arrives as an HTTP code in a JSON envelope, which
+ * saveError() has never heard of either.
+ *
+ * Everything genuinely from Postgres — a 42501 from the policy on a direct write, a dead
+ * network — still falls through to errors.js, which already words all of it.
+ */
+const refusal = (text) => Object.assign(new Error(text), { refusal: text });
+
+const apiError = (code, detail) =>
+  Object.assign(new Error(`purge-test-account: ${code || 'unknown'}`), {
+    apiCode: code || '',
+    apiDetail: detail || '',
+  });
+
+/** The endpoint's codes, worded for the person who pressed the button. */
+const PURGE_ERRORS = {
+  'not-authenticated': 'Your session has expired. Please log in again and try once more. Nothing was deleted.',
+  'not-permitted': 'You do not have permission to purge an account. Nothing was deleted.',
+  // The guard that makes this feature safe, and the message says which half is missing rather
+  // than sounding like a fault: the account has to be marked as a test account first.
+  'not-a-test-account':
+    'This is not a test account, so it cannot be purged. Only an account already marked as a test account can be deleted this way - which is what stops a real yuvak from ever being reached by it.',
+  'no-such-account': 'This account no longer exists. It may already have been purged - reload the list.',
+  'bad-request': 'The account could not be identified. Reload the list and try again.',
+  'setup-incomplete': 'Purging is not switched on for this deploy yet. Please inform whoever built the panel.',
+  'server-error':
+    'The server could not complete the purge. Reload the list to see what state the account is in, and tell whoever built the panel if it keeps happening.',
+};
+
+export function testWriteError(e) {
+  // First, because it is the only one of the three that carries its own finished sentence.
+  if (e?.refusal) return e.refusal;
+
+  if (e?.apiCode && Object.prototype.hasOwnProperty.call(PURGE_ERRORS, e.apiCode)) {
+    return PURGE_ERRORS[e.apiCode];
+  }
+  return saveError(e);
+}
+
+/**
+ * @param {object} v      a row from `yuvaks`, `test_yuvaks` or `profiles_level4`
+ * @param {object} extra  facts the row cannot carry - see `isTest` below
+ */
+function toUser(v, extra = {}) {
   return {
     id: v.id,
     smk: v.smk || '',
@@ -340,5 +661,27 @@ function toUser(v) {
     level4GateOpen: !!v.level4_gate_open,
     level4Unlocked: !!v.level4_unlocked,
     createdAt: v.created_at || null,
+    /*
+      0040's two facts about whether this account is counted, and the one pair of fields here
+      that usually cannot come from the row.
+
+      All three views this mapper is pointed at are built on `profiles_level4`, which is a
+      `select p.*` whose column list was frozen by 0014, long before 0040 added `is_test` to
+      `profiles` — so `v.is_test`
+      and `v.test_marked_at` are `undefined` for every row that arrives from a view, and
+      *selecting* them would be a 42703 rather than a null. `extra` is how a caller that knows
+      better supplies them: listTestUsers() reads the marks from `profiles` and passes them in.
+
+      Defaulting from the row anyway, rather than from `extra` alone, so that pointing this
+      mapper at `profiles` itself one day does the obvious thing instead of quietly reporting
+      every account as a real one.
+
+      Both are kept even though the second is nearly implied by the first: `isTest` is whether
+      the account counts, `testMarkedAt` is when somebody decided that, and the Test accounts
+      screen shows the second precisely because a mark nobody can date is a mark nobody can
+      question.
+    */
+    isTest: extra.isTest ?? !!v.is_test,
+    testMarkedAt: extra.testMarkedAt ?? v.test_marked_at ?? null,
   };
 }

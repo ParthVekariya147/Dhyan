@@ -75,8 +75,10 @@
 
 /* A figure with its badge underneath, rather than beside: "87 / 108" and "In progress" on
    one line makes the row taller than the number is wide and pushes the next column off a
-   1200px screen. Aligned to the end because both cells that use it are numeric, and below
-   ~820px DataTable's card layout puts the value at the end of the line too. */
+   1200px screen. Aligned to the end because both cells that use it declare `align: 'right'`,
+   so the badge sits under the last digit of the figure it describes instead of drifting to
+   the start of a cell whose own text is already at its end - at every width, since the table
+   is a table on a phone too. */
 .pf-cell {
   display: inline-flex;
   flex-direction: column;
@@ -216,57 +218,88 @@
 }
 
 /*
-  ---------------------------------------------------------------- the mobile card
+  ---------------------------------------------------------------- the phone's six columns
 
-  Below ~820px admin.css turns every row into a stack of label/value pairs. Twelve of those
-  is a card a thumb scrolls past rather than reads, so the phone gets the six the brief
-  names - User, SMK, Remembered, %, Level 4, Last activity - and the rest are hidden.
+  Below ~900px admin.css keeps this a table: it scrolls sideways under the thumb with the
+  યુવક's name pinned to the leading edge (see the long note in that file for why the card
+  stack it replaced was the wrong trade). Hiding a column is worth MORE under that layout,
+  not less - every column dropped here is a column nobody has to swipe past to reach the next
+  one, and nineteen columns is a lot of swiping to pay for figures a સંચાલક reads at a desk.
+  So the phone keeps the six the brief names - User, SMK, Remembered, %, Level 4, Last
+  activity - and the twelve below stand down until there is a screen wide enough for them.
+
+  Each selector reaches the `th` and the `td` together, and that is not tidiness. The header
+  row is painted at this width now, so a `td` hidden on its own leaves its heading standing
+  and every column after it lines up under the wrong one - a worse bug than the width the
+  rule was saving. `DataTable` writes the same `data-label` onto both halves, and puts
+  `column.className` on both, so one selector catches the pair and the two cannot drift.
 
   Hidden in CSS and not dropped from `tableColumns`, deliberately. The same array builds the
-  CSV and the Excel file, and a export that changed shape depending on the width of the
+  CSV and the Excel file, and an export that changed shape depending on the width of the
   window it was pressed in would be indefensible. The data is fetched, exported and simply
-  not painted; tapping the card opens the detail page, where all of it is.
+  not painted; tapping the row opens the detail page, where all of it is.
 
-  The breakpoint matches admin.css's own card breakpoint. If that moves, this must move with
-  it, which is why the number is written here rather than left implicit.
+  The breakpoint matches the one admin.css pins the table at. If that moves, this must move
+  with it, which is why the number is written here rather than left implicit.
 */
-@media (max-width: 820px) {
-  .dt td.pf-c-city,
-  .dt td.pf-c-zone,
-  .dt td[data-label='Level 1'],
-  .dt td[data-label='Level 2'],
-  .dt td[data-label='Level 3'],
-  .dt td[data-label='Out of (darshan)'],
-  .dt td[data-label='Revision remaining'],
-  .dt td[data-label='All-level attempts'],
-  .dt td[data-label='Level 4 gate'],
-  .dt td[data-label='Points'],
-  .dt td[data-label='Registered'],
-  .dt td[data-label='Account status'] {
+@media (max-width: 900px) {
+  .dt .pf-c-city,
+  .dt .pf-c-zone,
+  .dt [data-label='Level 1'],
+  .dt [data-label='Level 2'],
+  .dt [data-label='Level 3'],
+  .dt [data-label='Out of (darshan)'],
+  .dt [data-label='Revision remaining'],
+  .dt [data-label='All-level attempts'],
+  .dt [data-label='Level 4 gate'],
+  .dt [data-label='Points'],
+  .dt [data-label='Registered'],
+  .dt [data-label='Account status'] {
     display: none;
   }
 
-  /* The floors above are desktop column widths. On a card each value sits on its own line,
-     so a 180px floor only makes the card wider than the phone. */
-  .pf-c-user,
-  .pf-c-smk,
-  .pf-c-city,
-  .pf-c-zone,
-  .pf-c-remembered,
-  .pf-c-pct {
-    min-width: 0;
-  }
+  /*
+    The floors above stay, and only this one is lifted.
 
-  /* The name may use the whole card rather than 22ch of it - and it is the way into the
-     detail page, so on a phone it has to be a target a thumb can actually hit. A 20px line
-     of text is a link a mouse can hit and a finger cannot (§36). */
+    In a table that scrolls, a floor is right: a column narrower than its longest value
+    either wraps or clips, and the width it costs is paid for once by a swipe rather than on
+    every row by an unreadable cell. `.pf-c-smk`, `.pf-c-remembered` and `.pf-c-pct` are
+    therefore left exactly as the desktop sets them, and `.pf-c-city` / `.pf-c-zone` are not
+    named at all because they are hidden three rules above.
+
+    The name is the exception, and only because it is the pinned column. admin.css caps
+    `.is-pin` at 46vw so the swipe always has something left to reveal, and `min-width` beats
+    `max-width` in the cascade - a 180px floor would win that argument on a 320px screen and
+    hold more than half the viewport still. Measured at 360px: with the floor lifted the cell
+    settles at 165px, which is the cap doing its job.
+  */
+  .pf-c-user { min-width: 0; }
+
+  /*
+    The name is the way into the detail page, so on a phone it has to be a target a thumb can
+    actually hit: a 20px line of text is a link a mouse can hit and a finger cannot (§36).
+    admin.css already gives every `tbody td` a `--tap` height here, so the link does not need
+    a height of its own - it needs to *fill* the one it is already sitting in, which is what
+    dropping the cell's vertical padding and giving the link the row's own line-height does.
+    A `min-height` instead would stack 44px of link on top of 2 × 8px of padding and make
+    every row 60px, which is a third more scrolling for nothing.
+
+    `display: block` and not `display: flex`, which is the obvious way to write "fill the row"
+    and is wrong here: `text-overflow` has no effect on a flex container's anonymous text
+    item, so a long name is chopped mid-letter with no ellipsis to say it was. Checked in
+    Chrome at 360px, both ways round - the block version ellipsizes, the flex version reads
+    "Parthkumar Rameshbh" and stops.
+
+    It keeps `nowrap` and its ellipsis for the same reason the rest of the table does: a name
+    allowed to wrap makes a two-line row, and rows of different heights are exactly what
+    stops the eye running down a column. 22ch is left in place as the outer limit; on a phone
+    the pin's 46vw is the tighter of the two and wins on its own.
+  */
+  .dt td.pf-c-user { padding-block: 0; }
   .dt td.pf-c-user > a,
   .dt td.pf-c-user > span {
-    max-width: none;
-    white-space: normal;
-    display: flex;
-    align-items: center;
-    min-height: var(--tap);
+    display: block;
+    line-height: var(--tap);
   }
 }
 

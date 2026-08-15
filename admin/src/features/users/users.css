@@ -1,0 +1,57 @@
+/* Users — the phone shape of the યુવક table.
+ *
+ * Loaded only by UsersTab, so it rides that page's chunk and costs nothing on any other
+ * screen (§51). Every value below is a token from admin.css, and the one breakpoint is one
+ * of the four admin.css documents — 1200 / 900 / 640 / 380 — and no other. A feature
+ * stylesheet that invents a fifth breakpoint is how two parts of the same console start
+ * disagreeing about what "a phone" is.
+ *
+ * There is nothing in this file but a hide rule. Everything else about this table — the
+ * sideways scroll, the pinned Name column, the --tap row height — belongs to `.dt` in
+ * admin.css and is deliberately not restated here.
+ */
+
+/*
+  ---------------------------------------------------------------- what a phone does not show
+
+  The યુવક list carries eight columns: SMK, Name, Mobile, Email, Subzone, Registered, Status
+  and Level 4. Below 900px they are still eight columns of a table that scrolls sideways
+  under one pinned Name, and every column left in is a column a thumb has to travel past to
+  reach the next one. Two of them are bookkeeping and are hidden here:
+
+    Email        It answers no question this list is read for. It is the account's recovery
+                 route (§2.1) and nothing else — which is exactly why §13 keeps it out of the
+                 export altogether, the one field with no opt-in checkbox. Searching by email
+                 still works: the search box above takes a whole address and the query runs in
+                 Postgres, so hiding the column costs nothing that anybody was using it for.
+                 It is also the widest column on the table by a distance, so it is the one
+                 that pushes every column after it furthest out of reach.
+    Registered   A date the list is filtered BY rather than read FOR. The two date fields
+                 above already narrow the list to a range, so the column mostly repeats a
+                 constraint the સંચાલક just typed; when the actual day matters it is on the
+                 profile, one tap away, to the minute.
+
+  SMK, Mobile, Subzone, Status and Level 4 all stay. SMK is a real identifier when it is
+  present (§4) and hiding an identifier is a different act from hiding bookkeeping; Mobile is
+  the one column somebody standing in a hall actually acts on; and Status and Level 4 are the
+  two facts that make a row worth stopping at.
+
+  ── Hidden in CSS, never dropped from the column array ──────────────────────
+
+  `columns` in UsersTab.jsx is also what `exportColumns()` sits beside and what the export
+  note promises, and a file whose shape depended on how wide the window was when the button
+  was pressed would be indefensible. The rows are fetched and simply not painted.
+
+  ── The header goes with its cells ──────────────────────────────────────────
+
+  DataTable puts `column.className` on the `th` as well as on every `td`, so one selector
+  reaches the pair. That is not a convenience: a `td` hidden on its own leaves its header
+  behind, and every column after it then prints under the wrong heading — a table that is
+  confidently, silently wrong, which is worse than the crowding this rule is fixing.
+*/
+@media (max-width: 900px) {
+  .dt .ut-c-email,
+  .dt .ut-c-registered {
+    display: none;
+  }
+}

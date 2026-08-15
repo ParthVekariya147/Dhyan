@@ -536,13 +536,69 @@ await page.setViewport({ width: 1440, height: 900 });
 await load(1440, 900);
 await page.screenshot({ path: path.join(SHOTS, "progress-1440.png"), fullPage: true });
 
-console.log('\n[7] 390px - the phone gets cards, not a nineteen-column table');
+/*
+  [7] 390px.
+
+  This section used to assert the opposite of what it asserts now, and the flip is the point
+  rather than an embarrassment to be hidden: the phone used to get CARDS - `thead` hidden,
+  each row a stack of label/value lines - and it now gets a dense table that scrolls sideways
+  with its identity column pinned. admin.css's 900px block carries the full argument; the
+  short version is that nineteen columns became nineteen stacked lines, roughly 230px of
+  scrolling per યુવક, and a column that cannot be read downwards is a column that cannot be
+  compared, which is what a report is for.
+
+  So `thead` must now be PRESENT, and the two properties that replace "is it a card" are
+  measured instead: the identity column is pinned and actually sticky, and the sideways
+  scrolling belongs to the table's own wrap and never to the page.
+*/
+console.log('\n[7] 390px - a dense table with its identity column pinned, not nineteen stacked lines');
 await load(390, 844, true);
 const mobile = await measure();
 check('the table rendered on a phone', mobile.rendered);
 if (mobile.rendered) {
-  check('thead is hidden (card layout is active)', mobile.theadDisplay === 'none', mobile.theadDisplay);
+  check('thead is visible (the table is still a table)', mobile.theadDisplay !== 'none', mobile.theadDisplay);
   check('the page does not scroll sideways', mobile.pageOverflow <= 1, `${mobile.pageOverflow}px over`);
+  check('the table itself may', /auto|scroll/.test(mobile.wrapOverflowX || ''), mobile.wrapOverflowX);
+
+  const pin = await page.evaluate(() => {
+    const heads = [...document.querySelectorAll('table.dt thead th')];
+    const pinned = heads.filter((th) => th.classList.contains('is-pin'));
+    const shown = heads.filter((th) => getComputedStyle(th).display !== 'none');
+    const cells = [...document.querySelectorAll('table.dt tbody tr')].map((tr) =>
+      [...tr.querySelectorAll('td')]
+        .filter((td) => getComputedStyle(td).display !== 'none')
+        .reduce((n, td) => n + (td.colSpan || 1), 0));
+    return {
+      count: pinned.length,
+      // Trimmed of the sort affordance: a sortable header's text is "User ⇅", and an
+      // assertion about which column is pinned should not be reading an arrow.
+      label: pinned[0]?.textContent.replace(/[⇅▲▼]/g, '').trim() || null,
+      position: pinned[0] ? getComputedStyle(pinned[0]).position : null,
+      headers: shown.length,
+      widest: Math.max(...cells), narrowest: Math.min(...cells),
+    };
+  });
+  check('exactly one column is pinned', pin.count === 1, `${pin.count} pinned`);
+  /*
+    It must be the column naming the person, not the SMK beside it. This page heads that
+    column "User" rather than "Name", so the assertion accepts either spelling — what it is
+    actually defending is that the pin never falls back to `columns[0]`, which here is the
+    SMK a large share of યુવકો do not have. A pinned column of dashes holding the screen
+    while the names scroll away is the one outcome the pin exists to prevent.
+  */
+  check('the pinned column is the one naming the person', /user|name/i.test(pin.label || ''), String(pin.label));
+  check('and it actually computes sticky', pin.position === 'sticky', String(pin.position));
+  /*
+    The assertion that catches the fault this redesign could most easily ship. The rules that
+    drop bookkeeping columns on a phone used to hide only the `td`, which was harmless while
+    the header was gone; with the header back, a `td` hidden without its `th` slides every
+    column after it under the wrong heading - a name printed under "Mobile", with nothing on
+    screen to say so.
+  */
+  check('every row spans exactly as many columns as there are headers',
+    pin.widest === pin.headers && pin.narrowest === pin.headers,
+    `rows span ${pin.narrowest}-${pin.widest}, headers ${pin.headers}`);
+
   const split = mobile.singleWordCells.filter((c) => c.lines > 1);
   check('no word is split on a phone either', split.length === 0,
     split.map((c) => `"${c.text}" on ${c.lines}`).join('; '));

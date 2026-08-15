@@ -349,8 +349,11 @@ export default function Level3Page() {
    * 0035 whitelists nine sorts and "Revisions <day>" is not among them, and a header that appeared
    * to sort and did not would be worse than a header that plainly does not.
    *
-   * Every label reads on its own: below ~820px DataTable turns each row into a card of
-   * label/value pairs, and "Ticks" beside a lone number says neither which ticks nor over what.
+   * Every label reads on its own, and it has three readers rather than one: it is the column
+   * heading, it is the `data-label` DataTable writes onto the `th` and the `td` alike - which is
+   * what the mobile hide rules in ledger.css select on - and it is the header cell of the CSV and
+   * the Excel file, where there is no table around it at all. "Ticks (total)" and not "Ticks" is
+   * that last reader being served, and it is why the day columns name their day.
    */
   const columns = useMemo(
     () => [
@@ -359,6 +362,16 @@ export default function Level3Page() {
         sortKey: 'name',
         className: 'pl-c-user',
         label: 'Yuvak',
+        /*
+          The name identifies the row, so it is the column that stays put when the table is swiped
+          below 900px. It happens to be first as well, and it is still declared: the pin belongs to
+          the yuvak rather than to whatever position the columns end up in, and the alternative
+          candidate - SMK, beside it - is a code a large share of યુવકો simply do not have, so
+          pinning it would hold a column of dashes on screen while the names scrolled away. Eleven
+          of the thirteen columns here are counts, and a count with nobody's name against it is the
+          one thing this report must never leave on a phone screen.
+        */
+        pin: true,
         // `title` because the cell may ellipsize a long name (see .pl-c-user in ledger.css), and
         // an ellipsis with no way to read the rest is a value the સંચાલક cannot act on.
         render: (r) => (
@@ -527,9 +540,11 @@ export default function Level3Page() {
 
   /**
    * The projection DataTable is given. `key` becomes the sort token so `onSort` needs no lookup
-   * table, and `className` is carried through deliberately: this rebuilds each column as a fresh
-   * object, so anything not named here is silently dropped - and `className` is what the column
-   * width block in ledger.css matches on.
+   * table, and `className` and `pin` are carried through deliberately: this rebuilds each column
+   * as a fresh object, so anything not named here is silently dropped - `className` is what the
+   * column width block in ledger.css matches on, and `pin` is what keeps the yuvak's name on
+   * screen while the counts scroll under it. Dropping either is a silent loss rather than an
+   * error, which is why they are named with a note rather than left to be noticed.
    */
   const tableColumns = useMemo(
     () =>
@@ -540,6 +555,7 @@ export default function Level3Page() {
         sortable: !!c.sortKey,
         render: c.render,
         className: c.className,
+        pin: c.pin,
       })),
     [columns]
   );

@@ -316,14 +316,31 @@ export default function UserActivityPage() {
           <DataTable
             caption="Attempts submitted, newest first"
             /*
-              Every label reads on its own. Below 900px DataTable turns each row into a card
-              and prints these labels beside their values with no header row above them, so a
-              heading that only made sense under a column becomes a riddle on a phone.
+              Every label reads on its own. Seven columns do not fit a phone, so the last of
+              them are reached by swiping the table sideways and arrive alone at the edge of
+              the screen with nothing but their own header for context - a heading that only
+              made sense while its neighbours were on screen becomes a riddle there.
             */
             columns={[
               {
                 key: 'activityDate',
                 label: 'Date',
+                /*
+                  The column that does not move when this table is swiped on a phone.
+
+                  Whose record this is was settled by the page itself - one yuvak, named in
+                  the title and the breadcrumb - so the row's identity is not a person here,
+                  it is a day. Every other column is an attribute of that day's attempt:
+                  Level, Activity, Result and the counts all repeat down the page, and
+                  "Complete" pinned to the edge of the screen would say nothing about which
+                  attempt was complete. The date is what somebody reading a timeline is
+                  holding in their head, and swiping right from it means "and what happened
+                  on the 11th", which is the question this list is opened with.
+
+                  It is the first column too, so nothing changes today - written anyway,
+                  because DataTable's fallback is position rather than meaning.
+                */
+                pin: true,
                 // A plain 'YYYY-MM-DD'. dateGu() reads it as midnight UTC and renders it in
                 // IST, which is 5:30 am the same morning - the same calendar day, because
                 // India is ahead of UTC and never behind it.
@@ -417,13 +434,23 @@ export default function UserActivityPage() {
           <DataTable
             caption="Points awarded, newest first"
             columns={[
-              { key: 'activityDate', label: 'Date', render: (r) => dateGu(r.activityDate) },
+              {
+                key: 'activityDate',
+                label: 'Date',
+                // Pinned for the same reason as the attempts table above, and it has to be
+                // the same column in both: the two lists sit one under the other on one
+                // page, and a phone that anchored one of them to the day and the other to
+                // something else would read as two tables about different things.
+                pin: true,
+                render: (r) => dateGu(r.activityDate),
+              },
               {
                 key: 'title',
                 label: 'Activity',
-                // The level travels in the same cell as the name. Below 900px this row is a
-                // card and there is no neighbouring column to borrow context from, so
-                // "Revision" alone would not say which ladder rung it came from.
+                // The level travels in the same cell as the name. On a phone this column is
+                // reached by swiping and arrives with no neighbouring column in view to
+                // borrow context from, so "Revision" alone would not say which ladder rung
+                // it came from.
                 render: (r) => (
                   <>
                     {activityName(r)}

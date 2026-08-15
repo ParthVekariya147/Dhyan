@@ -113,13 +113,30 @@ export default function Level4Table({
       ) : (
         <div className="table-wrap">
           <table className="dt p4-table">
+            {/*
+              Built by hand rather than through DataTable, because every cell but the first two
+              holds a live control and DataTable's contract is a row of values. That means the two
+              things DataTable does for a phone have to be done here instead, and both are on the
+              header row below.
+
+              `data-label` on each `th`, matching the `td`s: it is what the per-page hide rules in
+              ledger.css select on, and what scripts/verify-admin-responsive.mjs reads to prove
+              every column is still named. The pair must be written the same way - a heading whose
+              label disagrees with its cells' is a column that would half-disappear.
+
+              `.is-pin` on Code, on the header and on the cell alike. Below 900px this table
+              scrolls sideways, and the code is the one thing on the row that identifies it: the
+              title can be blank on a કસોટી that is no longer published, and the three cells after
+              it are two unlabelled number boxes and a switch, which belong to nothing at all once
+              the code has scrolled off the screen.
+            */}
             <thead>
               <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Test</th>
-                <th scope="col">First award</th>
-                <th scope="col">Repeat</th>
-                <th scope="col">Points on</th>
+                <th scope="col" className="is-pin" data-label="Code">Code</th>
+                <th scope="col" data-label="Test">Test</th>
+                <th scope="col" data-label="First award">First award</th>
+                <th scope="col" data-label="Repeat">Repeat</th>
+                <th scope="col" data-label="Points on">Points on</th>
               </tr>
             </thead>
             <tbody>
@@ -162,8 +179,17 @@ function ActivityRow({ row, defaultValue, repeatEnabled, repeatDefault, onChange
 
   return (
     <tr>
-      <td className="mono">{row.code}</td>
-      <td>
+      {/* `data-label` on every cell, not decoration. It no longer prints - below 900px admin.css
+          keeps the `thead` and lets the table scroll sideways instead of folding each row into a
+          stack of labelled lines - but the attribute is still what the responsive check reads to
+          prove every column is named, and what a per-page rule would select on to drop a column
+          from the swipe. The same labels are on the `th`s above, so the two halves of a column
+          can never be hidden separately.
+
+          `.is-pin` marks the code as the row's identity, matching the header: it is the column
+          that stays put while the prices and the switch scroll under the thumb. */}
+      <td className="mono is-pin" data-label="Code">{row.code}</td>
+      <td data-label="Test">
         <span style={titleCell}>
           <span>{row.title || '-'}</span>
           <span style={badgeRow}>
@@ -175,7 +201,7 @@ function ActivityRow({ row, defaultValue, repeatEnabled, repeatDefault, onChange
           </span>
         </span>
       </td>
-      <td>
+      <td data-label="First award">
         <NumberField
           id={`p4-first-${row.code}`}
           ariaLabel={`First award for ${row.code}`}
@@ -187,7 +213,7 @@ function ActivityRow({ row, defaultValue, repeatEnabled, repeatDefault, onChange
           hint={inheritsFirst ? 'Using the Level 4 default' : 'Priced on its own'}
         />
       </td>
-      <td>
+      <td data-label="Repeat">
         <NumberField
           id={`p4-repeat-${row.code}`}
           ariaLabel={`Repeat award for ${row.code}`}
@@ -206,7 +232,7 @@ function ActivityRow({ row, defaultValue, repeatEnabled, repeatDefault, onChange
           }
         />
       </td>
-      <td>
+      <td data-label="Points on">
         {/* Per-activity on/off is membership of the `disabled` list, stored as the code itself.
             Switching one test off keeps both its prices exactly where they are. */}
         <label className="check" htmlFor={`p4-on-${row.code}`}>

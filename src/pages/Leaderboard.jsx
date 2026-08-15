@@ -1,4 +1,4 @@
-import { PERIOD_LABEL, useLeaderboard } from '../lib/leaderboard';
+import { PERIOD_LABEL, leaderboardHeading, useLeaderboard } from '../lib/leaderboard';
 import { gu } from '../lib/constants';
 /*
   Two stylesheets, and both are load-bearing.
@@ -27,9 +27,10 @@ import './leaderboard.css';
  *                `leaderboard(p_period)` for the window on screen. Both are this page's alone
  *                (§27: the home page must not load a board), so opening મુખપૃષ્ઠ costs nothing
  *                for them.
- * Visible        The period tabs when more than one is configured; then rank, name and points,
- *                with his own row marked; and, when he is not among the names, his own rank and
- *                points pinned at the foot.
+ * Visible        A heading naming the window and its length - "Today Top 5", both halves the
+ *                સંચાલક's; the period tabs when more than one is configured; then rank, name and
+ *                points, with his own row marked; when he is not among the names, his own rank
+ *                and points pinned at the foot; and one word of અભિનંદન to close the list.
  * Actions        Choose a window. Retry after a failure. Nothing on this page writes.
  * Persisted      Nothing at all, on the server or on the phone. This screen is a reader, and
  *                nothing about another યુવક is ever kept here (§13).
@@ -67,13 +68,39 @@ import './leaderboard.css';
  * §1 rule 4: this app only ever says ફક્ત આનંદ. A leaderboard is the single most likely place
  * in the project to break that, so the test applied to each sentence below was not "is it
  * accurate?" but "could a યુવક read this and feel measured against his brother?". That is why
- * the yuvak who has earned nothing this week is told what he does today will show here, and not
- * that he is missing; why nobody's position is described as having changed; and why the only
- * row given any emphasis at all is his own, and only so he can find himself without counting
- * down the list with a finger.
+ * nobody's position is described as having changed; why the only row given any emphasis at all
+ * is his own, and only so he can find himself without counting down the list with a finger; and
+ * why the list closes on અભિનંદન — the page's last word is congratulation for the names on it,
+ * addressed to the whole board and to nobody in particular.
+ *
+ * A યુવક who has earned nothing in the window used to be handed a sentence of his own here
+ * ("આ સમયગાળામાં તમારી નોંધ હજી થઈ નથી…"). It is gone, and its removal is the same rule applied
+ * one step further: a line that appears only for the યુવક with no points is a line that tells
+ * him he is the one it appeared for. He now reads what everybody else reads - the names, and
+ * અભિનંદન - and nothing on the page is addressed to what he has not done.
  */
 export default function Leaderboard() {
-  const { loading, error, enabled, periods, period, setPeriod, board, retry } = useLeaderboard();
+  const { loading, error, enabled, periods, period, setPeriod, topN, board, retry } = useLeaderboard();
+
+  /*
+    The heading is the સંચાલક's two choices read back as a title: which window, and how many
+    names. "Today Top 5" when he has set the board to the day and five names, "All Time Top 20"
+    when it is the all-time board of twenty - both halves come from
+    settings['levels'].leaderboard and neither is written here. Tapping a tab changes the first
+    half with the list under it, so the heading never describes a window the yuvak is not
+    looking at.
+
+    English, and the only English on the page. leaderboardHeading() carries the reasoning; the
+    short of it is that it was asked for in these words and "Top 5" is how a board is titled
+    here. Everything under it - the tabs, the ranks, the points, અભિનંદન - stays Gujarati, so
+    this is a title above the app rather than a crack in §14.
+
+    'ક્રમાંક' stays as the fallback and is not decoration: before the settings row arrives, and
+    on a board the સંચાલક has not switched on, there is no window and no length to name — and a
+    heading reading "Top" with a number nobody chose would be worse than the page's own name.
+    The bottom bar's label is 'ક્રમાંક' either way, so the route is still recognisable.
+  */
+  const heading = enabled && period ? leaderboardHeading(period, topN) : 'ક્રમાંક';
 
   /*
     Tabs only when there is a choice to make.
@@ -99,7 +126,7 @@ export default function Leaderboard() {
   return (
     <div className="lb-wrap">
       <header className="site-header">
-        <h1>ક્રમાંક</h1>
+        <h1>{heading}</h1>
         <div className="rule" />
       </header>
 
@@ -217,15 +244,21 @@ export default function Leaderboard() {
         )}
 
         {/*
-          He has earned nothing in this window, so there is no rank to report - which is a
-          different thing from being last, and is said in words rather than given a number.
+          The last word on the page, and it is congratulation.
 
-          Phrased forward: what he does today will be here. No count of what he has not done, no
-          'હજી શરૂ કર્યું નથી', nothing that reads as an accusation - the same sentence History's
-          empty state settled on, for the same reason.
+          Drawn whenever there are names, and addressed to all of them at once - never to one
+          યુવક, never to the top of the list, and never conditioned on whether the reader is on
+          the board. That is the whole design of it: a closing line that appears for some readers
+          and not others would be a line that reports something about whoever it appeared for,
+          which is exactly the failure §1 rule 4 is about. Every યુવક who opens ક્રમાંક reads the
+          same last word.
+
+          It also replaces the sentence that used to sit here for the યુવક with no points in this
+          window — see the note at the head of this file for why that one is gone rather than
+          reworded.
         */}
-        {!loading && !error && enabled && !emptyWindow && !board?.me && (
-          <p className="lb-quiet">આ સમયગાળામાં તમારી નોંધ હજી થઈ નથી. આજે તમે જે કરશો એ અહીં ઉમેરાશે.</p>
+        {!loading && !error && enabled && rows.length > 0 && (
+          <p className="lb-congrats">અભિનંદન</p>
         )}
       </div>
     </div>

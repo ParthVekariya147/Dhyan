@@ -737,6 +737,13 @@ export default function UserProgressDetailPage() {
                         // The number a yuvak actually reads, derived on read and stored
                         // nowhere. It, and not the stored id, is what he and the સંચાલક have
                         // in common when they talk about a દ્રશ્ય.
+                        //
+                        // Which is also why it is the column that stays put when this table
+                        // is swiped on a phone: it is the shortest thing on the row that
+                        // names which દ્રશ્ય the row is about, and the વર્ણન beside it is
+                        // already truncated. Pinning that વર્ણન instead would cost half the
+                        // screen and, being the second column, would slide over this one.
+                        pin: true,
                         render: (r) => <span className="mono">{r.displayIndex ? gu(r.displayIndex) : '-'}</span>,
                       },
                       {
@@ -923,7 +930,12 @@ export default function UserProgressDetailPage() {
               <DataTable
                 caption="Revisions submitted, newest first"
                 columns={[
-                  { key: 'date', label: 'Date', render: (r) => dateGu(r.date) },
+                  // The day is what identifies a revision to the person reading this - the
+                  // rest of the row is what happened on it - so it is the column that holds
+                  // its place when the table is swiped on a phone (§55). The submission
+                  // number beside it only means anything once you know which day it counts
+                  // within, which is the argument for pinning the day rather than it.
+                  { key: 'date', label: 'Date', pin: true, render: (r) => dateGu(r.date) },
                   {
                     key: 'n',
                     label: 'Revision on that day',
@@ -1012,7 +1024,9 @@ export default function UserProgressDetailPage() {
                   <DataTable
                     caption="Revisions gathered by business day, newest first"
                     columns={[
-                      { key: 'date', label: 'Date', render: (r) => dateGu(r.date) },
+                      // One row is one business day, so the day is the row's name and is what
+                      // stays on screen while the three figures scroll under the thumb.
+                      { key: 'date', label: 'Date', pin: true, render: (r) => dateGu(r.date) },
                       {
                         key: 'revisions',
                         label: 'Revisions',
@@ -1105,9 +1119,14 @@ export default function UserProgressDetailPage() {
                 {
                   key: 'code',
                   label: 'Activity',
-                  // Code and title in one cell: below 820px each row becomes a card with no
-                  // neighbouring column to borrow context from, and a bare title would not
-                  // say which rung it is.
+                  // Code and title in one cell rather than two columns: which કસોટી a row is
+                  // about is one fact said two ways, and splitting it would put half of it a
+                  // swipe away on a phone - the code with no title says which rung but not
+                  // what it asks, and the title with no code says the reverse.
+                  //
+                  // It is also, for that reason, the column that identifies the row, so it is
+                  // the one pinned while the attempts and results scroll (§55).
+                  pin: true,
                   render: (a) => (
                     <>
                       <span className="mono">{a.code || '-'}</span>
@@ -1239,14 +1258,17 @@ export default function UserProgressDetailPage() {
           <DataTable
             caption="Attempts submitted, newest first"
             columns={[
-              // A plain 'YYYY-MM-DD' business day, filed by the server in IST.
-              { key: 'activityDate', label: 'Date', render: (r) => dateGu(r.activityDate) },
+              // A plain 'YYYY-MM-DD' business day, filed by the server in IST. This list is
+              // "what he did, newest first", so the day is what a row is filed under and is
+              // the column that stays put when the other six are swiped past (§55).
+              { key: 'activityDate', label: 'Date', pin: true, render: (r) => dateGu(r.activityDate) },
               {
                 key: 'levelId',
                 label: 'Level',
-                // The કસોટી's own name sits under the level on a Level 4 row: the "Activity"
-                // column the table used to carry is gone, and below 820px each row becomes a
-                // card with no neighbour to borrow the name from.
+                // The કસોટી's own name sits under the level on a Level 4 row rather than in
+                // an "Activity" column of its own: the table used to carry one and it was
+                // dropped, and on a phone a seventh column is a seventh swipe - the name
+                // belongs next to the level it qualifies, not one gesture away from it.
                 render: (r) => (
                   <>
                     {LEVEL_EN[r.levelId] || `Level ${gu(r.levelId)}`}
@@ -1406,7 +1428,11 @@ export default function UserProgressDetailPage() {
           <DataTable
             caption="Points awarded, newest first"
             columns={[
-              { key: 'activityDate', label: 'Date', render: (r) => dateGu(r.activityDate) },
+              // The ledger is read as a diary - when was he paid, and for what - so the day
+              // is the row's name and the column that holds its place under a swipe. Three
+              // columns rarely need one on a phone, but the declaration costs nothing and
+              // means a fourth column added later does not silently change which one pins.
+              { key: 'activityDate', label: 'Date', pin: true, render: (r) => dateGu(r.activityDate) },
               {
                 key: 'title',
                 label: 'Activity',

@@ -149,10 +149,34 @@ export const numField = { marginBottom: 'var(--sp-3)', flex: '0 1 190px' };
 /** The in-table variant: no bottom margin, and as narrow as a price can honestly be. */
 export const tightField = { marginBottom: 0, flex: '0 1 120px', minWidth: '96px' };
 
-export const checkField = { marginBottom: 'var(--sp-3)', flex: '0 0 auto' };
+/**
+ * The on/off row, and the one constant on this page that has to be allowed to shrink.
+ *
+ * It used to say `flex: '0 0 auto'`, which reads like "take the width you need" and actually
+ * means "take the width you need and refuse to give any of it back". A flex item with a basis of
+ * `auto` and no width sizes to its own max-content, and a shrink factor of 0 makes that a floor
+ * as well as a starting point - so `OnOffField`, which puts a full sentence of `.hint` under the
+ * checkbox, measured 553px inside a 332px card on a 390px phone and pushed the whole of /points
+ * 193px sideways. At 320px it was 258px over. `controlRow` wrapping did not help and could not:
+ * wrapping moves an item onto a line of its own, it does not make an unshrinkable item narrower.
+ *
+ * `0 1 auto` keeps the sizing - the row is still as wide as its content wants when there is room,
+ * which is what stops a two-word switch stretching across a desktop card - and adds the one thing
+ * that was missing, permission to shrink. `.field` in admin.css already declares `min-width: 0`,
+ * so the shrinking is not floored at the hint's longest word either: the sentence simply wraps,
+ * which is what a sentence is for.
+ */
+export const checkField = { marginBottom: 'var(--sp-3)', flex: '0 1 auto' };
 
 /** A row of controls. `flex-wrap` with per-field bases is what makes this survive a 320px
- *  screen without a media query: fields drop to their own line in the order they are in. */
+ *  screen without a media query: fields drop to their own line in the order they are in.
+ *
+ *  The wrapping only ever solves half the problem, and it is worth saying which half. It decides
+ *  how many fields share a line; it has nothing to say about how wide any one of them is. A field
+ *  wider than the card on its own is still wider than the card once it is alone on its line, and
+ *  the page overflows exactly as far as before - see `checkField` above for the version of that
+ *  bug this file actually shipped. Every constant used in here therefore has a shrink factor of
+ *  1, and none of them may go back to `0 0 auto` for a field that can hold a sentence. */
 export const controlRow = { display: 'flex', gap: 'var(--sp-4)', flexWrap: 'wrap', alignItems: 'flex-start' };
 
 export const cardHead = {

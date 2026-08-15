@@ -49,6 +49,21 @@ export const PERMISSIONS = [
   'users.update',
   'users.disable',
 
+  /*
+    Marking an account as a test account, and deleting one.
+
+    Not part of `users.update`, and the distance between them is the point. An edit changes
+    what a row says; marking one `is_test` removes that person from every total, ranking,
+    list and export this panel produces (0040) while leaving him able to sign in and carry on
+    - a disappearance from the numbers that nobody would think to look for. `users.purge` then
+    deletes a test account outright, which is the only deletion of a person this application
+    allows anywhere.
+
+    Both are SUPER_ADMIN only, by being absent from every other role's list below.
+  */
+  'users.test',
+  'users.purge',
+
   'progress.read',
   'sessions.read',
 

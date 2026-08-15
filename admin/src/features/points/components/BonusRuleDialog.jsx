@@ -477,11 +477,23 @@ export function ModePreview({ rules, highlight, unit, id = 'pts-bonus-preview' }
           <caption className="sr-only">
             What each reward mode would pay at the count above, from the rules on this scope
           </caption>
+          {/*
+            Hand-built rather than a DataTable - three rows computed on the spot from what is
+            being typed, not a list with a key, a pager or an export - but it carries the same
+            `.dt` styling, so it carries the same two obligations on a phone.
+
+            `data-label` on the header cells as well as the body ones: the pair is what a hide
+            rule selects on, and a `td` dropped without its `th` would put "What pays" under the
+            heading "Mode". `.is-pin` on the mode, because this table is at its narrowest inside a
+            bottom sheet and the mode is the only thing on a row that says which of the three
+            answers it is - the other two cells are that answer, and answers with no question
+            attached are what the whole table exists to stop.
+          */}
           <thead>
             <tr>
-              <th scope="col">Mode</th>
-              <th scope="col">What pays</th>
-              <th scope="col" className="ta-r">
+              <th scope="col" className="is-pin" data-label="Mode">Mode</th>
+              <th scope="col" data-label="What pays">What pays</th>
+              <th scope="col" className="ta-r" data-label="Total bonus">
                 Total bonus
               </th>
             </tr>
@@ -493,7 +505,7 @@ export function ModePreview({ rules, highlight, unit, id = 'pts-bonus-preview' }
               const paying = paid.filter((p) => p.times > 0);
               return (
                 <tr key={m} className={m === highlight ? 'is-on' : ''}>
-                  <td data-label="Mode">
+                  <td className="is-pin" data-label="Mode">
                     {MODE_TEXT[m].label}
                     {m === highlight ? ' (chosen)' : ''}
                   </td>

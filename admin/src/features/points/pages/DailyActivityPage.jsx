@@ -207,9 +207,11 @@ export default function DailyActivityPage() {
    * today would be hiding the answer. The picker exists on the ledger because seventeen
    * bookkeeping columns genuinely need one.
    *
-   * Every label reads on its own: below ~820px DataTable turns each row into a card of
-   * label/value pairs, and "Sat" beside a lone number says nothing without the header row that
-   * is no longer there.
+   * Every label reads on its own, and it has three readers rather than one: it is the column
+   * heading, it is the `data-label` DataTable writes onto the `th` and the `td` alike - which is
+   * what the mobile hide rules in ledger.css select on - and it is the header cell of the CSV and
+   * the Excel file, where there is no table around it at all. "Tests sat" and not "Sat" is that
+   * last reader being served.
    */
   const columns = useMemo(
     () => [
@@ -226,6 +228,14 @@ export default function DailyActivityPage() {
         key: 'name',
         className: 'pl-c-user',
         label: 'Yuvak',
+        /*
+          The name identifies the row, so it is the column that stays put when the table is swiped
+          below 900px. Emphatically not the Date, which is the first column and would be pinned by
+          default: this whole list is one day, so that column holds the same value on every single
+          row - it is there for the exported file rather than for the screen, and pinning it would
+          hold a constant on a phone while the twelve columns that differ scroll away underneath.
+        */
+        pin: true,
         render: (r) => (
           <Link to={`/progress/${r.uid}`} title={r.name || undefined}>
             {r.name || r.uid.slice(0, 8)}
@@ -649,6 +659,12 @@ export default function DailyActivityPage() {
                         key: 'at',
                         className: 'pl-c-when',
                         label: 'At',
+                        // Every row here is the same yuvak on the same day, so the one thing that
+                        // tells two of them apart is the moment - which makes the time the row's
+                        // identity and the column that stays put when this is swiped. It is
+                        // already first, and saying so anyway is the point: a column reordered
+                        // later must not silently move the pin onto whatever ends up leftmost.
+                        pin: true,
                         render: (r) => dateTimeGu(r.at),
                       },
                       {
@@ -669,7 +685,7 @@ export default function DailyActivityPage() {
                         key: 'activity',
                         className: 'pl-c-activity',
                         label: 'Activity',
-                        // The level travels in the same cell as the name. Below ~820px this row
+                        // The level travels in the same cell as the name. Below ~900px this row
                         // is a card with no neighbouring column to borrow context from, so
                         // "Revision" alone would not say which rung it came from.
                         render: (r) => (

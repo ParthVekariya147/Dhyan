@@ -187,11 +187,13 @@ export function useLeaderboardSetting() {
 /**
  * The board itself, for whichever window is on screen.
  *
- * @returns {{ loading, error, enabled, periods, period, setPeriod, board, retry }}
+ * @returns {{ loading, error, enabled, periods, period, setPeriod, topN, board, retry }}
  *   `board` is `normaliseLeaderboard()`'s output — `{ period, rows, me, participants }`, where a
  *   row is `{ rank, name, points, isMe }` and nothing else — or null before the first answer
  *   arrives. `error` is a Gujarati sentence or null. `enabled: false` is the સંચાલક's setting,
- *   not a failure, and `periods` is empty in that state so the page draws no tabs.
+ *   not a failure, and `periods` is empty in that state so the page draws no tabs. `topN` is how
+ *   many names the સંચાલક asked for, and it is returned because the page's heading says it out
+ *   loud — "Today Top 5" — so the yuvak reads the same number the panel wrote.
  *
  * **The `/leaderboard` route only** — see the §27 note at the top of this file.
  */
@@ -326,6 +328,17 @@ export function useLeaderboard() {
     periods: setting.periods,
     period,
     setPeriod,
+    /*
+      How many names the સંચાલક asked for, straight off the resolved setting.
+
+      It is the heading's number, not a limit applied here: `leaderboard()` has already cut the
+      list to this length server-side, and nothing in this module trims rows. So the page can
+      say "TOP ૧૦" while the list is shorter — a window in which only four યુવકો have earned
+      anything is a board of four names under a heading that describes the setting, which is the
+      honest way round. Trimming the heading to `rows.length` instead would make the caption
+      report the quiet morning rather than the સંચાલક's choice.
+    */
+    topN: setting.topN,
     board: state.board,
     retry,
   };
