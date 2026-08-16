@@ -34,11 +34,13 @@ import {
   withDisplayIndex,
 } from '../shared/domain/darshan.js';
 import {
+  DEFAULT_DHUN_AUTOPLAY,
   DEFAULT_SLIDESHOW,
   DEFAULT_TICK_WORD,
   SLIDESHOW_MAX_SECONDS,
   SLIDESHOW_MIN_SECONDS,
   TICK_WORD_MAX,
+  resolveDhunAutoplay,
   resolveLevel4Gate,
   resolveSlideshow,
   resolveTickWord,
@@ -47,6 +49,22 @@ import {
   validateTickWord,
 } from '../shared/domain/settings.js';
 import { nextLevelAfter } from '../shared/domain/journey.js';
+import {
+  DEFAULT_DAILY_PROMPT,
+  resolveDailyPrompt,
+  validateDailyPrompt,
+} from '../shared/domain/daily-prompt.js';
+import {
+  GEO_STATUS,
+  activeOnly,
+  canRetireCity,
+  geoName,
+  isGeoId,
+  normaliseGeography,
+  validateCity,
+  validateZone,
+  zonesOf,
+} from '../shared/domain/geography.js';
 import {
   ENTRY_ROUTE,
   ENTRY_STATE,
@@ -917,6 +935,55 @@ group('validateSlideshow — refusing what the resolver would quietly correct');
   eq('the refusal names both ends', msg.includes('1') && msg.includes('60'), true);
 }
 
+// ==================================================================== dhun autoplay
+
+/*
+  `resolveDhunAutoplay()` — whether the ધૂન starts by itself when a યુવક signs in.
+
+  One boolean, and a section of its own, because the direction it falls in when it is *absent*
+  is the whole of it. Every settings row in the database predates this key, so "absent" is not
+  an edge case here — it is the state of every live project on the day this ships. Resolve it
+  the wrong way and the deploy silently switches the music off for all 2,000 of them, with
+  nothing on any screen able to say why.
+
+  The failure would also be invisible in the other direction. `Boolean(a.on)` reads absence as
+  off; `a.on !== false` reads only a stored, literal `false` as off. Both are one expression,
+  both look right, and only one of them keeps §8's "ધીમેથી શરૂ થાય" true for a project that
+  has never opened the field.
+*/
+group('resolveDhunAutoplay — a settings row that could say anything');
+{
+  const a = (stored) => resolveDhunAutoplay(stored).on;
+
+  // The branch that matters most: nothing configured is the shipped behaviour, not silence.
+  eq('nothing configured', a(undefined), true);
+  eq('null', a(null), true);
+  eq('not an object', a(true), true);
+  eq('not an object — a string', a('off'), true);
+  eq('the key absent from a row that exists', a({}), true);
+  eq('the default agrees with the resolver', DEFAULT_DHUN_AUTOPLAY.on, a(undefined));
+
+  // Both deliberate answers, round-tripped.
+  eq('switched on', a({ on: true }), true);
+  eq('switched off', a({ on: false }), false);
+
+  /*
+    Only a literal `false` switches it off. Everything below is a way of *failing* to say
+    anything — and each would read as "off" under a coercing check, which is the same
+    all-projects-go-quiet failure as absence.
+  */
+  eq('on is null', a({ on: null }), true);
+  eq('on is 0', a({ on: 0 }), true);
+  eq('on is an empty string', a({ on: '' }), true);
+  eq('on is the string "false"', a({ on: 'false' }), true);
+  eq('on is undefined', a({ on: undefined }), true);
+
+  // The switch is about who presses play, not about which tracks exist — so it cannot depend
+  // on the dhun list sitting in the same row, and a row carrying both resolves to the same
+  // answer as one carrying neither.
+  eq('unaffected by the rest of the row', a({ on: false, dhun: [{ id: 'x' }], appName: 'x' }), false);
+}
+
 // ==================================================================== the way onward
 
 /*
@@ -1177,6 +1244,252 @@ group('resolveEntryState / resolveEntryRoute / guardRoute — §10');
     readOnly = false;
   }
   eq('no progress is touched by deciding a route', readOnly, true);
+}
+
+// ====================================================================
+/*
+  `resolveDailyPrompt()` / `validateDailyPrompt()` — whether ક્રમાંક asks about today.
+
+  A small block with one sharp edge: the stored value is jsonb, so the string 'false' is truthy
+  in JavaScript, and an ABSENT key has to mean the default rather than "off". Three different
+  facts — missing, malformed, and genuinely no — collapse into one under a truthiness test, and
+  the collapse is silent in the direction that annoys two thousand people: a sheet that keeps
+  appearing on a project that switched it off.
+*/
+group('resolveDailyPrompt / validateDailyPrompt — settings[levels].dailyPrompt');
+{
+  const r = resolveDailyPrompt;
+
+  // ---- the default, from every shape of nothing -----------------------------
+  for (const nothing of [undefined, null, {}, [], 'dailyPrompt', 42, true]) {
+    eq(`${JSON.stringify(nothing)} resolves to the default`, r(nothing), {
+      enabled: true,
+      autoOpen: true,
+    });
+  }
+  eq('and the default is on, unlike the board beside it', DEFAULT_DAILY_PROMPT.enabled, true);
+
+  // ---- off means off -------------------------------------------------------
+  eq('enabled:false switches it off', r({ enabled: false }), { enabled: false, autoOpen: false });
+  eq(
+    'and autoOpen cannot survive it being off',
+    r({ enabled: false, autoOpen: true }),
+    { enabled: false, autoOpen: false }
+  );
+
+  // ---- autoOpen alone ------------------------------------------------------
+  eq('autoOpen:false keeps the button and drops the sheet', r({ autoOpen: false }), {
+    enabled: true,
+    autoOpen: false,
+  });
+
+  /*
+    The jsonb trap, both fields. `'false'` is a string a checkbox may have been serialised as,
+    and `0` is what a tool that stored a flag as a number writes. Neither is the boolean false,
+    so neither may switch anything off — the panel and the trigger refuse them, and a row that
+    already holds one must read as the default rather than as a decision nobody made.
+  */
+  for (const truthy of ['false', 'no', 0, '', null, undefined]) {
+    const want = truthy === false;
+    eq(
+      `enabled: ${JSON.stringify(truthy)} is not the boolean false`,
+      r({ enabled: truthy }).enabled,
+      !want
+    );
+  }
+
+  // ---- the validator refuses what the resolver would correct ---------------
+  eq('a missing block is refused', validateDailyPrompt(undefined).ok, false);
+  eq('a non-boolean enabled is refused', validateDailyPrompt({ enabled: 'yes', autoOpen: true }).ok, false);
+  eq('a non-boolean autoOpen is refused', validateDailyPrompt({ enabled: true, autoOpen: 1 }).ok, false);
+  eq(
+    'off-but-opening-itself is refused rather than narrowed',
+    validateDailyPrompt({ enabled: false, autoOpen: true }).ok,
+    false
+  );
+  eq(
+    'both off is a perfectly good answer',
+    validateDailyPrompt({ enabled: false, autoOpen: false }).ok,
+    true
+  );
+  eq('and so is both on', validateDailyPrompt({ enabled: true, autoOpen: true }).ok, true);
+
+  /*
+    The round trip, which is what actually stops the panel and the app disagreeing: anything
+    validateDailyPrompt() accepts, resolveDailyPrompt() must return unchanged. The same property
+    the slideshow block above asserts, and it is the one that catches a future edit tightening
+    one of the two without the other.
+  */
+  let stable = true;
+  for (const enabled of [true, false]) {
+    for (const autoOpen of [true, false]) {
+      const v = validateDailyPrompt({ enabled, autoOpen });
+      if (!v.ok) continue;
+      const back = r(v.dailyPrompt);
+      if (back.enabled !== v.dailyPrompt.enabled || back.autoOpen !== v.dailyPrompt.autoOpen) {
+        stable = false;
+      }
+    }
+  }
+  eq('everything the validator accepts survives the resolver unchanged', stable, true);
+
+  // Frozen input, because a resolver that mutated the settings row would be editing the
+  // સંચાલક's stored document from a render.
+  let readOnlyPrompt = true;
+  try {
+    r(Object.freeze({ enabled: false, autoOpen: false }));
+    validateDailyPrompt(Object.freeze({ enabled: true, autoOpen: true }));
+  } catch {
+    readOnlyPrompt = false;
+  }
+  eq('neither function writes to what it was given', readOnlyPrompt, true);
+}
+
+// ====================================================================
+/*
+  `shared/domain/geography.js` — cities and zones, once they are rows rather than an array.
+
+  What this block is really protecting is the release problem the module exists to end: the
+  three zone ids used to live in a JS array AND in a CHECK constraint, so adding રાંધેર meant a
+  migration and a bundle deployed together — and if they were not, a યુવક registering in the new
+  zone was accepted by the form and refused by the database.
+
+  Every assertion here is about what is true of ANY place. If a place name ever appears in this
+  group, or in the module it tests, the problem is back.
+*/
+group('geography — cities and zones as data, not as an array');
+{
+  // ---- ids: what can go in a foreign key, a query string and a CSV column ----
+  for (const good of ['surat', 'navsari-rural', 'z9', 'a1-b2-c3']) {
+    eq(`"${good}" is a usable id`, isGeoId(good), true);
+  }
+  for (const bad of [
+    'S',                    // one character — the RE needs at least two
+    'Surat',                // capitals do not survive a URL round trip everywhere
+    'સુરત',                  // Gujarati belongs in `name`, which is what screens print
+    'surat city',           // a space breaks a query string
+    '9surat',               // must start with a letter, so it never reads as a number
+    '-surat',
+    'surat_city',           // underscore is not in the alphabet the panel groups on
+    '',
+    null,
+    undefined,
+    42,
+  ]) {
+    eq(`${JSON.stringify(bad)} is refused as an id`, isGeoId(bad), false);
+  }
+
+  // ---- reading what is stored ---------------------------------------------
+  const geo = normaliseGeography({
+    cities: [
+      { id: 'surat', name: 'સુરત', status: 'ACTIVE', sort_order: 1 },
+      { id: 'navsari', name: 'નવસારી', status: 'RETIRED', sort_order: 2 },
+      { id: 'BROKEN', name: 'x' },
+      null,
+    ],
+    zones: [
+      { id: 'varachha', city_id: 'surat', name: 'વરાછા', sort_order: 2 },
+      { id: 'randher', city_id: 'surat', name: 'રાંધેર', sort_order: 1 },
+      { id: 'orphan', name: 'no city' },
+    ],
+  });
+
+  eq('a city with an unusable id is dropped', geo.cities.map((c) => c.id), ['surat', 'navsari']);
+  eq('a zone with no city is dropped', geo.zones.map((z) => z.id), ['randher', 'varachha']);
+  eq('and the સંચાલક’s order is what sorts them', geo.zones[0].id, 'randher');
+
+  /*
+    A name that did not arrive falls back to the id, and the row SURVIVES. Dropping it would be
+    the worse failure by far: a યુવક is registered in that place either way, so a list that
+    quietly loses it is a list nobody can reconcile against the database.
+  */
+  const nameless = normaliseGeography({ cities: [{ id: 'surat' }], zones: [] });
+  eq('a city with no name prints its id rather than vanishing', nameless.cities[0].name, 'surat');
+
+  // An absent status is ACTIVE, because every row written before the column existed is one.
+  eq('an absent status reads as ACTIVE', geo.zones[0].status, GEO_STATUS.ACTIVE);
+  eq('and a stored one is kept', geo.cities[1].status, GEO_STATUS.RETIRED);
+
+  // ---- what a screen asks of the list -------------------------------------
+  eq('zonesOf() groups by city', zonesOf(geo.zones, 'surat').length, 2);
+  eq('and answers nothing for a city with none', zonesOf(geo.zones, 'navsari'), []);
+  eq('activeOnly() is what નોંધણી may offer', activeOnly(geo.cities).map((c) => c.id), ['surat']);
+  eq('geoName() prints the name', geoName(geo.zones, 'varachha'), 'વરાછા');
+  eq('…the id when the place is unknown', geoName(geo.zones, 'nowhere'), 'nowhere');
+  eq('…and a dash when there is no place at all', geoName(geo.zones, ''), '-');
+
+  // ---- the validator refuses what the resolver would paper over ------------
+  eq('a city needs an id', validateCity({ name: 'સુરત', status: 'ACTIVE' }).ok, false);
+  eq('a city needs a name', validateCity({ id: 'surat', status: 'ACTIVE' }).ok, false);
+  eq('a city needs a status', validateCity({ id: 'surat', name: 'સુરત' }).ok, false);
+  eq(
+    'a name that only the resolver would accept is refused here',
+    validateCity({ id: 'surat', name: '   ', status: 'ACTIVE' }).ok,
+    false
+  );
+  eq('a good city is accepted', validateCity({ id: 'surat', name: 'સુરત', status: 'ACTIVE' }).ok, true);
+
+  const cities = [{ id: 'surat' }];
+  eq('a zone needs a city', validateZone({ id: 'varachha', name: 'વરાછા', status: 'ACTIVE' }, cities).ok, false);
+  eq(
+    'and the city has to exist, named in words rather than as a constraint',
+    validateZone({ id: 'varachha', cityId: 'nowhere', name: 'વરાછા', status: 'ACTIVE' }, cities).gu,
+    'There is no city called "nowhere".'
+  );
+  eq(
+    'a good zone is accepted',
+    validateZone({ id: 'varachha', cityId: 'surat', name: 'વરાછા', status: 'ACTIVE' }, cities).ok,
+    true
+  );
+
+  /*
+    The round trip. Anything the validator accepts, the resolver must return unchanged — the
+    property that stops the panel and the app disagreeing about a row that was just saved.
+  */
+  const okCity = validateCity({ id: 'surat', name: 'સુરત', status: 'ACTIVE', sort: 3 });
+  const backCity = normaliseGeography({ cities: [okCity.city], zones: [] }).cities[0];
+  eq('a saved city survives the resolver unchanged', [backCity.id, backCity.name, backCity.status, backCity.sort],
+    ['surat', 'સુરત', 'ACTIVE', 3]);
+
+  // ---- retiring, which is the only kind of removal there is ---------------
+  /*
+    There is no delete anywhere in this module, deliberately: a zone id is written into every
+    profile in it, into the records behind those profiles, into audit rows and into exports
+    already printed. Deleting would orphan those or cascade into deleting યુવકો.
+  */
+  const openZones = [
+    { id: 'varachha', cityId: 'surat', name: 'વરાછા', status: 'ACTIVE', sort: 0 },
+    { id: 'randher', cityId: 'surat', name: 'રાંધેર', status: 'ACTIVE', sort: 0 },
+  ];
+  eq('a city with open zones cannot be retired', canRetireCity('surat', openZones).ok, false);
+  eq(
+    'and the refusal counts them rather than naming one',
+    canRetireCity('surat', openZones).gu,
+    "Retire this city's 2 open zones first."
+  );
+  eq(
+    'one open zone is named, because he can act on a name',
+    canRetireCity('surat', openZones.slice(0, 1)).gu,
+    'Retire the zone "વરાછા" first - it is still open in this city.'
+  );
+  eq(
+    'a city whose zones are all retired may be retired',
+    canRetireCity('surat', openZones.map((z) => ({ ...z, status: 'RETIRED' }))).ok,
+    true
+  );
+  eq('and so may a city with no zones at all', canRetireCity('navsari', openZones).ok, true);
+
+  // Frozen input: a resolver that mutated its argument would be editing the સંચાલક's stored row
+  // from inside a render.
+  let geoReadOnly = true;
+  try {
+    normaliseGeography(Object.freeze({ cities: Object.freeze([]), zones: Object.freeze([]) }));
+    validateCity(Object.freeze({ id: 'surat', name: 'સુરત', status: 'ACTIVE' }));
+    validateZone(Object.freeze({ id: 'z', cityId: 'surat', name: 'ઝ', status: 'ACTIVE' }), cities);
+  } catch {
+    geoReadOnly = false;
+  }
+  eq('nothing here writes to what it was given', geoReadOnly, true);
 }
 
 // ==================================================================== result

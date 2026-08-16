@@ -21,11 +21,33 @@ import {
  * This module reads. It does not write, and it does not decide.
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Everything here is a `select` over a view the server already narrowed to one યુવક by RLS.
- * There is no uid in any filter below and there must not be one: `activity_history` and
- * `point_ledger` answer `auth.uid()`'s rows and nobody else's, so a filter written here would
- * be a second, weaker copy of a rule the database already keeps — and the day the two
- * disagreed, the database's answer would be the right one anyway.
+ * Everything here is a `select` over `activity_history`, **filtered to the signed-in યુવક**.
+ *
+ * This paragraph used to say the opposite — that there is no uid in any filter below and there
+ * must not be one, because RLS had already narrowed the view to `auth.uid()`. That was wrong,
+ * and wrong in the one direction that does not announce itself.
+ *
+ * `activity_history` is `security_invoker`, so it is narrowed by whatever the RLS policies on
+ * `daily_activity_progress`, `point_transactions` and `level4_attempts` admit — and those read
+ * "your own row **OR** `has_permission('progress.read')`" (0021). For a યુવક the two are the
+ * same thing. For anybody who also holds a `public.admins` row they are not: VIEWER carries
+ * `progress.read` (0043), so an account that is both a યુવક and any grade of સંચાલક opened
+ * મારી પ્રગતિ and was shown **the whole સંઘ's** days, unlabelled, as though they were his own.
+ *
+ * The symptom was not an error, which is why it survived: the band at the top of the page reads
+ * `my_point_summary()`, which carries an explicit `user_id = auth.uid()` and was right. So the
+ * page said કુલ ૧૦૦ over a list of several hundred other people's દર્શન, and the only thing
+ * visibly wrong was that the two halves disagreed.
+ *
+ * The filter is therefore here rather than in the view, and that is deliberate: the સંચાલક
+ * panel reads this same view by explicit `user_id` for its per-account activity page
+ * (admin/src/features/users/services/activityService.js), which is a feature and not an
+ * accident. The view answers "one યુવક's days, whichever યુવક you name"; RLS decides whom you
+ * are allowed to name; **this app only ever means itself**, and now says so.
+ *
+ * `uid` comes from `useAuth()` and never from a route or a prop. A uid a screen could choose
+ * would make this a lookup, which is the thing §13 refuses — and it would be pointless besides,
+ * because RLS still refuses the rows of anybody a plain યુવક is not entitled to.
  *
  * Nothing is derived from a day's UI events. §20 forbids walking the screen to reach a
  * lifetime total, and `my_point_summary` — and now `my_point_totals()` — exist precisely so
@@ -148,9 +170,12 @@ const MAX_PROBES = 20;
  * not a row limit, **a day inside the window arrives whole** however many activities it holds,
  * which is the property the whole arrangement exists for.
  *
+ * @param {string} uid  the signed-in યુવક. Not optional — see the `user_id` note at the top of
+ *   this file. Without it the probe walks the whole project's dates for an account that also
+ *   holds `progress.read`, and every date it finds is a day somebody else had.
  * @returns {{ dates: string[], hasMore: boolean }} `dates` newest first, at most pageSize.
  */
-async function fetchDateWindow(before, pageSize) {
+async function fetchDateWindow(uid, before, pageSize) {
   const dates = [];
   let offset = 0;
 
@@ -158,6 +183,7 @@ async function fetchDateWindow(before, pageSize) {
     let q = supabase
       .from('activity_history')
       .select('activity_date')
+      .eq('user_id', uid)
       .order('activity_date', { ascending: false })
       .range(offset, offset + PROBE_ROWS - 1);
     // Strictly older than the last day already on screen. `lt` and not `lte`, or the page
@@ -265,7 +291,7 @@ export function useHistory({ pageSize = 14 } = {}) {
     setState((s) => ({ ...s, loading: true, error: null }));
 
     (async () => {
-      const { dates, hasMore } = await fetchDateWindow(cursor, pageSize);
+      const { dates, hasMore } = await fetchDateWindow(uid, cursor, pageSize);
 
       // He has nothing older. Not an error and not an empty page — simply the end of the
       // list, with whatever is already on screen left exactly as it is.
@@ -274,6 +300,11 @@ export function useHistory({ pageSize = 14 } = {}) {
       const { data, error } = await supabase
         .from('activity_history')
         .select(ROW_COLUMNS)
+        // The same filter the probe above carries, and it has to be on both: the probe chooses
+        // WHICH days the window covers and this chooses WHOSE rows fill it. One without the
+        // other is a window sized by the whole project, or a window of his own days holding
+        // everybody's activity.
+        .eq('user_id', uid)
         .gte('activity_date', dates[dates.length - 1])
         .lte('activity_date', dates[0])
         .order('activity_date', { ascending: false });

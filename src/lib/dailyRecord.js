@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { useAuth } from './auth';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../shared/supabase/client.js';
 import { LEVEL_LABEL, isISODay } from '../../shared/domain/history.js';
+import { LEVELS_SETTINGS_DOC } from '../../shared/domain/settings.js';
+import { DAILY_PROMPT_KEY, resolveDailyPrompt } from '../../shared/domain/daily-prompt.js';
 
 /**
  * આજની પ્રગતિ — the daily record, its per-level counts, and the 24-hour edit window
@@ -232,6 +234,24 @@ function normaliseLevel(raw) {
     recorded,
     /** His figure — what the dropdown holds and what is sent back. */
     reported,
+    /**
+     * The sittings behind `reported`, in the order he entered them (0049) — or `[]`.
+     *
+     * Empty is the ordinary case and is not a missing value: it means the day was reported as
+     * one figure, which is what લેવલ ૧ and લેવલ ૨ always are and what લેવલ ૩ is until he splits
+     * it. The screen decides what to draw from the level's own shape, never from whether this
+     * array happens to be full — otherwise a યુવક who deleted his way back to one sitting would
+     * find the control he was using had turned into a different one under his thumb.
+     *
+     * **`reported` stays authoritative.** The server pins it to this array's sum whenever the
+     * array is sent (0049), so the two cannot disagree on the way back; nothing here adds them
+     * up to reach a figure the server already stated. An old server that has not had 0049
+     * applied answers without the key, which lands here as `[]` and reads correctly as "no
+     * breakdown" rather than as an error.
+     */
+    sessions: Array.isArray(raw.sessions ?? raw.reported_sessions ?? raw.reportedSessions)
+      ? (raw.sessions ?? raw.reported_sessions ?? raw.reportedSessions).map((v) => count(v))
+      : [],
     /** The dropdown's ceiling, from the સંચાલક's setting. `null` when it has not arrived. */
     max: maxOrNull(raw.maxCount ?? raw.max_count ?? raw.dailyMax ?? raw.daily_max ?? raw.max),
     /** What the server last computed for this level. Read, never derived. */
@@ -367,6 +387,242 @@ export const emptyRecord = (date) => ({
   saved: false,
 });
 
+// ---------------------------------------------------------------- whether ક્રમાંક asks at all
+
+/**
+ * `settings['levels'].value.dailyPrompt` — the સંચાલક's two switches.
+ *
+ * The same read `useLeaderboardSetting()` makes of the same row, deliberately duplicated rather
+ * than shared: the sheet must not depend on the board's hook, because the board is one page it
+ * happens to be drawn on and not the reason it exists. Two small reads of one row on one route
+ * is the price, and it is a row of a few hundred bytes.
+ *
+ * **Every failure resolves to the default**, which is on — a missing row, an unmigrated
+ * project, a dropped request. That is the opposite direction from `useLeaderboardSetting()`,
+ * which falls closed, and the two are consistent rather than contradictory: the board discloses
+ * one યુવક's name to another and must fail shut, while this asks a યુવક about his own day and
+ * discloses nothing at all. Failing shut here would silently stop recording days over a request
+ * that timed out.
+ *
+ * `loading` is honoured by the caller and is not optional: rendering `enabled: false` for the
+ * width of one round trip would flash the board without its button and then add it.
+ *
+ * @returns {{ setting: { enabled: boolean, autoOpen: boolean }, loading: boolean }}
+ */
+export function useDailyPromptSetting() {
+  const [state, setState] = useState({ raw: null, loading: configured });
+
+  useEffect(() => {
+    // Inside the effect, because hooks cannot be skipped — the shape every settings reader in
+    // this app uses. Touching the lazy client on a build with no Supabase keys would throw
+    // before anything could report it.
+    if (!configured) {
+      setState({ raw: null, loading: false });
+      return;
+    }
+
+    let alive = true;
+
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', LEVELS_SETTINGS_DOC)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive) return;
+        setState({ raw: error ? null : data?.value?.[DAILY_PROMPT_KEY] ?? null, loading: false });
+      })
+      .catch(() => {
+        if (alive) setState({ raw: null, loading: false });
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const setting = useMemo(() => resolveDailyPrompt(state.raw), [state.raw]);
+  return { setting, loading: state.loading };
+}
+
+// ---------------------------------------------------------------- the draft he is editing
+
+/**
+ * A level's identity, and it is the PAIR — never the level number alone.
+ *
+ * `daily_activity_counts` is keyed by (record, level, **activity**) because લેવલ ૪ is several
+ * કસોટીઓ under one ladder and લેવલ ૩ reports both its ticking and its revising. So a day can
+ * legitimately hold two rows that both say `levelId: 3`, and any state keyed on the number
+ * alone silently merges them: the second row's dropdown drives the first row's value, one of
+ * the two counts is sent twice and the other is never sent at all.
+ *
+ * That was live. It cost nothing visible only because most days hold one row per ladder.
+ */
+export const levelKey = (l) => `${l.levelId}:${l.activity || ''}`;
+
+/**
+ * The counts as they stand on screen, including the sittings a level has been split into.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * One hook, because two screens edit the same day
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `/daily` and the sheet ક્રમાંક opens are the same form in two places, and the editing rules
+ * are the fiddly part: seeding from the record, keeping a split level's total equal to the sum
+ * of its sittings, and minting a fresh idempotency token the moment any of it moves. Two copies
+ * of that would be two chances for a save to send a total that disagrees with the rows above it.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * `sessions: null` and `sessions: []` are different states
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `null` means **this level is one figure** — the ordinary case, a dropdown, and what લેવલ ૧ and
+ * લેવલ ૨ always are. An array means he has said the day was several sittings, and then the
+ * array is the truth and `value` is its sum. An empty array is therefore a level he has split
+ * and emptied, which is a real report of zero and not the same as never having split it.
+ *
+ * The distinction is what stops the screen changing shape under his thumb: deleting the last
+ * sitting leaves the sittings control on screen with an ઉમેરો button, rather than silently
+ * turning back into a dropdown holding a number he did not choose.
+ */
+export function useDailyDraft(record) {
+  const levels = record?.levels ?? [];
+
+  /** `{ [levelKey]: { value: number, sessions: number[] | null } }` */
+  const [draft, setDraft] = useState({});
+  /**
+   * The idempotency key, a ref because it is the identity of an INTENTION rather than of a
+   * render. Minted at the first save of a set of counts, kept across a retry of the same set,
+   * and torn up the moment anything below changes it — a different set of counts is a different
+   * intention and reusing the token would have the server answer with the previous save.
+   */
+  const tokenRef = useRef(null);
+
+  useEffect(() => {
+    const next = {};
+    for (const l of levels) {
+      next[levelKey(l)] = {
+        value: l.reported,
+        // A day that arrives already holding sittings opens showing them. A day that does not
+        // opens as a single figure, whatever ladder it is — which level is usually reported in
+        // sittings is a habit of this સંઘ, not a fact this file may assert.
+        sessions: l.sessions.length ? [...l.sessions] : null,
+      };
+    }
+    setDraft(next);
+    tokenRef.current = null;
+    // `record` and not `levels`: the array is rebuilt on every render by its caller, whereas the
+    // record object changes exactly when a new answer arrives — a different day, a retry, or the
+    // answer to a save. Seeding on the array would wipe an edit made while nothing was in flight.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record]);
+
+  /** Any change at all tears up the token. One place, so no path can forget. */
+  const edit = useCallback((key, fn) => {
+    tokenRef.current = null;
+    setDraft((s) => ({ ...s, [key]: fn(s[key] ?? { value: 0, sessions: null }) }));
+  }, []);
+
+  const api = useMemo(
+    () => ({
+      /** The single figure, for a level that has not been split. */
+      setValue: (key, n) => edit(key, (r) => ({ ...r, value: count(n) })),
+
+      /**
+       * Split into sittings, seeded with what is already there.
+       *
+       * The existing figure becomes the first sitting rather than being thrown away — he is
+       * describing the same day in more detail, not starting it again. A level standing at 0
+       * splits into one empty sitting, which is the row he is about to type into.
+       */
+      split: (key) =>
+        edit(key, (r) => (r.sessions ? r : { ...r, sessions: [r.value] })),
+
+      /** Back to one figure, keeping the total the sittings came to. */
+      unsplit: (key) => edit(key, (r) => ({ value: r.value, sessions: null })),
+
+      addSession: (key) =>
+        edit(key, (r) => {
+          const sessions = [...(r.sessions ?? [r.value]), 0];
+          return { value: sessions.reduce((a, b) => a + b, 0), sessions };
+        }),
+
+      setSession: (key, i, n) =>
+        edit(key, (r) => {
+          const sessions = [...(r.sessions ?? [])];
+          sessions[i] = count(n);
+          // The total is the sum, always and immediately. It is what `countsPayload()` sends
+          // beside the list for an older server, and what the hint under the level compares
+          // against what the app recorded — a total that lagged a sitting behind would make
+          // both of those say something untrue for one keystroke.
+          return { value: sessions.reduce((a, b) => a + b, 0), sessions };
+        }),
+
+      removeSession: (key, i) =>
+        edit(key, (r) => {
+          const sessions = (r.sessions ?? []).filter((_, j) => j !== i);
+          return { value: sessions.reduce((a, b) => a + b, 0), sessions };
+        }),
+    }),
+    [edit]
+  );
+
+  /** One level's draft, falling back to the record so a first render has real numbers. */
+  const rowFor = useCallback(
+    (l) => draft[levelKey(l)] ?? { value: l.reported, sessions: l.sessions.length ? [...l.sessions] : null },
+    [draft]
+  );
+
+  /*
+    Has he moved anything since the record arrived?
+
+    The `draft[key] !== undefined` half is not defensive noise: a record arrives, renders, and
+    the effect above seeds the draft on the commit AFTER it, so for exactly one frame every
+    level is absent. Without this the note under the form would flash `સેવ કર્યા પછી ગુણ ગણાશે.`
+    on every single load, which is a sentence about something he has not done yet.
+  */
+  const dirty = useMemo(
+    () =>
+      levels.some((l) => {
+        const r = draft[levelKey(l)];
+        if (r === undefined) return false;
+        if (r.value !== l.reported) return true;
+        const was = l.sessions;
+        const now = r.sessions ?? [];
+        return was.length !== now.length || was.some((v, i) => v !== now[i]);
+      }),
+    [levels, draft]
+  );
+
+  /** What `save()` is given: the server's own shape, with the sittings beside every total. */
+  const payload = useCallback(
+    () =>
+      countsPayload(
+        levels.map((l) => {
+          const r = rowFor(l);
+          return {
+            levelId: l.levelId,
+            activity: l.activity,
+            reported: r.value,
+            sessions: r.sessions ?? [],
+          };
+        })
+      ),
+    [levels, rowFor]
+  );
+
+  const token = useCallback(() => {
+    if (!tokenRef.current) tokenRef.current = newClientToken();
+    return tokenRef.current;
+  }, []);
+
+  const clearToken = useCallback(() => {
+    tokenRef.current = null;
+  }, []);
+
+  return { rowFor, dirty, payload, token, clearToken, ...api };
+}
+
 // ---------------------------------------------------------------- what is sent back
 
 /**
@@ -395,12 +651,34 @@ export const emptyRecord = (date) => ({
  * Values are numbers and keys are the server's own strings — `gu()` never comes near this
  * function. Gujarati digits are for display only, never for a value sent to, compared in or
  * parsed from the database, and a payload is the sharpest instance of that rule.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * `count` AND `sessions`, always both, and never one of them
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * A level reported as sittings sends the list **and** the total it comes to. That is not
+ * redundancy: 0049's server pins `reported_count` to the list and ignores the number, but a
+ * server that has not had 0049 applied yet drops the key it does not know and saves the number —
+ * so the day is right on both, and only the breakdown is lost on the older one. Sending the
+ * list alone would save a zero against every deploy that ran ahead of its migration, which is
+ * precisely the case §1 says must never cost a યુવક his day.
+ *
+ * The total is `l.reported` rather than a sum computed here, for the reason the whole of this
+ * module repeats: the server states the figure and this file does not do arithmetic on points
+ * or counts. The form is what keeps `reported` equal to the sum of the sittings while he is
+ * editing, because the form is where a sitting changes.
+ *
+ * An empty `sessions` is sent as an empty array rather than omitted, and that is what makes
+ * "he deleted his way back to one figure" reach the server at all: 0049 overwrites the stored
+ * breakdown with whatever arrives, so an omitted key and an empty one would mean the same
+ * thing to the column and different things to the reader.
  */
 export function countsPayload(levels) {
   return levels.map((l) => ({
     level: l.levelId,
     activity: l.activity || '',
     count: count(l.reported),
+    sessions: Array.isArray(l.sessions) ? l.sessions.map((v) => count(v)) : [],
   }));
 }
 

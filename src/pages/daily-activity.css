@@ -252,6 +252,135 @@
   white-space: nowrap;
 }
 
+/* ---- a level reported as several sittings ---------------------------------- */
+
+/*
+  A લેવલ ૩ day is a morning, an evening and a night, and what a યુવક knows at each of those
+  moments is how many THIS time. So a level can be split into rows, each with its own dropdown,
+  and the sum stands beside the level's name.
+
+  The block is bordered and inset because it is one answer made of several controls: without a
+  frame the four dropdowns of a split લેવલ ૩ read as four levels, and the column of the form
+  loses the one-question-per-row rhythm the rest of the page is built on. Solid rather than the
+  dashed border `.is-fixed` uses — dashed is this page's mark for "the app cannot offer the
+  control", and this is the opposite: more control than usual, not less.
+*/
+.daily-level.is-split {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--control-pad-x) var(--sp-2);
+  border: 1px solid rgba(240, 199, 120, 0.22);
+  border-radius: var(--radius-control);
+}
+
+.daily-level-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+/* The same geometry `.daily-level .field label` gives a single-figure row, so a level reads the
+   same whether it is split or not: the name grows and wraps, the pill does not. */
+.daily-level-title {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: var(--fs-label);
+  line-height: var(--lh-tight);
+  color: var(--color-gold-soft);
+}
+
+/* The day's figure, as the sittings currently come to. Read from the draft, which is kept equal
+   to their sum on every keystroke — nothing on screen adds anything up. */
+.daily-level-total {
+  flex: 0 0 auto;
+  font-size: var(--fs-input);
+  line-height: var(--lh-tight);
+  color: #f6efe2;
+}
+
+.daily-sessions {
+  margin-top: var(--sp-2);
+  list-style: none;
+}
+
+/* The dropdown grows, the ✕ does not. `flex-end` and not `center`: a <Field> carries a label
+   above its control and a reserved message slot below it, so centring would float the button
+   against the label rather than against the control it removes. */
+.daily-session {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+
+.daily-session .field {
+  flex: 1 1 auto;
+}
+
+/* Sized to the app's control floor rather than to the glyph, because it is a tap target on a
+   phone and 44px is the smallest a thumb reliably finds. Quiet until it is touched — removing a
+   sitting is an ordinary edit and nothing on this screen is red (§1 rule 4). */
+.daily-session-remove {
+  flex: 0 0 auto;
+  width: var(--control-h);
+  height: var(--control-h);
+  margin-bottom: var(--field-msg-h);
+  border: 1px solid rgba(240, 199, 120, 0.22);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: #8b7a66;
+  font-size: var(--fs-helper);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.daily-session-remove:hover,
+.daily-session-remove:focus-visible {
+  color: var(--color-gold-soft);
+  border-color: rgba(240, 199, 120, 0.35);
+}
+
+/* The hint a single-figure row gets from <Field>'s own slot. Reserved here too, so adding a
+   sitting cannot move the buttons under a thumb already travelling towards them. */
+.daily-session-hint {
+  min-height: var(--field-msg-h);
+  font-size: var(--fs-helper);
+  line-height: var(--lh-body);
+  color: #8b7a66;
+}
+
+.daily-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+/*
+  The two words that turn one figure into sittings and back again.
+
+  A text button and not a `.btn`: this is an aside about how to answer, not an answer, and a
+  third filled control in the column would compete with ડેટા સેવ કરો. It still meets the app's
+  tap floor through the padding, which is what keeps it usable on a phone.
+*/
+.daily-split {
+  padding: var(--sp-2) 0;
+  min-height: var(--control-h);
+  border: none;
+  background: none;
+  font-size: var(--fs-helper);
+  line-height: var(--lh-body);
+  color: var(--color-gold-soft);
+  text-align: left;
+  cursor: pointer;
+}
+
+.daily-split:hover,
+.daily-split:focus-visible {
+  color: var(--color-gold);
+}
+
 /* ---- a level whose maximum has not arrived --------------------------------- */
 
 /* No dropdown, because there is no range to put in one that anybody chose. What the record

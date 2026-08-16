@@ -40,6 +40,10 @@
  *  §G  Unmarking puts the person back, everywhere, with their history intact.
  *  §H  Purge: refused without the permission, refused on a real યુવક by anyone at all, and
  *      audited before it takes the rows with it.
+ *  §I  The same requirement one step further (0048): an administrator who also holds a profile
+ *      is not a યુવક either, so he is off the board યુવકો read - and still on the one the
+ *      panel shows, because an administrator must be able to check that his own test earned
+ *      what it should.
  */
 import { asUser, attempt, dockerAvailable, startDatabase } from './lib/pgtest.mjs';
 
@@ -387,6 +391,73 @@ async function main() {
     eq('and the trail outlived the row', trail?.action, 'TEST_ACCOUNT_PURGED');
     eq('naming who did it', trail?.actor_id, U.superadmin);
     eq('and who it was', trail?.name, 'Tester Three');
+
+    // ══════════════════════════════════════════════════════════ §I
+    group('§I  an administrator is not a યુવક, so he is not on the યુવક board');
+
+    /*
+      0048, and the reason it needed its own group rather than a line in §A.
+
+      `counted_profiles` is "everyone except a test account" and nothing more. `public.yuvaks`
+      - what every count, list and export in the panel means by યુવક - is that MINUS anyone
+      holding a `public.admins` row (0038). `leaderboard()` was given the first term by 0040
+      and never the second, so an administrator who also has a profile was ranked by name on
+      the one screen the whole સંઘ reads. In this project that is exactly what happened.
+
+      U.admin has had both rows since fixtures() and was simply never paid, which is why §A
+      could not see this: an account that earns nothing is absent from the board for a reason
+      that has nothing to do with who he is. So he is paid here, and paid MORE than either
+      real યુવક - a filter that merely reordered the board, or dropped its last row, would
+      still look correct if he were mid-table.
+
+      Last in the file, and self-contained, because every group above asserts an exact
+      population count or an exact participant count. A payment added to fixtures() would
+      move `admin_leaderboard()`'s participants and §H's ledger count for reasons that have
+      nothing to do with what those groups are about.
+    */
+    await db.query(
+      `insert into public.point_transactions
+         (user_id, activity_date, level_id, activity_key, points, source, source_id)
+       values ($1, $2::date, 3, 'darshan', 5000, 'ACTIVITY_ATTEMPT', 500)`,
+      [U.admin, DAY]
+    );
+
+    await asUser(db, U.real1, async () => {
+      const doc = (await db.query(`select public.leaderboard('ALL') as d`)).rows[0].d;
+      eq('the highest total in the project does not put him on it',
+        boardNames(doc).includes('Admin'), false);
+      // The whole board, not just his absence from it: this is what says he did not displace
+      // anybody either. A board of `top_n` length has a last place, and an administrator
+      // standing in it is a યુવક who was not shown at all.
+      eq('and the yuvaks keep the board to themselves', boardNames(doc), ['Real One', 'Real Two']);
+      eq('and the count under it agrees', doc.participants, 2);
+    });
+
+    // He is not on it as a reader either, and `me: null` is the right answer rather than a
+    // missing one - the page already has a sentence for "no ક્રમાંક to report" and needed no
+    // change. `is_active_user()` lets him call it at all; being able to ask is not being ranked.
+    await asUser(db, U.admin, async () => {
+      const doc = (await db.query(`select public.leaderboard('ALL') as d`)).rows[0].d;
+      eq('he cannot find himself on it', doc.me, null);
+      eq('and sees the same two યુવકો everyone else does', boardNames(doc), ['Real One', 'Real Two']);
+    });
+
+    /*
+      The other half of the requirement, and the half that makes this a narrowing rather than a
+      deletion: the સંચાલક panel must still show what an administrator's account earned. That
+      is how the person testing the app confirms the points arrived, which is the same argument
+      0040 makes for keeping a test account visible on its own detail page.
+    */
+    await asUser(db, U.superadmin, async () => {
+      const alb = (await db.query('select public.admin_leaderboard() as d')).rows[0].d;
+      eq("the સંચાલક's board still shows him", boardNames(alb).includes('Admin'), true);
+
+      eq('and his ledger is still readable there',
+        (await db.query(
+          `select coalesce(sum(t.points),0)::int as n
+             from public.admin_point_transactions() t where t.user_id = $1`,
+          [U.admin])).rows[0].n, 5000);
+    });
   } finally {
     await db.end().catch(() => {});
     await stop();

@@ -1,0 +1,149 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   "આજે તમે શું કર્યું?" — the sheet ક્રમાંક puts in front of a day that is not
+   written down yet, and the button that opens it again afterwards
+   ────────────────────────────────────────────────────────────────────────────
+
+   Only the sheet's own frame lives here. Every control inside it — the fields, their reserved
+   message slots, the buttons, the notices — comes from forms.css and daily-activity.css, which
+   DailyPrompt.jsx imports for exactly that reason: the sheet and the /daily page are one form in
+   two places, and a second set of geometry here is how they would come to disagree about what a
+   dropdown looks like.
+
+   Nothing here invents a size, a radius or a colour, which is daily-activity.css's rule and the
+   reason this file is short. The type comes from tokens.css's scale, the space from its --sp-
+   steps, the radii from --radius-card, and the palette from index.css's @theme. The two values
+   that are not tokens are the scrim and the sheet's shadow: both are pure blacks over the page
+   rather than ink ON it, and there is no palette entry for "the room behind a panel" because
+   this is the app's first one. */
+
+.dp-scrim {
+  position: fixed;
+  inset: 0;
+  /* Above the bottom bar (bottom-nav.css) and below nothing: the sheet asks a question the bar
+     cannot answer, and a bar drawn over it would offer five ways out of a form mid-edit. */
+  z-index: 60;
+
+  display: flex;
+  /* Bottom-aligned, because a phone's reachable area is the bottom half of the screen and this
+     is a sheet a thumb has to work in. It centres horizontally, so on a wide viewport — where
+     there is no thumb to reach with — it reads as a panel rather than as a stripe. */
+  align-items: flex-end;
+  justify-content: center;
+
+  background: rgb(0 0 0 / 62%);
+  /* The board behind it stays legible enough to be recognised as the page he is on, which is
+     what makes the sheet read as something that appeared ON it rather than as a navigation. */
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.dp-sheet {
+  width: 100%;
+  /* The same 560px column /daily, મુખપૃષ્ઠ and /history use, so the form is the same width in
+     both of the places it is drawn. */
+  max-width: 560px;
+
+  /*
+    The sheet may be taller than the screen — four ladders, one of them split into sittings, is
+    a lot of rows — so it scrolls inside itself and never takes the page's scroll with it.
+    `dvh` and not `vh`: on iOS Safari `vh` is the viewport WITHOUT the toolbar, so a sheet sized
+    in `vh` puts its save button under the browser chrome exactly when the toolbar is showing.
+  */
+  max-height: 88dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  /* The home indicator on an iPhone sits over the last 34px of the viewport, and this sheet is
+     pinned to the floor — without the inset the ડેટા સેવ કરો button is under it. */
+  padding: var(--sp-5) 18px calc(var(--sp-5) + env(safe-area-inset-bottom));
+  border: 1px solid rgba(240, 199, 120, 0.22);
+  /* No bottom border: it is against the edge of the screen and a line there would read as a
+     seam rather than as the edge of a panel. */
+  border-bottom: none;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--color-panel);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 45%);
+}
+
+/* Every descendant may shrink — the same rule daily-activity.css states for its own column, and
+   for the same reason: `min-width: auto` is a flex child's default and one long લેવલ label
+   would otherwise push a 320px sheet sideways. */
+.dp-sheet,
+.dp-sheet * {
+  min-width: 0;
+}
+
+.dp-title {
+  font-size: var(--fs-section);
+  line-height: var(--lh-title);
+  color: var(--color-gold);
+  /* Focused on open so a screen reader lands on the sheet's name rather than wherever the board
+     left the caret. `tabIndex={-1}` makes it focusable without putting a heading into the tab
+     order, and the outline is removed because the focus is programmatic — nothing was
+     navigated to, so a focus ring would be reporting an interaction that did not happen. */
+  outline: none;
+}
+
+.dp-sub {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-helper);
+  line-height: var(--lh-body);
+  color: var(--color-muted);
+}
+
+.dp-window {
+  margin-top: var(--sp-4);
+  font-size: var(--fs-helper);
+  line-height: var(--lh-body);
+  color: #8b7a66;
+}
+
+.dp-actions {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+/* ડેટા સેવ કરો takes the room; પછી takes only what its word needs. Side by side rather than
+   stacked, because a sheet is short on height and both are one tap — and the primary one is on
+   the left, where the column of controls above it starts. */
+.dp-actions .btn {
+  flex: 1 1 auto;
+}
+
+.dp-actions .btn-quiet {
+  flex: 0 0 auto;
+}
+
+/* The result slot keeps its height whether it holds a message or not, the same device
+   `.daily-note` and `.field-msg` use: a refused save must not push the buttons out from under a
+   thumb already travelling towards them. */
+.dp-result {
+  min-height: var(--field-msg-h);
+  margin-top: var(--sp-3);
+}
+
+/* The way back into the form, at the foot of the board. Full width because it is the last thing
+   on the page and a short button floating there reads as unfinished. */
+.dp-open {
+  display: block;
+  width: 100%;
+  margin-top: var(--sp-6);
+}
+
+/* Announced by rising, once, and never for a યુવક who has asked his phone not to animate. The
+   sheet appears over something he was reading, so the movement is what says it arrived rather
+   than that the page changed. */
+@media (prefers-reduced-motion: no-preference) {
+  .dp-sheet {
+    animation: dp-rise 180ms ease-out;
+  }
+}
+
+@keyframes dp-rise {
+  from {
+    transform: translateY(var(--sp-5));
+    opacity: 0;
+  }
+}

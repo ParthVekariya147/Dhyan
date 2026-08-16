@@ -512,6 +512,25 @@ async function run(db, files) {
       )
     ).rows[0];
 
+  /**
+   * `reported_count` and `reported_sessions` for one (day, level), read on its own.
+   *
+   * Deliberately NOT a column added to `counts()` below. That helper's rows are compared whole
+   * by several assertions in this file, so widening it fails them with a diff about a column
+   * they were never about — which is exactly what happened when 0049's tests were first
+   * written. A new question gets a new reader.
+   */
+  const sittings = async (uid, date, level) =>
+    (
+      await db.query(
+        `select c.reported_count, c.reported_sessions
+         from public.daily_activity_counts c
+         join public.daily_activity_records r on r.id = c.record_id
+         where r.user_id = $1 and r.activity_date = $2::date and c.level_id = $3`,
+        [uid, date, level]
+      )
+    ).rows[0];
+
   const counts = async (uid, date) =>
     (
       await db.query(
@@ -675,8 +694,18 @@ async function run(db, files) {
     ]
   );
 
+  /*
+    `reported_sessions` arrived with 0049 — the sittings a લેવલ ૩ day was reported in.
+
+    This assertion is a spelled-out column list precisely so that a column appearing beside the
+    others has to be a deliberate edit here as well, and this is that edit. What the column is
+    NOT is the important half: `reported_count` remains the only figure anything reads. The
+    sittings decide it on the way in and are read back to redraw the form; the points, the
+    ledger reconciliation, the milestone counts and every admin report are unchanged, and §J
+    below asserts exactly that.
+  */
   eq(
-    'daily_activity_counts holds reported beside recorded, and the દ્રશ્યો behind them',
+    'daily_activity_counts holds reported beside recorded, the દ્રશ્યો and the sittings behind them',
     (
       await db.query(
         `select column_name from information_schema.columns
@@ -684,7 +713,10 @@ async function run(db, files) {
          order by column_name`
       )
     ).rows.map((r) => r.column_name),
-    ['activity_key', 'level_id', 'points', 'record_id', 'recorded_count', 'reported_count', 'scene_ids', 'verified']
+    [
+      'activity_key', 'level_id', 'points', 'record_id', 'recorded_count', 'reported_count',
+      'reported_sessions', 'scene_ids', 'verified',
+    ]
   );
 
   eq(
@@ -1412,6 +1444,133 @@ async function run(db, files) {
     await save(TODAY, [{ level: 3, activity: 'revision', sceneIds: RANGE(1, 4) }]);
     const c = (await counts(U.alpha, TODAY))[0];
     eq('a report in દ્રશ્યો is compared against દ્રશ્યો', [c.reported_count, c.recorded_count, c.verified], [4, 5, true]);
+  });
+
+  // ══════════════════════════════════════════════════════ §K2
+  /*
+    0049 — a day reported as sittings.
+
+    A લેવલ ૩ day is a morning, an evening and a night, and what a યુવક knows at each of those
+    moments is how many THIS time rather than the running total. So the payload may carry a list.
+
+    **What is asserted here is the count and the breakdown, and deliberately not the ledger.**
+    લેવલ ૩ under a તિક rule is priced by the event path and not by the form — 0035 excludes TICK
+    and REVISION from the reconciliation on purpose, and §L and §O already own that behaviour.
+    Asserting a day total here would be this group quietly re-testing 0035, and getting it wrong.
+
+    The safety of the whole change is the first assertion: **the sittings decide
+    `reported_count`, and nothing else in the schema learns they exist.** If that holds, the
+    points, the reconciliation, the milestone substitution and every admin report go on reading
+    one integer exactly as they did — which is why none of them was reissued.
+  */
+  group('§K2  a day reported as sittings is worth what the sittings come to');
+
+  await sandbox(async () => {
+    await configure(BASE);
+    await signIn(U.alpha);
+
+    /*
+      `count: 999` is sent deliberately and is deliberately ignored. The list is more specific
+      than a number beside it — the same rule `sceneIds` has followed since 0034 — and a client
+      sends both only so that a server WITHOUT 0049 still saves a sane figure instead of dropping
+      the key it does not know and writing a zero.
+    */
+    await save(TODAY, [{ level: 3, activity: 'revision', count: 999, sessions: [27, 15] }]);
+    eq(
+      'the sittings decide the count, not the number sent beside them',
+      await sittings(U.alpha, TODAY, 3),
+      { reported_count: 42, reported_sessions: [27, 15] }
+    );
+
+    // The correction a form makes every time a row is edited.
+    await save(TODAY, [{ level: 3, activity: 'revision', sessions: [27, 15, 30] }]);
+    eq(
+      'adding a sitting moves the day, and the order is his',
+      await sittings(U.alpha, TODAY, 3),
+      { reported_count: 72, reported_sessions: [27, 15, 30] }
+    );
+
+    // Back to one figure. The stored breakdown must go with it, or a screen would draw rows
+    // adding up to a number nobody sent.
+    await save(TODAY, [{ level: 3, activity: 'revision', count: 50 }]);
+    eq(
+      'reporting one figure again clears the breakdown',
+      await sittings(U.alpha, TODAY, 3),
+      { reported_count: 50, reported_sessions: [] }
+    );
+  });
+
+  await sandbox(async () => {
+    // Every other level is untouched by a level that was split, and a payload with no `sessions`
+    // key behaves exactly as it did under 0034 — the property that lets an older client keep
+    // working against this schema.
+    await configure({ ...BASE, earn: { level2: 'EVERY' } });
+    await signIn(U.alpha);
+
+    await save(TODAY, [
+      { level: 2, activity: 'darshan', count: 2 },
+      { level: 3, activity: 'revision', sessions: [5, 5] },
+    ]);
+
+    eq('a level sent without sessions stores none', await sittings(U.alpha, TODAY, 2), {
+      reported_count: 2,
+      reported_sessions: [],
+    });
+    eq('and the split level beside it is unaffected', await sittings(U.alpha, TODAY, 3), {
+      reported_count: 10,
+      reported_sessions: [5, 5],
+    });
+  });
+
+  await sandbox(async () => {
+    /*
+      The સંચાલક's ceiling binds a list exactly as it binds a number, and the breakdown is
+      trimmed with it: rows adding to more than the figure above them is a screen contradicting
+      itself. Trimmed from the END, the straddling sitting reduced rather than dropped — the
+      earliest sittings are the ones he is surest of, and losing a whole one would move a number
+      he did not touch.
+    */
+    await configure({ ...BASE, dailyMax: { level3: 40 } });
+    await signIn(U.alpha);
+
+    await save(TODAY, [{ level: 3, activity: 'revision', sessions: [27, 15, 30] }]);
+    const s = await sittings(U.alpha, TODAY, 3);
+    eq('the sum is clamped to dailyMax', s.reported_count, 40);
+    eq('and the sittings are trimmed to match', s.reported_sessions, [27, 13]);
+    eq(
+      'so the rows still add up to the figure above them',
+      s.reported_sessions.reduce((a, b) => a + b, 0),
+      s.reported_count
+    );
+  });
+
+  await sandbox(async () => {
+    // A malformed list is refused rather than read as an absent one, because absent means "keep
+    // the single figure" and silently discarding a યુવક's sittings is the failure this column
+    // exists to prevent.
+    await configure(BASE);
+    await signIn(U.alpha);
+
+    eq(
+      'sessions that are not a list are refused',
+      (await trySave(TODAY, [{ level: 3, activity: 'revision', sessions: 42 }])).ok,
+      false
+    );
+    eq(
+      'a negative sitting is refused',
+      (await trySave(TODAY, [{ level: 3, activity: 'revision', sessions: [5, -1] }])).ok,
+      false
+    );
+    eq(
+      'a sitting that is not a number is refused',
+      (await trySave(TODAY, [{ level: 3, activity: 'revision', sessions: ['5'] }])).ok,
+      false
+    );
+    eq(
+      'an empty list is a real report of zero, not a malformed one',
+      (await trySave(TODAY, [{ level: 3, activity: 'revision', sessions: [] }])).ok,
+      true
+    );
   });
 
   // ══════════════════════════════════════════════════════ §L

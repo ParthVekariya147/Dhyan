@@ -1,4 +1,5 @@
 import { PERIOD_LABEL, leaderboardHeading, useLeaderboard } from '../lib/leaderboard';
+import DailyPrompt from '../components/DailyPrompt';
 import { gu } from '../lib/constants';
 /*
   Two stylesheets, and both are load-bearing.
@@ -260,6 +261,34 @@ export default function Leaderboard() {
         {!loading && !error && enabled && rows.length > 0 && (
           <p className="lb-congrats">અભિનંદન</p>
         )}
+
+        {/*
+          ────────────────────────────────────────────────────────────────────
+          આજની નોંધ — asked here, because this is where standing anywhere is decided
+          ────────────────────────────────────────────────────────────────────
+
+          A યુવક opens ક્રમાંક to find out where he stands, and until today is written down the
+          board he is reading does not have his day on it. So the honest moment to put the
+          question is the moment he asks the question — not a notification and not a page he has
+          to remember to visit.
+
+          <DailyPrompt /> owns the whole decision and this page passes it nothing but a way to
+          say "the board is stale now". It draws the sheet by itself when the app has seen
+          something today that is not written down yet, and otherwise draws only the button that
+          stands here, at the foot of the list, where a યુવક is when he has finished reading it.
+          The reasoning for each of those branches is at the head of that file.
+
+          **Last in the page and not first.** It renders a button in the common case, and a
+          control above the heading would be a second thing competing with the board he actually
+          asked for. The sheet is `position: fixed`, so where it is written has no bearing on
+          where it appears.
+
+          `retry` as `onSaved`: a saved day changes the ranking, and leaving the previous
+          numbers on screen under a sheet that has just closed would be the page contradicting
+          the thing it had just accepted. It is the same re-read the retry button performs, which
+          is why it is the same function rather than a second one that could drift from it.
+        */}
+        <DailyPrompt onSaved={retry} />
       </div>
     </div>
   );
