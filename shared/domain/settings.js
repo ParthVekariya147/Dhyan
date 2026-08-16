@@ -360,6 +360,74 @@ export function validateSlideshow(slideshow) {
 }
 
 /**
+ * settings['app'].value.dhunAutoplay — whether the ધૂન starts by itself on entering the app.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What it is for
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * §8 asks for the ધૂન to start softly the moment a યુવક is in, and that is what the app has
+ * always done. This is the switch that decides whether it still does — and it is the
+ * સંચાલક's, not the code's, for the same reason the slideshow dwell is his: whether music
+ * should greet a room full of યુવકો is a judgement about the સાધના, and it changes without a
+ * deploy.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Off is "not fetched", not "fetched and muted"
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * This is the half worth reading twice, because it is the difference between a setting and a
+ * decoration. The <audio> in src/components/DhunPlayer.jsx carries `preload="none"`, so the
+ * MP3's bytes are requested by the call to play() and by nothing else. Switching this off
+ * therefore does not mute a download that happened anyway — it means the file is never asked
+ * for at all, on a screen served to ~2,000 યુવકો on mobile data (§14). A યુવક who wants it
+ * taps the corner button, and *that* tap is what fetches it.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * What it does NOT do
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * It does not remove the ધૂન. The corner button, the two names and the volume slider are all
+ * still there with this off — it decides who starts the music, not whether there is any. A
+ * setting that hid the control would be the સંચાલક answering a question §8 gave to the યુવક.
+ *
+ * It is also not the યુવક's own on/off, which lives in his phone's localStorage and never
+ * leaves it (src/lib/dhun.js). The two are read together: this one says whether playback may
+ * begin unasked, his says whether he wants it at all.
+ */
+export const DHUN_AUTOPLAY_KEY = 'dhunAutoplay';
+
+/**
+ * On — today's behaviour exactly, so a project that never opens this field keeps the ધૂન it
+ * already had. The same rule DEFAULT_SLIDESHOW and DEFAULT_LEVEL4_GATE follow, and the same
+ * reason: this setting is being added to shipped behaviour, and any other default would
+ * silently switch the music off for every existing project on deploy.
+ */
+export const DEFAULT_DHUN_AUTOPLAY = Object.freeze({ on: true });
+
+/**
+ * settings['app'].value.dhunAutoplay → whether playback may begin without a tap.
+ *
+ * Forgiving, in the same shape and for the same reason as the three resolvers above: this is
+ * jsonb anybody with `settings.update` once wrote, and every way it can be wrong has to end
+ * at a boolean the player can act on.
+ *
+ * `!== false` rather than `Boolean(a.on)`, which is the whole of the branch that matters:
+ * absence must read as the default and the default is on, so a row written by an older panel
+ * — every row in the database today — must not be read as "the સંચાલક turned the music off".
+ * Only a stored, literal `false` does that, which means switching it off has to be said.
+ *
+ * There is no validator beside this one, unlike the settings above. There is nothing to
+ * refuse: a checkbox produces a boolean or it produces nothing, and both of those already
+ * have an answer here. A validator that could only ever return ok would be a rule with
+ * nothing to enforce.
+ */
+export function resolveDhunAutoplay(stored) {
+  const a = stored && typeof stored === 'object' ? stored : {};
+  return { on: a.on !== false };
+}
+
+/**
  * Accepts a full YouTube URL or a bare id, since the admin may paste either.
  * Shared so the panel's "is this link valid?" answer is the same rule the યુવક app
  * will apply when it renders the પ્રવેશદ્વાર.

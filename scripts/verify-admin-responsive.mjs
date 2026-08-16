@@ -334,7 +334,16 @@ const ROUTES = [
   ['/levels/4/config/row-0', 'Level 4 editor'],
   ['/video', 'Video'],
   ['/navigation', 'Navigation'],
-  ['/settings', 'Settings'],
+  // Each tab separately, for the reason given at /access below. It matters more here: five of
+  // the six panels are only reachable through the strip, so a lone '/settings' entry would
+  // have checked the General card and silently stopped covering the dhun, the Drive folder,
+  // the app icon and the leaderboard the day this page grew tabs.
+  ['/settings', 'Settings - general'],
+  ['/settings?tab=dhun', 'Settings - dhun'],
+  ['/settings?tab=darshan', 'Settings - darshan'],
+  ['/settings?tab=app', 'Settings - app shell'],
+  ['/settings?tab=points', 'Settings - points'],
+  ['/settings?tab=more', 'Settings - elsewhere'],
   ['/points', 'Point management'],
   ['/points/ledger', 'Point ledger'],
   ['/points/daily', 'Daily activity'],

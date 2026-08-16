@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useSettings } from '../lib/useSettings';
 import { clampVolume, pickDhun, readDhunList, readDhunPref, writeDhunPref } from '../lib/dhun';
+import { DHUN_AUTOPLAY_KEY, resolveDhunAutoplay } from '../../shared/domain/settings.js';
 import './dhun.css';
 
 /**
@@ -21,6 +22,20 @@ import './dhun.css';
  * play/stop and a volume slider. Putting it in the floating panel rather than in the દર્શન
  * header means it is reachable from every screen and never scrolls away, and it keeps the
  * દર્શન feed the uninterrupted reading surface it is meant to be.
+ *
+ * ── Who starts it ───────────────────────────────────────────────────────────
+ *
+ * "ધીમેથી શરૂ થાય" is the સંચાલક's to switch off (settings['app'].dhunAutoplay). Two
+ * questions are being answered here and they must not be collapsed into one:
+ *
+ *   may playback begin unasked?   the સંચાલક's, read from settings on every visit → `allowed`
+ *   does this yuvak want it?      his own, remembered on his phone → `pref.on`
+ *
+ * With autoplay off the deck is unchanged in every visible respect — the button, the two
+ * names, the slider are all still there — and the only difference is that the first play()
+ * has to come from his finger. Because the element is `preload="none"`, that is also the
+ * first moment the MP3 is fetched at all, which is what makes this a setting about mobile
+ * data (§14) and not merely about silence. The button says "લોડ કરો" while that is true.
  */
 /**
  * The three corner icons, drawn rather than typed.
@@ -87,8 +102,42 @@ function DhunDeck() {
   const [blocked, setBlocked] = useState(false);
   const [open, setOpen] = useState(false);
 
+  /**
+   * Has this yuvak asked for the dhun *on this visit*?
+   *
+   * Session state, never written to localStorage, and that is the point rather than an
+   * oversight. `pref.on` is the remembered answer to "do I want music" and survives reloads;
+   * this is the answer to "has a tap happened since the page opened", which must not. With
+   * the સંચાલક's autoplay off, a persisted arm would mean the first tap in January turns the
+   * setting off for that phone forever — the switch would decay into a one-time prompt.
+   *
+   * It only ever goes true, and only from a control the yuvak pressed. Nothing sets it back:
+   * pausing is `pref.on: false`, and re-arming a track already in the browser's cache would
+   * be asking him to fetch what he has.
+   */
+  const [armed, setArmed] = useState(false);
+
   const list = readDhunList(settings);
   const track = pickDhun(list, pref.id);
+
+  /**
+   * The સંચાલક's switch, and the gate every path to play() below passes through.
+   *
+   * `allowed` false means one thing precisely: playback may not *begin on its own*. The deck
+   * is still drawn, both names are still listed, the volume still moves — §8 gave the yuvak
+   * the corner button and a settings row does not take it back. What it takes back is the
+   * unasked-for start, and with `preload="none"` on the element that is also the whole of the
+   * download (see the note over DHUN_AUTOPLAY_KEY): no play(), no bytes.
+   *
+   * No `loading` guard is needed in front of this, and the reason is worth stating because it
+   * looks like an omission. Before the settings row arrives `settings` is null, so
+   * resolveDhunAutoplay() returns its default of on — but `list` is empty from the same null,
+   * so `track` is null, and every effect below returns on `!track`. The two facts arrive in
+   * the same object and cannot disagree; there is no window in which this reads `on` against
+   * a track it could act on.
+   */
+  const autoplay = resolveDhunAutoplay(settings?.[DHUN_AUTOPLAY_KEY]).on;
+  const allowed = autoplay || armed;
 
   /**
    * The પ્રવેશદ્વાર plays the Varni Dhyan video (§5). A dhun underneath it is two things
@@ -119,7 +168,11 @@ function DhunDeck() {
     const el = audio.current;
     if (!el || !track) return;
 
-    if (!pref.on || silentRoute) {
+    // `!allowed` sits with the two conditions it belongs beside rather than in a guard of its
+    // own: all three are "not now", and the element is paused for each of them. It is the only
+    // one of the three that is somebody else's decision, which changes nothing here — the deck
+    // has never needed to know *why* it is quiet.
+    if (!pref.on || silentRoute || !allowed) {
       el.pause();
       return;
     }
@@ -128,7 +181,7 @@ function DhunDeck() {
     const started = el.play();
     if (started?.catch) started.catch(() => setBlocked(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pref.on, track?.id, silentRoute]);
+  }, [pref.on, track?.id, silentRoute, allowed]);
 
   /**
    * He asked for the dhun on a previous visit; the browser is holding it back until he
@@ -138,7 +191,12 @@ function DhunDeck() {
    * there and turning it off is remembered.
    */
   useEffect(() => {
-    if (!blocked || !pref.on || playing || !track || silentRoute) return;
+    // `allowed` here too, and it is not belt-and-braces. `blocked` outlives the state that set
+    // it: a yuvak who armed the deck, was refused by the browser, then reloaded onto a visit
+    // where the સંચાલક's autoplay is off would otherwise have his first touch anywhere on the
+    // screen start the music — the resume listener is global, and the one thing this setting
+    // must never allow is a start he did not ask for.
+    if (!blocked || !pref.on || playing || !track || silentRoute || !allowed) return;
     const el = audio.current;
     // `?.` on the result too: play() is specified to return a promise, but it did not
     // always, and a TypeError thrown from a global pointerdown listener would break far
@@ -150,7 +208,7 @@ function DhunDeck() {
       removeEventListener('pointerdown', resume);
       removeEventListener('keydown', resume);
     };
-  }, [blocked, pref.on, playing, track?.id, silentRoute]);
+  }, [blocked, pref.on, playing, track?.id, silentRoute, allowed]);
 
   /**
    * How the panel closes: Escape, or a touch anywhere that is not the panel.
@@ -210,6 +268,12 @@ function DhunDeck() {
       return;
     }
     setBlocked(false);
+    // The arm and the play() are the same press, which is what makes this button the "load"
+    // control when autoplay is off. Nothing extra had to be built for that: with
+    // `preload="none"` the fetch *is* the play() call, so a button that starts the dhun and a
+    // button that downloads it are one button, and the yuvak's gesture is wrapped around both
+    // — exactly what every mobile autoplay policy is waiting for.
+    setArmed(true);
     setPref((p) => ({ ...p, on: true }));
     if (el) {
       el.volume = pref.volume;
@@ -219,8 +283,23 @@ function DhunDeck() {
 
   const choose = (d) => {
     setBlocked(false);
+    // Picking a ધૂન by name is asking for it. Arming here as well as in toggle() is what keeps
+    // the panel usable with autoplay off — otherwise the two names would be a choice that
+    // silently did nothing until he found the button underneath them.
+    setArmed(true);
     setPref((p) => ({ ...p, id: d.id, on: true }));
   };
+
+  /**
+   * What the corner button is offering, in words.
+   *
+   * Three states, not two, and the third is the whole feature: with the સંચાલક's autoplay off
+   * and no tap yet, nothing has been fetched, so "શરૂ કરો" would be promising an instant start
+   * for a press that has to cross the network first. Saying "લોડ કરો" is the honest name for
+   * what the press does, and it stops being the label the moment the file is in hand — after
+   * one tap `allowed` is true for the rest of the visit and this reverts to the ordinary pair.
+   */
+  const label = playing ? 'ધૂન બંધ કરો' : allowed ? 'ધૂન શરૂ કરો' : 'ધૂન લોડ કરો';
 
   return (
     <div className="dhun" ref={deck}>
@@ -278,7 +357,7 @@ function DhunDeck() {
           </label>
 
           <button type="button" className="dhun-choice dhun-wide" onClick={toggle}>
-            {playing ? 'બંધ કરો' : 'શરૂ કરો'}
+            {playing ? 'બંધ કરો' : allowed ? 'શરૂ કરો' : 'લોડ કરો'}
           </button>
         </div>
       )}
@@ -288,8 +367,8 @@ function DhunDeck() {
           type="button"
           className={`dhun-btn ${playing ? 'is-playing' : ''}`}
           onClick={toggle}
-          title={playing ? 'ધૂન બંધ કરો' : 'ધૂન શરૂ કરો'}
-          aria-label={playing ? 'ધૂન બંધ કરો' : 'ધૂન શરૂ કરો'}
+          title={label}
+          aria-label={label}
           aria-pressed={playing}
         >
           {playing ? <PauseIcon /> : <NoteIcon />}
