@@ -10,6 +10,12 @@ import {
    surface, and 0014's argument for moving the લેવલ ૪ gate here applies to them unchanged. */
 import { POINTS_KEY } from '../../../../../shared/domain/points.js';
 import { LEADERBOARD_KEY } from '../../../../../shared/domain/leaderboard.js';
+/* The two switches behind "આજે તમે શું કર્યું?" — in the `levels` row for the same reason the
+   point values are: it is a property of the ladder a યુવક is reporting on, not of a surface. */
+import {
+  DAILY_PROMPT_KEY,
+  resolveDailyPrompt,
+} from '../../../../../shared/domain/daily-prompt.js';
 
 /**
  * §34 — controlled configuration instead of settings scattered through source files.
@@ -89,6 +95,15 @@ export async function getLevelsConfig() {
     // Raw for the same reason `points` is: LeaderboardCard has to tell "never configured"
     // from "deliberately switched off", and resolveLeaderboard() maps both to `enabled: false`.
     leaderboard: stored?.[LEADERBOARD_KEY],
+    /*
+      Resolved, unlike the two above, and the difference is the question each card has to
+      answer. `points` and `leaderboard` both need to tell "never configured" from "deliberately
+      switched off", because each offers a pre-fill in the first case only. This one has no such
+      offer to make: its default is ON, so an absent key and an explicit `{enabled: true,
+      autoOpen: true}` mean exactly the same thing to every screen and to the app, and handing
+      the card a raw value would give it a distinction with nothing behind it.
+    */
+    dailyPrompt: resolveDailyPrompt(stored?.[DAILY_PROMPT_KEY]),
   };
 }
 
@@ -108,3 +123,14 @@ export const updateLevelsConfig = ({ levels, gate }) =>
   writeSetting(LEVELS_SETTINGS_DOC, { levels, [LEVEL4_GATE_KEY]: gate });
 
 export const updateLevels = (levels) => writeSetting(LEVELS_SETTINGS_DOC, { levels });
+
+/**
+ * Whether ક્રમાંક asks a યુવક about today, and whether it asks by opening.
+ *
+ * Through `writeSetting`, which MERGES rather than replaces, so saving these two booleans
+ * cannot drop `levels`, `points`, `leaderboard` or the લેવલ ૪ gate sharing the same row. The
+ * database refuses a malformed pair regardless — `settings_check_daily_prompt()` (0049) mirrors
+ * `validateDailyPrompt()` message for message, because a disabled control is not a rule.
+ */
+export const updateDailyPrompt = (dailyPrompt) =>
+  writeSetting(LEVELS_SETTINGS_DOC, { [DAILY_PROMPT_KEY]: dailyPrompt });
