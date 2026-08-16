@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import netlifyFunctionsDev from './scripts/lib/vite-netlify-functions.mjs';
+import dropManifestFromPrecache from './scripts/lib/vite-drop-manifest-precache.mjs';
 
 /**
  * The યુવક app's build. The સંચાલક panel has its own — admin/vite.config.js — and the two
@@ -98,6 +99,10 @@ export default defineConfig(({ mode }) => {
         // 100 files (6.3 MB) on first load, which is the exact problem this rebuild
         // exists to fix. They are cached at runtime instead — only once actually viewed.
         globPatterns: ['**/*.{js,css,html,woff2,svg}'],
+        // The manifest is kept OUT of this precache by dropManifestFromPrecache() below —
+        // see that file for why a precached manifest defeats the whole of 0042, and why it
+        // cannot be done with a workbox option from in here.
+        //
         // The સંચાલક પેનલ is a separate build served from /admin on this same origin,
         // so this worker — which claims '/' — must not answer for it. Without the
         // denylist the navigation fallback serves the યુવક shell for /admin/* from
@@ -118,6 +123,9 @@ export default defineConfig(({ mode }) => {
         ],
       },
     }),
+    // AFTER VitePWA(), and that order is load-bearing: it reaches into that plugin's api to
+    // remove the manifest from the precache, which requires the entries to exist already.
+    dropManifestFromPrecache(),
   ],
   };
 });
