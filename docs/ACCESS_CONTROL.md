@@ -8,8 +8,8 @@
 > | 2 | Panel: `admin_session()` RPC, `permissions.js` rewrite, NAV re-pointed, roles from the DB | **Done** |
 > | 3 | `0044_effective_access.sql` — `permissions_of()`, `admin_effective_permissions()`, `admin_role_usage()` | **Done** |
 > | 4 | Panel: the `/access` section — all four tabs of §6.1 | **Done** |
-> | 5 | Zone scope migration (was §3 of this plan) | To do |
-> | 6 | Panel: scope editor | To do |
+> | 5 | `0051_admin_scopes.sql` — zone scope, restrictive policies, the four detail refusals | **Done** |
+> | 6 | Panel: `/access?tab=zones`, the Sees column, the shell banner | **Done** |
 > | 7 | `user_activity_daily` + today/trend functions | To do |
 > | 8 | યુવક app: presence write, and the dashboard Today band | To do |
 > | 9 | Single Super Admin | To do — **needs the account named** |
@@ -42,8 +42,41 @@
 > ### Numbering note
 >
 > The zone-scope migration described in §3 below was **not** the file that became 0044.
-> `0044_effective_access.sql` is the read surface the Access screens needed, and zone scope
-> moves to the next free number. The design in §3 is unchanged.
+> `0044_effective_access.sql` is the read surface the Access screens needed. Zone scope shipped
+> as **`0051_admin_scopes.sql`**, seven files later, and §3's design is followed with the five
+> changes listed immediately below.
+>
+> ### Where zone scope deviated from §3, and why
+>
+> 1. **The scope table stores a zone and not a `sub_zone_id` from a fixed list.** §3 was written
+>    when `profiles.sub_zone_id` was a three-value CHECK. `0050_cities_and_zones.sql` made
+>    cities and zones rows, so `admin_scopes.zone_id` is a foreign key to `public.zones`. 0050's
+>    own header (line 248) anticipates this file by name.
+> 2. **A scope is a zone, not a (city, zone) pair**, although 0050 describes it as a pair. The
+>    two agree: `zones.id` is unique across every city and `profiles_guard_geography()` refuses
+>    a profile whose city and zone disagree, so the zone determines the city and storing the
+>    city beside it would be storing a value that can only be derived or wrong.
+> 3. **Twelve RESTRICTIVE policies instead of re-writing twelve existing quals.** §3 tightened
+>    the `profiles` SELECT policy by hand and said nothing about the other eleven tables a
+>    browser can read over PostgREST. A restrictive policy is ANDed with whatever permissive
+>    policies exist, so 0004/0010/0021/0034/0035's quals are not touched at all, and each new
+>    policy states one thing. For an unrestricted caller every one of them is a constant true.
+> 4. **`geography()` was re-issued so its counts are the caller's own.** Not in §3 at all, and
+>    found while building the scope editor: 0050's count comes from `public.yuvaks` inside a
+>    SECURITY DEFINER function, where RLS does not apply — so a વરાછા-scoped સંચાલક would open
+>    the scope screen and read how many યુવકો are in the two zones he cannot see. Place *names*
+>    are still unnarrowed, because a યુવક in a zone must print with its name wherever he appears.
+> 5. **`0043_dynamic_rbac.sql` needed a one-line edit to stay replay-safe.** 0051 adds a column
+>    to `admin_session()`'s `returns table`, which `create or replace` cannot do (42P13), so it
+>    drops and re-creates. On a replay 0043 then meets the six-column version and aborts. It now
+>    drops the function before creating it, exactly as 0038 was edited for `effective_role()`
+>    and for the same reason. Found by `test-point-engine.mjs`, which replays 0031 onward.
+>
+> `scripts/test-scope.mjs` (57 assertions, twelve groups) is the suite for it, and
+> `test-domain.mjs` gained 33 for `shared/domain/scope.js`. Two suites that were **already**
+> failing on `main` after 0050 — `test-admin-progress.mjs` and `test-point-engine.mjs`, both
+> seeding a યુવક into નવસારી, which 0050 seeds RETIRED — had their fixtures opened, since a
+> third zone is a row now rather than a constant.
 >
 > ### Where the build deviated from this plan, and why
 >

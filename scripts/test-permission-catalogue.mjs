@@ -217,9 +217,16 @@ const UI_ONLY = {
   'points.bonus.update': 'point_bonus_rules; settings.update is the database check',
   'points.adjust': 'admin_award_manual_points() checks settings.update today',
 
-  // 0044 territory. The permission exists so the Access screen can offer it; the scope tables
-  // and the policies that read them are the next migration.
-  'scope.assign': 'zone scope is 0044 - the permission ships first so the screen can offer it',
+  /*
+    `scope.assign` was here, and 0051 is why it is not.
+
+    It was the honest exemption for two migrations: the permission shipped with 0043 so the
+    role editor could offer it, and nothing read it - there was no `admin_scopes` table for it
+    to govern. 0051 adds the table and `admin_scopes_guard()` checks this permission on every
+    write to it, as a BEFORE trigger that binds service_role too, so the exemption became stale
+    the moment that file applied. Removing it is what this half of §D is for: an exemption
+    nobody removes is how the list stops being read.
+  */
 
   // Reserved for the detail screens, which are governed by progress.read on the function.
   'progress.detail.read': 'admin_user_progress_detail() checks progress.read',

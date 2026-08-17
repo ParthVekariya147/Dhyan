@@ -107,6 +107,14 @@ export const ACTIONS = {
   ROLE_PERMISSION_REVOKED: 'ROLE_PERMISSION_REVOKED',
   GRANT_ADDED: 'GRANT_ADDED',
   GRANT_REMOVED: 'GRANT_REMOVED',
+
+  /*
+    0051. One row per zone added or removed, for the same reason the permission entries are one
+    row per permission moved: the editor saves a set of tick boxes, and a single entry carrying
+    two JSON blobs leaves the reader to diff them. "વરાછા was added to Ramesh" is the sentence
+    somebody needs a year later, and it is the one that answers "when did he stop seeing વેડરોડ".
+  */
+  SCOPE_CHANGED: 'SCOPE_CHANGED',
 };
 
 /** Gujarati label for the list; unknown actions fall back to the raw code. */
@@ -147,6 +155,7 @@ export const ACTION_LABELS = {
   ROLE_PERMISSION_REVOKED: 'Permission removed from a role',
   GRANT_ADDED: 'Permission granted to one person',
   GRANT_REMOVED: 'Individual permission removed',
+  SCOPE_CHANGED: 'Zones an admin can see changed',
 };
 
 export const actionLabel = (a) => ACTION_LABELS[a] || a || '-';
@@ -162,6 +171,7 @@ export const RESOURCE_LABELS = {
   admin_roles: 'Role',
   role_permissions: 'Role permissions',
   admin_grants: 'Individual permission',
+  admin_scopes: 'Zone access',
 };
 
 export const resourceLabel = (r) => RESOURCE_LABELS[r] || r || '-';

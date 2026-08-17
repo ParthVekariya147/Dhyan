@@ -750,6 +750,22 @@ grant execute on function public.permissions_for(text) to authenticated;
 -- at no cost: the round trip was already being made, and this returns the answer instead of
 -- half of it.
 
+/*
+  Dropped first, and that line was added by 0051 rather than written here.
+
+  0051 adds a `scope` column to this function's `returns table`. `create or replace function`
+  cannot change a return type — 42P13 — so 0051 drops and re-creates it. On a REPLAY the files
+  run in filename order again, so this one meets the six-column version 0051 left behind and
+  fails with exactly that error, aborting the migration and everything after it in the same
+  transaction.
+
+  scripts/test-point-engine.mjs replays 0031 onward and is what found it, which is the same way
+  0038's `effective_role()` was caught (0043's own deviation note 2, for the same reason).
+  Nothing depends on this function in pg_depend — the panel calls it over RPC — so the drop
+  cascades to nothing, and a full replay ends with 0051's version because 0051 sorts after this.
+*/
+drop function if exists public.admin_session();
+
 create or replace function public.admin_session()
 returns table (
   role         text,

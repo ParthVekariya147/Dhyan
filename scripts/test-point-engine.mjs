@@ -227,6 +227,28 @@ async function fixtures(db) {
   // this file chose. Each group configures the rules it needs, inside a transaction it rolls
   // back.
 
+  /*
+    નવસારી becomes a city of its own, which is what this fixture has always meant by it.
+
+    `U.filler` is deliberately in a different CITY from everybody else - the reports return
+    `cityId` and `zoneId` separately and §H asserts both - and until 0050 that cost nothing,
+    because `profiles.zone_id` had no constraint at all beyond `default 'surat'`. It is a
+    foreign key now, and the zone must belong to the city its profile names, so the two rows
+    have to exist before the person does.
+
+    Reopened as well as moved: 0050 seeds નવસારી RETIRED, and a RETIRED zone may not take
+    somebody new. The move is permitted because no profile is in it yet - geography_guard()
+    refuses moving a zone that anybody is standing in, which is why this runs before the
+    inserts below and not after.
+  */
+  await db.query(
+    `insert into public.cities (id, name, sort_order) values ('navsari', 'નવસારી', 2)
+     on conflict (id) do nothing`
+  );
+  await db.query(
+    `update public.zones set city_id = 'navsari', status = 'ACTIVE' where id = 'navsari'`
+  );
+
   const people = [
     [U.alpha, 'ALP101', 'Alpha Yuvak', '9811100001', 'surat', 'varachha', 'ACTIVE'],
     [U.beta, 'BET102', 'Beta Yuvak', '9811100002', 'surat', 'varachha', 'ACTIVE'],

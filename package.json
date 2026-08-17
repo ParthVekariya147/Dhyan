@@ -15,7 +15,7 @@
     "seed:admin:check": "node scripts/seed-admin-supabase.mjs --check",
     "seed:admin:new": "node scripts/seed-admin-account.mjs",
     "seed:admin:list": "node scripts/seed-admin-account.mjs --check",
-    "test": "node scripts/test-progress-mapping.mjs && node scripts/test-domain.mjs && node scripts/test-level4.mjs && node scripts/test-darshan-excel.mjs && node scripts/test-navigation.mjs && node scripts/test-viewing-speed.mjs && node scripts/test-points.mjs && node scripts/test-point-rules.mjs && node scripts/test-leaderboard.mjs && node scripts/test-recovery.mjs && node scripts/test-admin-progress.mjs && node scripts/test-point-engine.mjs && node scripts/test-point-bonus.mjs && node scripts/test-daily-records.mjs && node scripts/test-scoring-scenarios.mjs && node scripts/test-level3-auth.mjs && node scripts/test-xlsx.mjs && node scripts/test-level3-revisions.mjs && node scripts/test-admins.mjs && node scripts/test-rbac-dynamic.mjs && node scripts/test-permission-catalogue.mjs && node scripts/test-test-accounts.mjs && node scripts/test-nav-grants.mjs && node scripts/test-app-shell.mjs && node scripts/test-app-shell-db.mjs",
+    "test": "node scripts/test-progress-mapping.mjs && node scripts/test-domain.mjs && node scripts/test-level4.mjs && node scripts/test-darshan-excel.mjs && node scripts/test-navigation.mjs && node scripts/test-viewing-speed.mjs && node scripts/test-points.mjs && node scripts/test-point-rules.mjs && node scripts/test-leaderboard.mjs && node scripts/test-recovery.mjs && node scripts/test-admin-progress.mjs && node scripts/test-point-engine.mjs && node scripts/test-point-bonus.mjs && node scripts/test-daily-records.mjs && node scripts/test-scoring-scenarios.mjs && node scripts/test-level3-auth.mjs && node scripts/test-xlsx.mjs && node scripts/test-level3-revisions.mjs && node scripts/test-admins.mjs && node scripts/test-rbac-dynamic.mjs && node scripts/test-permission-catalogue.mjs && node scripts/test-scope.mjs && node scripts/test-test-accounts.mjs && node scripts/test-nav-grants.mjs && node scripts/test-app-shell.mjs && node scripts/test-app-shell-db.mjs",
     "test:rls": "node scripts/test-rls.mjs",
     "test:progress": "node scripts/test-admin-progress.mjs",
     "test:recovery": "node scripts/test-recovery.mjs",
@@ -57,7 +57,8 @@
     "test:test-accounts": "node scripts/test-test-accounts.mjs",
     "test:nav-grants": "node scripts/test-nav-grants.mjs",
     "test:app-shell": "node scripts/test-app-shell.mjs",
-    "test:app-shell-db": "node scripts/test-app-shell-db.mjs"
+    "test:app-shell-db": "node scripts/test-app-shell-db.mjs",
+    "test:scope": "node scripts/test-scope.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

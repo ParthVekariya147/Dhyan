@@ -6,6 +6,7 @@ import AdminsTab from '../../users/pages/AdminsTab';
 import RolesTab from './RolesTab';
 import PermissionsTab from './PermissionsTab';
 import EffectiveAccessTab from './EffectiveAccessTab';
+import ZonesTab from './ZonesTab';
 import '../access.css';
 
 /**
@@ -74,6 +75,21 @@ const TABS = [
     sub: 'What each role may do. Editing a role changes it for everybody holding it, at once.',
   },
   {
+    id: 'zones',
+    label: 'Zone access',
+    /*
+      `scope.assign` and not `admins.read`, for the same reason Roles asks for `roles.manage`.
+
+      This tab is useless read-only: its whole content is a set of tick boxes over which zones
+      each person may see, and every one of them is refused on press without the permission to
+      write them. A person who cannot assign a scope has one honest place to read somebody's -
+      the Zones column on Administrators, which is beside the rest of that person's access and
+      is where the question is actually asked.
+    */
+    need: 'scope.assign',
+    sub: 'Which yuvaks each administrator can see. Nobody ticked means every zone.',
+  },
+  {
     id: 'permissions',
     label: 'Permissions',
     need: 'admins.read',
@@ -90,6 +106,7 @@ const TABS = [
 const PANELS = {
   admins: AdminsTab,
   roles: RolesTab,
+  zones: ZonesTab,
   permissions: PermissionsTab,
   effective: EffectiveAccessTab,
 };

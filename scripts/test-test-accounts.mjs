@@ -302,8 +302,29 @@ async function main() {
     const stillRaw = defs.rows.filter((r) => /public\.profiles p\b/.test(r.def)).map((r) => r.proname);
     eq('none of them still walks public.profiles', stillRaw, []);
 
-    const notCounted = defs.rows.filter((r) => !/counted_profiles/.test(r.def)).map((r) => r.proname);
-    eq('and every one of them walks counted_profiles', notCounted, []);
+    /*
+      `counted_profiles` OR `scoped_profiles`, and the second is not a loosening.
+
+      0051 narrowed the reported population a second time - to the zones the caller may see -
+      and did it the way 0040 did: one view, substituted for the one below it, with every
+      report re-issued by token. So eight of these nine now read `public.scoped_profiles` and
+      the ninth (`leaderboard`, the યુવક app's own board) still reads `counted_profiles`,
+      deliberately, because an administrator's remit must not change what a યુવક is shown.
+
+      Accepting both names would be a hole if `scoped_profiles` could be anything; the
+      assertion below closes it by checking what that view is actually built on. A future
+      migration that redefined it over `public.profiles` would put test accounts back into
+      every report, and this is the pair of checks that says so.
+    */
+    const POPULATION_VIEWS = /counted_profiles|scoped_profiles/;
+    const notCounted = defs.rows.filter((r) => !POPULATION_VIEWS.test(r.def)).map((r) => r.proname);
+    eq('and every one of them walks the counted population', notCounted, []);
+
+    const scopedView = await db.query(
+      `select pg_get_viewdef('public.scoped_profiles'::regclass, true) as def`
+    );
+    eq('scoped_profiles is counted_profiles narrowed, not a way around it',
+      /counted_profiles/.test(scopedView.rows[0].def), true);
 
     // The other half of the rule, stated so it cannot be "fixed" by pointing everything at the
     // filtered view: a report that resolves one named person must still see a test account.

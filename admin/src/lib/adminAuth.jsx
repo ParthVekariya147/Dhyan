@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from './supabase';
 import { isSupabaseConfigured, supabaseConfigFromEnv } from '../../../shared/supabase/client.js';
 import { can as holds, isReadOnly as setIsReadOnly, roleLabel } from '../../../shared/domain/permissions.js';
+import { normaliseScope } from '../../../shared/domain/scope.js';
 import { resetRedirectTo } from '../../../shared/domain/recovery-routes.js';
 import { dataError } from './errors';
 
@@ -26,6 +27,13 @@ const ANON = {
   role: null,
   roleLabel: '-',
   permissions: [],
+  /*
+    null, and never []. shared/domain/scope.js states the rule once and both apps keep it: no
+    zones means EVERY zone. An empty array here would be read as the same "unrestricted" by
+    normaliseScope(), but writing it that way in the settled anonymous state invites the next
+    person to test `scope.length` somewhere and get the answer exactly backwards.
+  */
+  scope: null,
   rank: 0,
   isBootstrap: false,
   via: null,
@@ -140,6 +148,17 @@ export function AdminAuthProvider({ children }) {
           // arrived without one.
           roleLabel: roleLabel(role, s?.role_label ? { [role]: s.role_label } : null),
           permissions: Array.isArray(s?.permissions) ? s.permissions : [],
+          /*
+            The zones he is limited to, or null for all of them (0051).
+
+            normaliseScope() rather than the raw array, so an empty array from PostgREST
+            collapses to null here and every screen below has one spelling of "unrestricted"
+            instead of two that mean the same thing. It is visibility only — the narrowing is
+            `public.scoped_profiles` and twelve restrictive policies, none of which this file
+            can affect — and what it decides is whether the panel says which zone the numbers
+            on screen are about.
+          */
+          scope: normaliseScope(s?.scope),
           rank: s?.rank ?? 0,
           isBootstrap: Boolean(s?.is_bootstrap),
           via: 'rls',

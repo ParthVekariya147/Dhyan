@@ -66,6 +66,16 @@ import {
   zonesOf,
 } from '../shared/domain/geography.js';
 import {
+  inScope,
+  isUnrestricted,
+  normaliseScope,
+  scopeDiff,
+  scopeNotice,
+  scopeSummary,
+  validateScope,
+  visibleZones,
+} from '../shared/domain/scope.js';
+import {
   ENTRY_ROUTE,
   ENTRY_STATE,
   guardRoute,
@@ -1490,6 +1500,114 @@ group('geography — cities and zones as data, not as an array');
     geoReadOnly = false;
   }
   eq('nothing here writes to what it was given', geoReadOnly, true);
+}
+
+// ====================================================================
+/*
+  `shared/domain/scope.js` — the zones a સંચાલક is limited to (0051).
+
+  One rule carries the whole module and every assertion here circles it: **no zones means every
+  zone**. Read the other way round, 0051 would have taken every યુવક away from every સંચાલક in
+  the સંઘ on the day it applied, and the panel would have come up empty for the person who
+  deployed it with no error anywhere to explain why.
+
+  The database says the same thing in `caller_scope()`, which returns NULL rather than an empty
+  array, and scripts/test-scope.mjs asserts it there against a real Postgres. This half is what
+  stops the *bundle* disagreeing with it - a banner that said "you see nothing" to somebody who
+  sees everything is the same defect wearing a different hat.
+*/
+group('scope — no zones means every zone');
+{
+  const ZONES = [
+    { id: 'varachha', cityId: 'surat', name: 'વરાછા', status: 'ACTIVE', sort: 1, yuvaks: 108 },
+    { id: 'vedroad', cityId: 'surat', name: 'વેડરોડ', status: 'ACTIVE', sort: 2, yuvaks: 3 },
+    { id: 'navsari', cityId: 'surat', name: 'નવસારી', status: 'RETIRED', sort: 3, yuvaks: 0 },
+    { id: 'katargam', cityId: 'surat', name: 'કતારગામ', status: 'ACTIVE', sort: 4, yuvaks: 12 },
+  ];
+
+  // ── the rule itself, from every direction it can arrive ──────────────────
+  eq('null is unrestricted', normaliseScope(null), null);
+  eq('an empty array is the same statement, said the longer way', normaliseScope([]), null);
+  eq('and so is a value that never arrived', normaliseScope(undefined), null);
+  eq('a value that is not a list at all falls to unrestricted', normaliseScope('varachha'), null);
+  eq('isUnrestricted agrees with all four', [
+    isUnrestricted(null), isUnrestricted([]), isUnrestricted(undefined), isUnrestricted('x'),
+  ], [true, true, true, true]);
+  eq('and disagrees the moment there is a zone', isUnrestricted(['varachha']), false);
+
+  // ── reading what the server sent ─────────────────────────────────────────
+  eq('a real scope survives intact', normaliseScope(['varachha']), ['varachha']);
+  eq('sorted, so two reads of one scope compare equal',
+    normaliseScope(['vedroad', 'varachha']), ['varachha', 'vedroad']);
+  eq('duplicates collapse', normaliseScope(['varachha', 'varachha']), ['varachha']);
+  eq('a value that is not an id is dropped', normaliseScope(['varachha', 'Varachha', 42, null]), ['varachha']);
+  eq('and a list of nothing but rubbish is unrestricted, not empty',
+    normaliseScope(['NOPE', '', 7]), null);
+
+  // ── inScope ──────────────────────────────────────────────────────────────
+  eq('an unrestricted caller is in every zone', inScope(null, 'vedroad'), true);
+  eq('a scoped one is in his own', inScope(['varachha'], 'varachha'), true);
+  eq('and not in another', inScope(['varachha'], 'vedroad'), false);
+
+  eq('the filter offers a scoped person only his zones',
+    visibleZones(['varachha', 'vedroad'], ZONES).map((z) => z.id), ['varachha', 'vedroad']);
+  eq('and everybody else all of them', visibleZones(null, ZONES).length, 4);
+
+  // ── the sentence on screen ───────────────────────────────────────────────
+  /*
+    '' for unrestricted, and it is deliberately not the words "every zone": AdminShell writes
+    `{banner && …}`, so an empty string is what makes the element disappear. Telling somebody
+    unrestricted that he is unrestricted is noise on every page of the panel.
+  */
+  eq('an unrestricted person is told nothing at all', scopeSummary(null, ZONES), '');
+  eq('and gets no notice either', scopeNotice(null, ZONES), '');
+  eq('one zone is named', scopeSummary(['varachha'], ZONES), 'વરાછા');
+  eq('two are joined with "and"', scopeSummary(['varachha', 'vedroad'], ZONES), 'વરાછા and વેડરોડ');
+  eq('three still fit', scopeSummary(['katargam', 'varachha', 'vedroad'], ZONES),
+    'કતારગામ, વરાછા and વેડરોડ');
+  eq('past three the count is the useful fact',
+    scopeSummary(['katargam', 'navsari', 'varachha', 'vedroad'], ZONES), '4 zones');
+  eq('a zone whose name has not loaded prints its id rather than a blank',
+    scopeSummary(['varachha'], []), 'varachha');
+  eq('the notice says what IS shown, not what is withheld',
+    scopeNotice(['varachha'], ZONES),
+    'Every count, list and report on this screen covers વરાછા only.');
+
+  // ── saving one ───────────────────────────────────────────────────────────
+  eq('a scope of known zones is saveable',
+    validateScope(['vedroad', 'varachha'], ZONES), { ok: true, zoneIds: ['varachha', 'vedroad'] });
+  // Not an error, and this is the case worth being careful about: it is how a limit is removed.
+  eq('an empty scope is valid, because that is how a limit is lifted',
+    validateScope([], ZONES), { ok: true, zoneIds: [] });
+  eq('an unknown zone is named rather than left to the foreign key',
+    validateScope(['nowhere'], ZONES).gu, 'There is no zone called "nowhere".');
+
+  // ── the diff the panel writes ────────────────────────────────────────────
+  eq('adding one zone is one insert and no delete',
+    scopeDiff(['varachha'], ['varachha', 'vedroad']), { added: ['vedroad'], removed: [] });
+  eq('removing one is one delete and no insert',
+    scopeDiff(['varachha', 'vedroad'], ['varachha']), { added: [], removed: ['vedroad'] });
+  eq('no change is neither', scopeDiff(['varachha'], ['varachha']), { added: [], removed: [] });
+  /*
+    Lifting a limit reads as removing every zone he had, which is exactly what the panel must
+    write - and exactly why it writes a diff rather than deleting and re-inserting. Between the
+    two halves of a delete-all/insert-all he would have no rows, and no rows is every zone.
+  */
+  eq('lifting a limit removes what he had and adds nothing',
+    scopeDiff(['varachha', 'vedroad'], []), { added: [], removed: ['varachha', 'vedroad'] });
+  eq('and setting one on somebody unrestricted adds without removing',
+    scopeDiff(null, ['varachha']), { added: ['varachha'], removed: [] });
+
+  let scopeReadOnly = true;
+  try {
+    const frozen = Object.freeze(['varachha']);
+    normaliseScope(frozen);
+    scopeDiff(frozen, Object.freeze(['vedroad']));
+    validateScope(frozen, Object.freeze(ZONES));
+  } catch {
+    scopeReadOnly = false;
+  }
+  eq('nothing here writes to what it was given', scopeReadOnly, true);
 }
 
 // ==================================================================== result

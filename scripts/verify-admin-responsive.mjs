@@ -263,6 +263,14 @@ const FIXTURES = {
     role_label: 'Super Admin',
     rank: 100,
     permissions: ALL_PERMISSIONS,
+    /*
+      NULL, and stated rather than omitted (0051). It is the answer for everybody unrestricted,
+      which is every administrator until somebody sets a limit, and it is what makes AdminShell
+      render no scope banner - so these screenshots are of the panel as almost everyone opens
+      it. Left out entirely it would arrive as undefined and mean the same thing, and the next
+      person changing this fixture would have no way to tell that "no limit" was a decision.
+    */
+    scope: null,
     is_bootstrap: false,
   }],
   // Kept: src/lib/auth.jsx in the યુવક app still calls it for its cosmetic isAdmin flag, and
@@ -278,6 +286,25 @@ const FIXTURES = {
   ],
   role_permissions: () => ALL_PERMISSIONS.map((permission) => ({ role_key: 'SUPER_ADMIN', permission })),
   admin_grants: () => [],
+  // Nobody is limited to a zone, which is the state the સંઘ is in until somebody sets one -
+  // so the Zone access tab renders every administrator as "Every zone" (0051).
+  admin_scopes: () => [],
+  /*
+    The places, for the Zone access tab and for the Administrators tab's "Sees" column.
+
+    The four rows 0050 seeds, with counts, because that tab's whole usefulness is the count
+    beside each name - "retire વેડરોડ" and "give Ramesh વેડરોડ" are different decisions at 3
+    યુવકો than at 300, and a screenshot of the control with every count blank would not show
+    whether it fits.
+  */
+  geography: () => ({
+    cities: [{ id: 'surat', name: 'સુરત', status: 'ACTIVE', sort_order: 1, yuvaks: 111 }],
+    zones: [
+      { id: 'varachha', city_id: 'surat', name: 'વરાછા', status: 'ACTIVE', sort_order: 1, yuvaks: 108 },
+      { id: 'vedroad', city_id: 'surat', name: 'વેડરોડ', status: 'ACTIVE', sort_order: 2, yuvaks: 3 },
+      { id: 'navsari', city_id: 'surat', name: 'નવસારી', status: 'RETIRED', sort_order: 3, yuvaks: 0 },
+    ],
+  }),
   admin_role_usage: () => [{ role_key: 'SUPER_ADMIN', members: 1, active_members: 1 }],
   admin_effective_permissions: () =>
     ALL_PERMISSIONS.map((permission) => ({ permission, source: 'role', expires_at: null })),
@@ -355,6 +382,7 @@ const ROUTES = [
   // would only ever have checked whichever tab happens to be first.
   ['/access?tab=admins', 'Access - administrators'],
   ['/access?tab=roles', 'Access - roles'],
+  ['/access?tab=zones', 'Access - zones'],
   ['/access?tab=permissions', 'Access - permissions'],
   ['/access?tab=effective', 'Access - effective'],
   ['/audit-logs', 'Audit log'],

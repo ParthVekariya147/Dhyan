@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAsync } from '../../../lib/useAsync';
 import { useAdminAuth } from '../../../lib/adminAuth';
 import DataTable from '../../../components/DataTable';
@@ -21,6 +22,8 @@ import {
   updateDisplayName,
 } from '../services/adminService';
 import { searchUsers } from '../services/userService';
+import { isUnrestricted } from '../../../../../shared/domain/scope.js';
+import { listScopes, loadGeography } from '../../access/services/scopeService';
 
 /**
  * ────────────────────────────────────────────────────────────────────────────
@@ -179,6 +182,24 @@ export default function AdminsTab() {
   */
   const roleState = useAsync(() => listRoles(), []);
   const roles = roleState.data || [];
+
+  /*
+    Who is limited to which zones (0051), and the zone names to print them with.
+
+    Loaded beside the roles and never awaited before the list, for the same reason: a page that
+    showed nothing until two more requests landed would be slower for everybody in exchange for
+    one column. Both degrade to "Every zone", which is what an administrator with no rows
+    genuinely is — so a failed read shows the common case rather than a blank or a wrong one.
+
+    RLS decides how much of `admin_scopes` comes back: `admin_id = auth.uid() or
+    has_permission('admins.read')`. This tab is already gated on `admins.read`, so anybody
+    reading it sees every row rather than only his own.
+  */
+  const scopeState = useAsync(() => listScopes(), []);
+  const geoState = useAsync(() => loadGeography(), []);
+  const scopes = scopeState.data || {};
+  const zoneName = (id) =>
+    (geoState.data?.zones || []).find((z) => z.id === id)?.name || id;
   const labels = roleLabels(roles);
   /** A role key as a person reads it. Falls back to humanising the key - see roleLabel(). */
   const label = (key) => roleLabel(key, labels);
@@ -308,6 +329,31 @@ export default function AdminsTab() {
       render: (a) => {
         const s = ACCOUNT_STATUS[a.status] || { label: a.status || '-', tone: 'off' };
         return <StatusBadge tone={s.tone}>{s.label}</StatusBadge>;
+      },
+    },
+    {
+      key: 'zones',
+      label: 'Sees',
+      /*
+        Which યુવકો this administrator can see (0051), beside the role that says what he may do
+        to them. The two are the same question asked twice and were only ever half answerable
+        here.
+
+        "Every zone" in words rather than an empty cell. An empty cell in this column would read
+        as "no zones", and it means the exact opposite — no rows in `admin_scopes` is
+        unrestricted. That inversion is the one thing about zone scope that is not guessable,
+        and it is not left to be guessed on the screen where administrators are listed.
+      */
+      render: (a) => {
+        const s = scopes[a.id];
+        if (isUnrestricted(s)) return <span className="hint">Every zone</span>;
+        return (
+          <span style={{ display: 'inline-flex', gap: 'var(--sp-1)', flexWrap: 'wrap' }}>
+            {s.map((z) => (
+              <StatusBadge key={z} tone="warn">{zoneName(z)}</StatusBadge>
+            ))}
+          </span>
+        );
       },
     },
     { key: 'createdAt', label: 'Added', render: (a) => dateGu(a.createdAt) },
@@ -459,6 +505,16 @@ export default function AdminsTab() {
             trail records stays attached to a person. Since the change of 0038 he needs no
             yuvak account, and his mobile number here is for contact only: administrators sign
             in by email.
+          </p>
+
+          {/* Read here, changed there. The "Sees" column answers "why can he not open this
+              yuvak", which is the question that gets asked on this screen; setting it is a
+              decision about a population and belongs beside the yuvak counts per zone. */}
+          <p className="card-note">
+            "Sees" is which yuvaks he can open - <strong>Every zone</strong> means no limit has
+            been set, which is what an administrator has until somebody sets one. Change it
+            under <Link to="/access?tab=zones">Access &rarr; Zone access</Link>. A Super Admin
+            always sees every zone and cannot be limited.
           </p>
         </>
       </AsyncBlock>

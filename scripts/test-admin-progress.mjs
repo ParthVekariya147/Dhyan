@@ -164,6 +164,20 @@ async function fixtures(db) {
   // taken from the two writers verbatim, and scripts/test-rls.mjs §D already asserts that no
   // client role can reach either table this way.
 
+  /*
+    નવસારી is reopened before anybody is put in it.
+
+    0050 turned the three hardcoded zones into rows and seeded નવસારી as RETIRED, because no
+    યુવક is in it and the ask was for the other two. `profiles_guard_geography()` then refuses a
+    new profile there - "The zone નવસારી is closed - choose an open one" - which is exactly the
+    rule working, and it is what this fixture met.
+
+    Reopened rather than swapped for વરાછા: this suite needs three distinct zones for its
+    filter assertions, and a third open zone is now a row rather than a constant. This is the
+    same act the panel offers a સંચાલક, performed as the owner in a throwaway container.
+  */
+  await db.query(`update public.zones set status = 'ACTIVE' where id = 'navsari'`);
+
   const people = [
     [U.alpha, 'ALP101', 'Alpha Yuvak', '9811100001', 'varachha', 'ACTIVE'],
     [U.beta, 'BET102', 'Beta Yuvak', '9811100002', 'varachha', 'ACTIVE'],

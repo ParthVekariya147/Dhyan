@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../lib/adminAuth';
+import { useAsync } from '../lib/useAsync';
 import { tryWriteAudit } from '../features/audit/services/auditService';
+import { loadGeography } from '../features/access/services/scopeService';
 import { ACTIONS } from '../../../shared/domain/audit.js';
+import { isUnrestricted, scopeNotice } from '../../../shared/domain/scope.js';
 
 /**
  * §13 — the panel shell. Sidebar + top bar + content on a desktop; on a phone the
@@ -457,8 +460,61 @@ export default function AdminShell() {
       {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
 
       <main className="content" id="main">
+        <ScopeBanner />
         <Outlet />
       </main>
+    </div>
+  );
+}
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * "These are વરાછા's numbers" — said once, above everything
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * A report that is quietly about part of the સંઘ is worse than no report. 0051 lets a
+ * સંચાલક be limited to zones, and every count, list, export and ranking he opens is then
+ * narrowed — silently, because a narrowed report looks exactly like a complete one. A total
+ * that means something different for different people, with nothing on screen saying so, is
+ * how two administrators end up quoting different numbers for the same question and neither
+ * of them is wrong.
+ *
+ * ── Here, and not on each page ──────────────────────────────────────────────
+ *
+ * The alternative was a banner component placed on the ten screens that enumerate a
+ * population. That is ten places to keep in step, and the eleventh screen — the one added
+ * next year — would be the one that forgets. The shell renders every one of those pages, so
+ * one line here covers all of them and cannot fall out of step with a new route.
+ *
+ * ── It costs nothing for everybody else ─────────────────────────────────────
+ *
+ * `scope` is null for anybody unrestricted, which is every administrator until somebody sets
+ * a limit, and the geography is fetched **only when it is not**. So the common case makes no
+ * extra request and renders nothing at all: telling somebody unrestricted that he is
+ * unrestricted is noise on every page of the panel.
+ */
+function ScopeBanner() {
+  const { scope } = useAdminAuth();
+  const restricted = !isUnrestricted(scope);
+
+  // `skip` rather than a conditional hook: the geography is only worth a round trip for the
+  // handful of people who are scoped, and useAsync already has the flag for it.
+  const geo = useAsync(() => loadGeography(), [], { skip: !restricted });
+
+  if (!restricted) return null;
+
+  /*
+    The zone ids are printed while the names are still loading, and that is deliberate.
+
+    Waiting for the names would mean the first render of every page says nothing about being
+    narrowed, and the honest half of this message — that the screen is partial — is available
+    immediately. `varachha` for a second before વરાછા arrives is a worse label and a true
+    statement; nothing at all is a false one.
+  */
+  return (
+    <div className="notice notice-warn" role="status">
+      {scopeNotice(scope, geo.data?.zones || [])} Other zones are not hidden from you by
+      mistake - somebody set this deliberately, and the Access screen shows who.
     </div>
   );
 }
