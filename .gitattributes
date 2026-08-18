@@ -1,0 +1,26 @@
+# Line endings for the files that run on Linux.
+#
+# This machine has `core.autocrlf=true`, which rewrites LF to CRLF in the working tree on
+# checkout. That is right for editing on Windows and wrong for everything below, all of which is
+# executed inside a container or on the VPS:
+#
+#   * a shell script whose shebang line ends in CR fails with `bad interpreter: /usr/bin/env
+#     bash^M` — a message that names the interpreter and not the real cause, which is why this
+#     costs an hour the first time.
+#   * `.env` parsed by Docker Compose keeps the CR as part of the VALUE, so SUPABASE_SECRET_KEY
+#     arrives with a trailing carriage return and every authenticated request is refused with no
+#     hint as to why.
+#
+# `eol=lf` forces LF in the working tree regardless of core.autocrlf, so `scp` from Windows and
+# `git clone` on the server both produce a file that runs.
+#
+# Nothing else in the repository is listed. Source files are Vite's business and their line
+# endings have never mattered.
+
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.inc       text eol=lf
+Caddyfile   text eol=lf
+*.example   text eol=lf
+compose*.yaml text eol=lf
+deploy/nginx.conf text eol=lf

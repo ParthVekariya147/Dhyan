@@ -1,0 +1,92 @@
+# વર્ણી ધ્યાન — the TLS edge.
+#
+# Read by the `caddy` service in compose.production.yaml. {$DOMAIN} and {$ACME_EMAIL} come from
+# the .env file beside compose.yaml; compose refuses to start if either is unset.
+#
+# Everything Caddy does here that is not written below, because it is the default:
+#
+#   * obtains a certificate from Let's Encrypt on first start, and renews it at roughly a third
+#     of its remaining life, for as long as the container runs. No timer, no hook, no reload.
+#   * redirects http://  →  https:// with a 308, for both names.
+#   * serves HTTP/1.1, HTTP/2 and HTTP/3.
+#   * omits its own version from the Server header.
+{
+	email {$ACME_EMAIL}
+
+	# The admin API, on loopback inside the container only. It is what the healthcheck in
+	# compose.production.yaml asks; it is not reachable from the network.
+	admin 127.0.0.1:2019
+}
+
+# ── the canonical origin ─────────────────────────────────────────────────────────────────────
+#
+# THE APEX, WITHOUT www, AND THE CHOICE IS NOT COSMETIC.
+#
+# A PWA is bound to its origin. `start_url` and `scope` in the manifest resolve against the URL
+# the manifest was fetched from, the service worker may control no wider a path than the origin
+# it was served from, and the Supabase session in localStorage is keyed by origin. So
+# https://YOUR_DOMAIN and https://www.YOUR_DOMAIN are two different applications that happen to
+# show the same pixels — install from one, and the other is a stranger.
+#
+# Which one is canonical matters less than that exactly one is, forever. The apex is chosen
+# because it is shorter to say aloud to a સંઘ, and because it is what a person types.
+#
+# Changing this later means every installed phone reinstalls. Do not change it later.
+{$DOMAIN} {
+	# ── security headers the edge is the right place for ──────────────────────────────────
+	#
+	# HSTS: one year, and matching what Netlify sends today (`max-age=31536000;
+	# includeSubDomains`) — with one deliberate omission. Netlify appends `preload`; this does
+	# not, because `preload` submits the domain to a list baked into browsers, from which
+	# removal takes months. Add it only once the domain has served HTTPS reliably for a while
+	# and you are certain no subdomain will ever need plain HTTP. docs/DEPLOYMENT.md says the
+	# same in the security section.
+	#
+	# `includeSubDomains` is kept, and it is the line to think about before pasting: it commits
+	# every future subdomain — api., staging., anything — to HTTPS as well.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Everything else — routing, SPA fallback, caching, the five function paths, the security
+	# headers on /admin — is decided by deploy/nginx.conf inside the web container. The edge
+	# deliberately knows nothing about this application beyond its name.
+	reverse_proxy app:8080 {
+		# THE ZERO-DOWNTIME PART, and the whole of it.
+		#
+		# A deploy replaces the `web` container, so for a second or two there is nothing
+		# listening. Without these two lines every request in that window is a 502 — which on a
+		# phone mid-દર્શન is a blank screen. With them, Caddy keeps retrying a refused
+		# connection for ten seconds before giving up, so a request that arrives during the
+		# swap simply waits and then succeeds.
+		#
+		# It is retry, not blue/green: there is one web container, and a request already in
+		# flight when it stops is still lost. deploy/deploy.sh pulls the new image before it
+		# stops the old one, which keeps that window to about a second. docs/DEPLOYMENT.md,
+		# "Downtime, honestly", puts a number on it rather than claiming zero.
+		lb_try_duration 10s
+		lb_try_interval 250ms
+
+		# Passive health checking: a container that refuses connections is taken out of
+		# rotation for five seconds rather than being retried into the ground.
+		fail_duration 5s
+	}
+}
+
+# ── www → apex ───────────────────────────────────────────────────────────────────────────────
+#
+# A 308 rather than a 301: 308 is the permanent redirect that forbids a client from changing
+# POST to GET. The app posts to /api/login-mobile, and a browser that silently turned that into
+# a GET would get the function's 405 and a Gujarati "ખોટી રીત" on the login screen.
+#
+# {uri} carries the path and query through, so a recovery-mail link that arrives at
+# www.<domain>/reset-password?code=… lands on the apex with the code intact.
+#
+# This block also makes Caddy obtain a certificate for the www name, which it must have in order
+# to answer on it at all. If the www DNS record does not exist, delete this block — otherwise
+# Caddy retries an issuance that cannot succeed.
+www.{$DOMAIN} {
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	redir https://{$DOMAIN}{uri} 308
+}

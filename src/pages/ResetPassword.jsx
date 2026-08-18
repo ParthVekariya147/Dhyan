@@ -66,7 +66,16 @@ import '../styles/forms.css';
 const GRACE_MS = 6000;
 
 export default function ResetPassword() {
-  const { recovery, user, loading, unconfigured, updatePassword, clearRecovery, logout } = useAuth();
+  const {
+    recovery,
+    user,
+    loading,
+    unconfigured,
+    updatePassword,
+    verifyRecoveryToken,
+    clearRecovery,
+    logout,
+  } = useAuth();
   const nav = useNavigate();
 
   /*
@@ -91,6 +100,8 @@ export default function ResetPassword() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [waited, setWaited] = useState(false);
+  /* Supabase was asked about the hash in the link and said no. Same screen as url.failed. */
+  const [rejected, setRejected] = useState(false);
 
   const inFlight = useRef(false);
 
@@ -100,6 +111,43 @@ export default function ResetPassword() {
     const id = setTimeout(() => setWaited(true), GRACE_MS);
     return () => clearTimeout(id);
   }, [url.failed]);
+
+  /*
+    ────────────────────────────────────────────────────────────────────────────
+    The `token_hash` link, verified here and nowhere earlier
+    ────────────────────────────────────────────────────────────────────────────
+
+    The whole point of this shape is that the token is still unspent when the page loads, so
+    this is the first and only thing that spends it. It runs once, guarded by a ref rather
+    than by state: React 18's development StrictMode mounts every effect twice, and a second
+    verify would present a hash the first one has already consumed — a self-inflicted
+    "expired link" on every dev reload, and the kind of bug that only appears in the
+    environment it is hardest to see in.
+
+    `hasRecoverySession` is checked too, and it is the reload case: the spent hash stays in
+    the address bar, so a refresh would re-enter here with a token Supabase will now refuse,
+    and would replace a working form with a refusal. If a session is already open there is
+    nothing to verify, and the guard says exactly that.
+
+    The rejection is not classified beyond DEV logging. §11/§20 - expired, already spent,
+    hash from another mail and hash somebody typed all reach the યુવક as the same sentence,
+    and the difference between them is a statement about an account.
+  */
+  const verifying = useRef(false);
+  useEffect(() => {
+    if (unconfigured || !url.tokenHash || verifying.current) return;
+    if (recovery || user) return;
+    verifying.current = true;
+
+    let alive = true;
+    verifyRecoveryToken(url.tokenHash).catch((err) => {
+      if (import.meta.env.DEV) console.warn('recovery token rejected:', classifyRecoveryError(err));
+      if (alive) setRejected(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [unconfigured, url.tokenHash, recovery, user, verifyRecoveryToken]);
 
   /*
     Is there a recovery session?
@@ -218,7 +266,7 @@ export default function ResetPassword() {
     is of no use to him, and "this link was already used" is a statement about an account.
     Both ways off it are real, which is what §1 asks of a dead end.
   */
-  if (url.failed || (waited && !hasRecoverySession)) {
+  if (url.failed || rejected || (waited && !hasRecoverySession)) {
     return (
       <div className="auth-wrap">
         <div className="auth-card">

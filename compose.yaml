@@ -1,0 +1,124 @@
+# વર્ણી ધ્યાન — the application: ONE image, one container, no TLS, no public port.
+#
+# Complete on its own for a local test:
+#
+#   docker compose up -d --build
+#   ./deploy/health-check.sh http://127.0.0.1:8080
+#
+# On the VPS it is used together with compose.production.yaml, which adds the TLS edge:
+#
+#   docker compose -f compose.yaml -f compose.production.yaml up -d
+#
+# ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+# │  ONE CONTAINER, TWO PROCESSES                                                            │
+# └──────────────────────────────────────────────────────────────────────────────────────────┘
+#
+#   nginx  0.0.0.0:8080    dist/, both SPA fallbacks, caching, security headers, and a proxy
+#                          for the five paths that need a server
+#   node   127.0.0.1:8888  netlify/functions/* unchanged, holding SUPABASE_SECRET_KEY
+#
+# tini is PID 1 and deploy/entrypoint.sh stops the container the moment either process exits —
+# so `restart: unless-stopped` restarts a half-dead service instead of leaving it serving a site
+# whose logins all fail. The Dockerfile sets out what that arrangement costs.
+#
+# ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+# │  THE ONE THING TO UNDERSTAND ABOUT THE PORT                                              │
+# └──────────────────────────────────────────────────────────────────────────────────────────┘
+#
+# 8080 is published on 127.0.0.1 and nowhere else. That is not caution for its own sake: a plain
+# `8080:8080` would bind 0.0.0.0, and Docker writes its own DNAT rules straight into the nat
+# table — ahead of ufw, which filters the INPUT chain. The port would be reachable from the
+# internet with `ufw status` still reporting it closed, which is how a container that was never
+# meant to be public ends up serving the site over plain HTTP on a high port.
+#
+# 8888 is not published at all, and could not be usefully published anyway: node binds
+# 127.0.0.1 inside the container, so the function server that holds the secret key is unreachable
+# from outside this container's network namespace by construction, not merely by configuration.
+
+name: varni-dhyan
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Build-time, and therefore PUBLIC: Vite inlines every VITE_-prefixed value into
+        # JavaScript that every visitor downloads. These two are public by design — the project
+        # URL and the publishable key, which grant nothing on their own; Row Level Security is
+        # what protects the data. NOTHING ELSE MAY BE ADDED HERE.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?set VITE_SUPABASE_URL in .env}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:?set VITE_SUPABASE_PUBLISHABLE_KEY in .env}
+        VITE_SITE_URL: ${VITE_SITE_URL:-}
+    image: ${APP_IMAGE:-varni-dhyan:local}
+    restart: unless-stopped
+
+    # ── the three server secrets ──────────────────────────────────────────────────────────
+    #
+    # `:?` makes compose refuse to start with a message naming the variable, rather than
+    # starting a container that answers 503 on every mobile login and 200-with-the-wrong-icon
+    # on every manifest fetch. Both of those degradations are deliberate inside the functions —
+    # they exist so a half-configured deploy bends instead of breaking — which is exactly why
+    # the omission has to be caught here, where it is still loud.
+    #
+    # Read from a .env file beside this one, which is git-ignored and never built into the
+    # image. deploy/.env.production.example is the template.
+    environment:
+      NODE_ENV: production
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in .env - see deploy/.env.production.example}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?set SUPABASE_PUBLISHABLE_KEY in .env}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:?set SUPABASE_SECRET_KEY in .env}
+
+    # Loopback only. See the header of this file for why the interface is written out.
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+
+    networks:
+      - internal
+
+    # ── hardening ─────────────────────────────────────────────────────────────────────────
+    #
+    # The image runs as uid 1000 (`node`) — both processes, verified with `id` in the running
+    # container. nginx binds 8080, which needs no capability because it is above 1024, so ALL
+    # of them can go.
+    #
+    # `read_only` is deliberately NOT set. nginx must write its pid file and its temp
+    # directories; deploy/nginx-main.conf moves every one of those under /tmp, which is the
+    # tmpfs below, but a read-only root would also have to survive anything the base image
+    # touches on start. The two-container layout could afford it for the api half alone. This
+    # is the one protection lost by merging, and it is stated rather than quietly dropped.
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    # Both halves. nginx through the port the world uses, node on the loopback address it is
+    # the only listener on — because "the container is up" is not the same claim as "logins
+    # work", and this deployment has been bitten by exactly that distinction.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q --tries=1 --spider http://127.0.0.1:8080/healthz &&
+          wget -q --tries=1 --spider http://127.0.0.1:8888/healthz
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # Bounded, and on the container rather than only on the daemon: deploy/vps-setup.sh sets a
+    # daemon-wide default too, but a deployment that lands on a host somebody else configured
+    # should not be able to fill the disk with logs.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  # A user-defined bridge. The TLS edge in compose.production.yaml joins it to reach `app` by
+  # name; nothing else is on it.
+  internal:
+    driver: bridge

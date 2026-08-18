@@ -582,6 +582,38 @@ export function AuthProvider({ children }) {
       },
 
       /**
+       * Turn the `token_hash` from a recovery mail into a recovery session.
+       *
+       * This is the step the other two link shapes did somewhere else — Supabase's own
+       * /auth/v1/verify for `{{ .ConfirmationURL }}`, a PKCE exchange for `?code=` — and
+       * moving it here is what makes a mail scanner's fetch harmless and a link opened in
+       * the Gmail webview work at all. shared/domain/recovery.js explains both failures
+       * where the URL is read.
+       *
+       * `type: 'recovery'` is not decoration. It names which mail this hash is allowed to
+       * have come from, and Supabase checks the hash against that type — so a signup or
+       * email-change hash pasted into this URL is refused by the server rather than by us.
+       * `readRecoveryUrl()` already declines to carry a hash from a link that does not say
+       * recovery, so the two agree; this is the half that is enforced.
+       *
+       * The latch is set here rather than left to the auth event, for the same reason it is
+       * set on PASSWORD_RECOVERY above: verifyOtp resolves with a session in hand, and
+       * waiting to be told about it would leave the reset page one render away from deciding
+       * the link was dead. Nothing about the session comes from this call — Supabase issues
+       * it — so the latch follows the verification instead of standing in for it.
+       */
+      async verifyRecoveryToken(tokenHash) {
+        const token_hash = String(tokenHash || '').trim();
+        // A caller with nothing to verify is a bug in the page, not a link to refuse: send
+        // it down the same path a rejected token takes rather than calling Supabase with ''.
+        if (!token_hash) throw new Error('recovery token missing');
+
+        const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash });
+        if (error) throw error;
+        setRecovery(true);
+      },
+
+      /**
        * Set a new password on the recovery session Supabase has already established.
        *
        * §10/§12 — this takes ONE argument, and that is the security property. There is no

@@ -1,0 +1,98 @@
+# વર્ણી ધ્યાન — the public edge. An overlay, never used on its own.
+#
+#   docker compose -f compose.yaml -f compose.production.yaml up -d
+#
+# compose.yaml is the application; this adds the one thing a VPS needs and a laptop does not: a
+# terminator for TLS on the real domain.
+#
+# ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+# │  WHY CADDY AND NOT NGINX + CERTBOT                                                       │
+# └──────────────────────────────────────────────────────────────────────────────────────────┘
+#
+# There is already an nginx in this stack, and adding a second one at the edge would be the
+# conventional choice. It was not taken, for one reason that outweighs the rest: certificate
+# renewal has to be automatic and it has to STAY automatic, unattended, for years, on a machine
+# nobody logs into between deploys. nginx + certbot is three moving parts — a timer, a renewal
+# hook and an nginx reload — and the failure is silent until the certificate expires and every
+# installed phone in the સંઘ stops being able to open the app on the same morning.
+#
+# Caddy obtains and renews certificates as part of running. There is no timer to forget, no
+# hook to get wrong, and no reload to miss. It also brings HTTP/2 and HTTP/3, and the HTTP→HTTPS
+# redirect, without configuration. The Caddyfile beside this file is nine lines and all of them
+# are about this site.
+#
+# docs/DEPLOYMENT.md, "If you would rather use nginx and certbot", sets out that path for anyone
+# who prefers it — nothing in the application depends on which edge is in front of it.
+#
+# ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+# │  WHAT IS AND IS NOT PUBLIC                                                               │
+# └──────────────────────────────────────────────────────────────────────────────────────────┘
+#
+#   internet ──▶ caddy   :80 :443 :443/udp      the only container with a public port
+#                  │
+#                  ▼
+#                app    :8080  nginx (bridge network, plus 127.0.0.1 for the health check)
+#                  │
+#                  ▼
+#                  └─  :8888  node, loopback-only inside that same container
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+
+    # The only ports this deployment opens to the world, and the only ones ufw needs to allow.
+    # 443/udp is HTTP/3; without it QUIC is simply unavailable and everything still works over
+    # TCP, so it is safe to remove if a network refuses UDP.
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    environment:
+      # No default and no `:-`. A Caddyfile that fell back to a placeholder would ask Let's
+      # Encrypt for a certificate for that placeholder, fail, and retry until the account is
+      # rate-limited for a week.
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env - the bare domain, no scheme and no trailing slash}
+      # Where Let's Encrypt sends expiry warnings if renewal ever does stop working. Not
+      # required by ACME, but the one channel that tells you before your users do.
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # THE IMPORTANT VOLUME. /data holds the issued certificates and the ACME account key.
+      # Without it every `docker compose up` starts from nothing and asks for a fresh
+      # certificate — and Let's Encrypt allows five duplicate certificates per week, so a few
+      # deploys in one afternoon end with the site unable to get one at all.
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      app:
+        condition: service_healthy
+
+    networks:
+      - internal
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      # Caddy's admin API on loopback inside the container. It answers as soon as the config is
+      # loaded, which is what this needs to report — certificate issuance happens after and is
+      # visible in `docker compose logs caddy`.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy_data:
+  caddy_config:

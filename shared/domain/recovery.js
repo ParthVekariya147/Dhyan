@@ -190,16 +190,42 @@ export function cooldownRemaining(startedAt, now, seconds = RESEND_COOLDOWN_SECO
 /**
  * What the recovery URL appears to carry — a hint for choosing a screen, never a permission.
  *
- * Supabase hands back two shapes and one failure, and the failure is the reason this reads
+ * Supabase hands back three shapes and one failure, and the failure is the reason this reads
  * the URL at all:
  *
- *   implicit   #access_token=…&type=recovery      the older link
- *   pkce       ?code=…                             the current one
- *   refused    #error=…&error_code=otp_expired…    an expired or already-used link
+ *   implicit   #access_token=…&type=recovery       the older link
+ *   pkce       ?code=…                              the default link
+ *   verify     ?token_hash=…&type=recovery          the link this project now mails
+ *   refused    #error=…&error_code=otp_expired…     an expired or already-used link
  *
  * The refusal never becomes a session, so without reading it the expired-link case would
  * render as "waiting for a recovery session" for ever — the infinite spinner §19 forbids.
  * Reading it lets the page say "લિંક હવે માન્ય નથી" immediately and offer a new one.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * Why `token_hash` exists here at all
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The other two shapes both consume the one-time token BEFORE this app is running, and both
+ * broke in the field for reasons no code on this side could reach:
+ *
+ *   * The default `{{ .ConfirmationURL }}` points at Supabase's own /auth/v1/verify, which
+ *     spends the token on whoever fetches it first. A mail scanner or a link preview that
+ *     fetches it is indistinguishable from the યુવક, so he clicks a mail that arrived two
+ *     minutes ago and is told `otp_expired` — the exact URL this was written for:
+ *     `#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid`.
+ *
+ *   * A PKCE `?code=` can only be exchanged in the browser profile that ASKED for the mail,
+ *     because the verifier lives in that profile's storage. Tapping the link inside the Gmail
+ *     app opens a webview that has no verifier, the exchange throws, no session ever arrives,
+ *     and the page waits out GRACE_MS and calls the link dead.
+ *
+ * A `token_hash` link is inert until this app calls `verifyOtp` with it, so a scanner fetching
+ * the URL loads a page instead of spending a token, and any browser can be the one that
+ * verifies. It changes nothing about what proves identity: the token is verified by Supabase,
+ * against the address it was issued for, and what comes back is the same recovery session the
+ * other two shapes produce. `tokenHash` is a string to hand to Supabase — never a claim that
+ * it is valid, and never something this module decides anything from.
  *
  * `maybeRecovery` is named to be unusable as an authorisation: it means "it is worth waiting
  * for a session", and the page still refuses to enable the form until Supabase produces one.
@@ -215,17 +241,32 @@ export function readRecoveryUrl(hash = '', search = '') {
     // `otp_expired` and `access_denied` are the two Supabase returns for a link that has
     // lapsed or been consumed. Anything else here is still a refusal, and is treated as one
     // rather than passed through — §11 forbids showing the raw value either way.
-    return { maybeRecovery: false, failed: true, reason: errorCode || errorName };
+    return { maybeRecovery: false, failed: true, reason: errorCode || errorName, tokenHash: '' };
   }
 
   const type = h.get('type') || q.get('type') || '';
   const hasToken = Boolean(h.get('access_token'));
   const hasCode = Boolean(q.get('code'));
 
+  /*
+    Paired with `type=recovery` and returned empty otherwise, which is one decision and not
+    two. The same `token_hash` name is carried by the signup, invite and email-change mails,
+    and `verifyOtp` is told which of those to check the hash against — so passing a signup
+    hash while claiming 'recovery' is the one call this page could make that means something
+    other than what it says. Refusing to carry the hash unless the link itself says recovery
+    keeps that mistake out of reach of the page, rather than relying on the page not making it.
+
+    Read from the query first and the fragment second, because a fragment never reaches a
+    server and some mail clients rewrite one; both are accepted so a template that puts it in
+    either place works.
+  */
+  const tokenHash = type === 'recovery' ? q.get('token_hash') || h.get('token_hash') || '' : '';
+
   return {
     maybeRecovery: type === 'recovery' || hasToken || hasCode,
     failed: false,
     reason: '',
+    tokenHash,
   };
 }
 

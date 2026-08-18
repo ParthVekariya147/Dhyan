@@ -1,0 +1,76 @@
+# What must never enter the build context.
+#
+# Two rules govern this file and they pull in opposite directions, so both are written out:
+#
+#   1. Nothing secret. `.env`, `.env.local` and every `.env.*.local` hold SUPABASE_SECRET_KEY,
+#      which bypasses every RLS policy. A build context is readable by every stage of the
+#      build and, for anything a stage COPYs, by anyone who can pull the image. The secret
+#      reaches the running system as a container environment variable at run time and by no
+#      other route — see docs/DEPLOYMENT.md, "Environment variables".
+#
+#   2. Nothing missing. vite.config.js imports scripts/lib/*.mjs, and src/lib/scenes.js
+#      imports content/darshan.json — both are build inputs that do not look like build
+#      inputs. Excluding a directory here fails at `npm run build` inside the image, which is
+#      a slow way to find out. Add to this list only after checking nothing imports it.
+
+# ── dependencies and build output: rebuilt inside the image, never copied in ──
+node_modules
+**/node_modules
+dist
+dev-dist
+
+# ── secrets, in every spelling .gitignore already knows about ──
+.env
+.env.local
+.env.*.local
+.env.production
+deploy/.env
+deploy/.env.production
+
+# ── version control and CI ──
+.git
+.gitignore
+.gitattributes
+.github
+.claude
+
+# ── the artwork masters. 549 MB of PNG that nothing in the build reads: દર્શન images are
+#    fetched from Google's CDN by absolute URL at run time (docs/IMAGE_CONTRACT.md).
+assets
+originals-archive
+
+# ── database migrations and their test harness. Applied with scripts/db.mjs against
+#    Supabase, never from a container.
+supabase
+
+# ── prose, and the one stray file under dev/ ──
+*.md
+docs
+dev
+
+# ── this deployment's own artefacts ────────────────────────────────────────────────────────
+#
+# FOUR FILES UNDER deploy/ ARE BUILD INPUTS and must not be excluded:
+#   deploy/nginx-main.conf   replaces /etc/nginx/nginx.conf so the server can run non-root
+#   deploy/nginx.conf        the site rules
+#   deploy/api-proxy.inc     what the three proxied locations share
+#   deploy/entrypoint.sh     starts both processes; the image does not run without it
+#
+# So `deploy/*.sh` is NOT excluded wholesale — entrypoint.sh lives there. The host-side scripts
+# are named one by one instead. Excluding entrypoint.sh produces a build that succeeds and an
+# image that cannot start, which is a slow way to find out.
+compose.yaml
+compose.production.yaml
+deploy/deploy.sh
+deploy/push-dockerhub.sh
+deploy/rollback.sh
+deploy/health-check.sh
+deploy/vps-setup.sh
+deploy/Caddyfile
+deploy/.env.production.example
+
+# ── local noise ──
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

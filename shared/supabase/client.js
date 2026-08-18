@@ -36,6 +36,34 @@ export function getSupabase(env) {
       // §9 expects him to open the app daily without logging in again.
       storageKey: 'varni.auth',
       detectSessionInUrl: true,
+      /*
+        ────────────────────────────────────────────────────────────────────────
+        Implicit, and it is the password-reset flow that decides this
+        ────────────────────────────────────────────────────────────────────────
+
+        supabase-js defaults to PKCE, and PKCE binds a mailed link to the browser profile
+        that ASKED for it: `resetPasswordForEmail` sends a code challenge and keeps the
+        verifier in this origin's localStorage, so only that profile can exchange the
+        `?code=` the mail comes back with. A યુવક who asks for the link in Chrome and then
+        taps it inside the Gmail app is in a different webview with no verifier - the
+        exchange throws `pkce_code_verifier_not_found`, no session is ever created, and
+        /reset-password waits out its grace period and calls a perfectly good link dead.
+        That is not an edge case here; tapping the link straight from the mail app is how
+        nearly everyone will open it.
+
+        It is also what makes the `token_hash` mail work. GoTrue stores a recovery token
+        requested WITH a code challenge under a `pkce_` prefix, and verifying that hash
+        hands back an auth code to be exchanged - the same verifier problem again, one step
+        later. Without the challenge the hash verifies straight into a session, which is
+        what shared/domain/recovery.js and the reset page are built on.
+
+        What is given up: PKCE's protection against a code being intercepted in transit.
+        This app has no OAuth provider and no magic link - email and password only - so the
+        flow this changes is the mailed link itself, whose token is single-use, short-lived
+        and already in the URL either way. §2: nothing about identity moves into the client;
+        Supabase still verifies the token and issues the session.
+      */
+      flowType: 'implicit',
     },
   });
   return client;

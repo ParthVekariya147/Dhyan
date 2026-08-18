@@ -1,0 +1,282 @@
+# વર્ણી ધ્યાન — build both images in CI, push them to GHCR, and let the VPS pull.
+#
+# ════════════════════════════════════════════════════════════════════════════════════════════
+# WHY THE REGISTRY, AND NOT "SSH IN AND BUILD THERE"
+# ════════════════════════════════════════════════════════════════════════════════════════════
+#
+# The two shapes a deploy can take are: build on the VPS from a git checkout, or build here and
+# have the VPS pull the result. This takes the second, for four reasons, in the order they will
+# bite:
+#
+#   1. MEMORY. A Vite build of both apps needs on the order of 2 GB. The cheap VPS this project
+#      is likely to run on has 1 or 2 GB total, and it is also serving the site while building —
+#      so the OOM killer arrives during a deploy, which is the worst possible moment. Building
+#      here means the VPS never needs more RAM than it takes to run nginx and a small Node
+#      process, which is a few dozen megabytes.
+#
+#   2. THE ARTEFACT THAT IS TESTED IS THE ARTEFACT THAT SHIPS. Build once, verify that one
+#      image, deploy that same digest. Building separately on the server means the thing CI
+#      checked and the thing users get are two different builds of the same commit, and npm can
+#      resolve a transitive dependency differently between them.
+#
+#   3. ROLLBACK IS A PULL, NOT A REBUILD. deploy/rollback.sh points compose at an image that
+#      already exists and is running seconds later. Rebuilding an old commit on the server to
+#      roll back means the outage lasts as long as a build.
+#
+#   4. THE SERVER NEEDS NOTHING. No source checkout, no node_modules, no npm registry access,
+#      no build-time secrets on disk. Its whole credential set is a read-only registry token.
+#
+# The cost is a container registry. GHCR is free for this and needs no account beyond the one
+# the repository already lives in.
+#
+# ════════════════════════════════════════════════════════════════════════════════════════════
+# WHAT MUST BE CONFIGURED BEFORE THIS RUNS
+# ════════════════════════════════════════════════════════════════════════════════════════════
+#
+# Repository → Settings → Secrets and variables → Actions → Secrets:
+#
+#   VITE_SUPABASE_URL              public by design, but read from a secret so this workflow
+#   VITE_SUPABASE_PUBLISHABLE_KEY  carries no project identity of its own (ci.yml does the same)
+#   DEPLOY_HOST                    the server's IP or hostname
+#   DEPLOY_USER                    the user deploy/vps-setup.sh created, normally `deploy`
+#   DEPLOY_SSH_KEY                 that user's PRIVATE key. ⚠ It is in the docker group, which
+#                                  is equivalent to root on that machine — see vps-setup.sh.
+#   DEPLOY_PORT                    optional, defaults to 22
+#
+# ⚠ SUPABASE_SECRET_KEY IS NOT IN THAT LIST AND MUST NEVER BE ADDED. It bypasses every RLS
+#   policy. Nothing this workflow runs has any reason to read production data, and a build
+#   argument would bake it into an image layer besides. It reaches the api container from the
+#   .env file on the server, and by no other route. ci.yml states the same rule.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # Manual re-deploy of whatever is on main, for the case where the server was rebuilt or a
+  # deploy needs repeating without a commit.
+  workflow_dispatch:
+
+# One deploy at a time. Without this, two pushes a minute apart race on the server: both run
+# deploy.sh, both rewrite .env, and the version that ends up live is whichever finished last
+# rather than whichever is newer. `cancel-in-progress: false` because cancelling a deploy
+# halfway through is worse than queueing behind it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_REPO: ghcr.io/${{ github.repository }}
+
+jobs:
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  # 1. The gate. Nothing is built or deployed if any of this fails.
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  verify:
+    name: Build and verify
+    runs-on: ubuntu-latest
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The three checks .github/workflows/ci.yml already runs on every push, repeated here so
+      # that a deploy cannot proceed past a red build. They are deliberately the same three:
+      # this workflow is not the place to introduce new standards.
+      #
+      # `npm test` is NOT among them, and that is not an oversight. The suite in package.json
+      # includes scripts that need a live PostgreSQL (test-app-shell-db, test-rbac-dynamic,
+      # test-scope) — ci.yml does not run it either. Run it locally; docs/DEPLOYMENT.md says so
+      # in the checklist. Wiring a Postgres service into the deploy path would mean a database
+      # fixture problem can stop a frontend deploy, which is the wrong coupling to add on the
+      # day you are moving hosts.
+      - name: Build both applications
+        run: npm run build
+
+      - name: Verify the યુવક bundle carries no admin code
+        run: npm run verify:separation
+
+      # §64 — a production build must refuse the verifier's flag rather than shipping દર્શન to
+      # anyone with the URL. This asserts the guard in vite.config.js fires.
+      - name: Production build must reject VITE_PUBLIC_DARSHAN
+        env:
+          VITE_PUBLIC_DARSHAN: '1'
+        run: |
+          if npm run build:yuvak > /dev/null 2>&1; then
+            echo "FAIL: a production build accepted VITE_PUBLIC_DARSHAN=1"
+            exit 1
+          fi
+          echo "PASS: production build refused the test-only flag"
+
+      # ── THE GATE THAT MATTERS MOST ─────────────────────────────────────────────────────────
+      #
+      # Nothing today puts SUPABASE_SECRET_KEY in a browser bundle. This exists for the day
+      # somebody adds `VITE_SUPABASE_SECRET_KEY` to make something work locally, because that
+      # mistake is invisible: the build succeeds, the app works, the tests pass, and a key that
+      # bypasses every RLS policy on ~2,000 યુવકોની data is published to every visitor. There
+      # would be no error anywhere and no way to un-publish it.
+      #
+      # `sb_secret_` FOLLOWED BY KEY CHARACTERS, not the bare prefix. @supabase/supabase-js
+      # contains the literal strings `sb_publishable_` and `sb_secret_` inside a function that
+      # classifies a key by its prefix, so the substring has been in every build since the SDK
+      # was added. Matching the prefix alone would fail this job on every run, it would be
+      # switched off within a week, and the real leak would then sail through.
+      #
+      # The build ran above, so this reads the actual bytes that would be served.
+      - name: No secret may reach the browser bundle
+        run: |
+          set -u
+          fail=0
+
+          if grep -rEl 'sb_secret_[A-Za-z0-9_-]{8,}' dist 2>/dev/null | grep .; then
+            echo "::error::a secret-shaped Supabase key is present in dist/"
+            fail=1
+          fi
+
+          if grep -rEl 'service_role' dist 2>/dev/null | grep .; then
+            echo "::error::'service_role' appears in dist/"
+            fail=1
+          fi
+
+          # The prefix, not the value: a VITE_-prefixed secret variable name is the mistake
+          # itself, whether or not the key it held is recognisable.
+          if grep -rEl 'VITE_[A-Z_]*SECRET|VITE_[A-Z_]*SERVICE_ROLE|VITE_[A-Z_]*PASSWORD' \
+               src admin/src shared vite.config.js admin/vite.config.js 2>/dev/null | grep .; then
+            echo "::error::a VITE_-prefixed secret variable is referenced in shipped source"
+            fail=1
+          fi
+
+          # And the workflow's own environment. If this ever trips, the secret has already been
+          # exposed to every step in the job and must be rotated, not merely removed.
+          if [ -n "${SUPABASE_SECRET_KEY:-}" ]; then
+            echo "::error::SUPABASE_SECRET_KEY is set in this workflow. Nothing CI runs needs"
+            echo "::error::production data. Remove the secret and ROTATE the key."
+            fail=1
+          fi
+
+          [ "$fail" -eq 0 ] && echo "PASS: no secret reaches the bundle or this workflow"
+          exit "$fail"
+
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  # 2. Build and push both images.
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  build:
+    name: Build and push images
+    needs: verify
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # The workflow's own token, scoped by `permissions` above. No PAT to create, none to
+          # rotate, and it expires when the job ends.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The commit SHA, and only the commit SHA.
+      #
+      # No `latest`. A mutable tag is what makes "which version is live?" unanswerable and
+      # rollback a guess — deploy/rollback.sh works because every deploy is pinned to an
+      # immutable name that still exists a week later.
+      - name: Work out the tag
+        id: meta
+        run: echo "tag=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # ONE image, holding both halves: nginx serving dist/ and node running
+      # netlify/functions/*. The Dockerfile explains what that arrangement costs and how each
+      # cost is paid for.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_REPO }}:${{ steps.meta.outputs.tag }}
+          # Vite inlines these into JavaScript every visitor downloads. Both are public by
+          # design — the project URL and the publishable key, which grant nothing on their own.
+          # NOTHING ELSE BELONGS HERE, EVER; in particular not SUPABASE_SECRET_KEY, which the
+          # server reads from its runtime environment on the VPS.
+          build-args: |
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SITE_URL=${{ vars.VITE_SITE_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  # 3. Deploy, and let the server decide whether to keep it.
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to the VPS
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Optional but worth setting up: repository → Settings → Environments → production, with
+    # required reviewers. A deploy then waits for a human on the way out rather than on the way
+    # back. Also where the URL below appears in the Actions UI.
+    environment:
+      name: production
+      url: https://${{ vars.DOMAIN }}
+
+    steps:
+      # ssh-agent rather than writing the key to a file: the private key never touches the
+      # runner's disk, and the agent dies with the job.
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Trust the host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.DEPLOY_PORT || 22 }}" -H "${{ secrets.DEPLOY_HOST }}" \
+            >> ~/.ssh/known_hosts 2>/dev/null
+
+      # ONE COMMAND, AND ALL THE INTELLIGENCE IS ON THE SERVER.
+      #
+      # deploy/deploy.sh records the live images, pulls the new ones while the old ones are
+      # still serving, swaps, runs deploy/health-check.sh, and puts the previous version back if
+      # that fails — then exits non-zero. So this step going red means "the site is still
+      # running the last good version", not "the site is broken", and the distinction is why
+      # the logic lives there rather than in YAML here.
+      #
+      # `set -o pipefail` so the exit status is deploy.sh's and not tee's.
+      - name: deploy.sh
+        run: |
+          set -o pipefail
+          ssh -p "${{ secrets.DEPLOY_PORT || 22 }}" \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+              "cd /opt/varni-dhyan && ./deploy/deploy.sh ${{ needs.build.outputs.tag }}"
+
+      # The public origin, through DNS, TLS and the edge — which deploy.sh deliberately does not
+      # gate on (an expired certificate is not a reason to roll back a good build). Checking it
+      # here means a certificate or DNS problem shows up as a red deploy rather than as a phone
+      # call.
+      - name: Check the public origin
+        run: |
+          curl -fsS --retry 5 --retry-delay 5 --retry-connrefused \
+            "https://${{ vars.DOMAIN }}/healthz"
+          curl -fsS "https://${{ vars.DOMAIN }}/manifest.webmanifest" | head -c 200
+          echo
+          echo "Live: ${{ needs.build.outputs.tag }}"

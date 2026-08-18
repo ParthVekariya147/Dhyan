@@ -209,32 +209,32 @@ group('readRecoveryUrl - describes the link, never authorises it');
   eq(
     'the implicit link',
     readRecoveryUrl('#access_token=abc&refresh_token=def&type=recovery', ''),
-    { maybeRecovery: true, failed: false, reason: '' }
+    { maybeRecovery: true, failed: false, reason: '', tokenHash: '' }
   );
   eq(
     'the pkce link',
     readRecoveryUrl('', '?code=a-uuid-here'),
-    { maybeRecovery: true, failed: false, reason: '' }
+    { maybeRecovery: true, failed: false, reason: '', tokenHash: '' }
   );
   eq(
     'an expired link is a refusal, and says why internally',
     readRecoveryUrl('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired', ''),
-    { maybeRecovery: false, failed: true, reason: 'otp_expired' }
+    { maybeRecovery: false, failed: true, reason: 'otp_expired', tokenHash: '' }
   );
   eq(
     'an error in the query string is caught too',
     readRecoveryUrl('', '?error=access_denied&error_code=otp_expired'),
-    { maybeRecovery: false, failed: true, reason: 'otp_expired' }
+    { maybeRecovery: false, failed: true, reason: 'otp_expired', tokenHash: '' }
   );
   eq(
     'a bare error with no code still refuses',
     readRecoveryUrl('#error=server_error', ''),
-    { maybeRecovery: false, failed: true, reason: 'server_error' }
+    { maybeRecovery: false, failed: true, reason: 'server_error', tokenHash: '' }
   );
   eq(
     'a plain visit is neither',
     readRecoveryUrl('', ''),
-    { maybeRecovery: false, failed: false, reason: '' }
+    { maybeRecovery: false, failed: false, reason: '', tokenHash: '' }
   );
   eq(
     'a signup confirmation is not a recovery',
@@ -243,7 +243,36 @@ group('readRecoveryUrl - describes the link, never authorises it');
     // the page still requires a session AND pairs it with this hint, and Supabase will
     // refuse an updateUser that the session does not authorise. The point of the assertion
     // is that this function does not pretend to tell them apart - the session does.
-    { maybeRecovery: true, failed: false, reason: '' }
+    { maybeRecovery: true, failed: false, reason: '', tokenHash: '' }
+  );
+
+  /*
+    The shape this project now mails, and the one rule attached to it.
+
+    The hash is carried only when the link says `type=recovery`, because that is the type
+    the page then passes to verifyOtp. Carrying a signup or email-change hash under a
+    'recovery' claim would be the page telling Supabase something the link never said - so
+    the pairing is asserted here, where it is one line, rather than trusted in the caller.
+  */
+  eq(
+    'the verify link carries its hash',
+    readRecoveryUrl('', '?token_hash=pkce_abc123&type=recovery'),
+    { maybeRecovery: true, failed: false, reason: '', tokenHash: 'pkce_abc123' }
+  );
+  eq(
+    'a hash in the fragment is read too',
+    readRecoveryUrl('#token_hash=abc&type=recovery', ''),
+    { maybeRecovery: true, failed: false, reason: '', tokenHash: 'abc' }
+  );
+  eq(
+    'a hash from another kind of mail is not carried as a recovery',
+    readRecoveryUrl('', '?token_hash=abc&type=signup'),
+    { maybeRecovery: false, failed: false, reason: '', tokenHash: '' }
+  );
+  eq(
+    'a refusal carries no hash, whatever else the URL holds',
+    readRecoveryUrl('', '?token_hash=abc&type=recovery&error_code=otp_expired'),
+    { maybeRecovery: false, failed: true, reason: 'otp_expired', tokenHash: '' }
   );
 
   // The property that keeps this honest: a hand-written fragment is indistinguishable from
@@ -390,9 +419,35 @@ group('§10/§24 - the update is bound to the session, not to a named user');
   ok('updatePassword takes only a password', /async updatePassword\(password\)/.test(auth));
   ok('updateUser is called with the password alone', /updateUser\(\{ password \}\)/.test(auth));
 
+  /*
+    The verify step, which is the only thing between a link and a session.
+
+    It takes a hash and a type and nothing else - no address, no user id. A variant that
+    accepted an email would let the page name whose password is about to be changed, which
+    is the same defect as an updatePassword(email, password) and is worth its own assertion
+    because it would arrive looking like a convenience.
+  */
+  ok('the token is verified as a recovery, never as another type', /verifyOtp\(\{ type: 'recovery', token_hash \}\)/.test(auth));
+  ok('the verify names no user', !/verifyOtp\(\{[^}]*email/.test(auth));
+  ok('the page never calls verifyOtp itself', !pageCode.includes('verifyOtp'));
+
   // The recovery mail must point at the reset page and not, as it once did, at લોગિન.
   ok('the mail redirects to the reset page', auth.includes('resetRedirectTo('));
   ok('no hardcoded localhost reaches the redirect', !/redirectTo:\s*['"`]http:\/\/localhost/.test(auth));
+
+  /*
+    The client option the whole mailed flow rests on, asserted because reverting it breaks
+    nothing that runs in a browser the developer is looking at.
+
+    PKCE - supabase-js's default - keeps the code verifier in the localStorage of the profile
+    that asked for the mail, so the link only works if it is opened there. It is opened in the
+    Gmail app's webview instead, and it also makes GoTrue store the token under a `pkce_`
+    prefix that verifyOtp cannot turn straight into a session. Both failures look like
+    "the link is expired" and neither reproduces on a desktop where mail and app share a
+    browser, which is exactly why this is a test and not a comment.
+  */
+  const client = fs.readFileSync(path.join(ROOT, 'shared', 'supabase', 'client.js'), 'utf8');
+  ok('the mailed link is not bound to one browser profile', /flowType:\s*'implicit'/.test(client));
 }
 
 /*
